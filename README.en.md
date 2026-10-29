@@ -10,7 +10,7 @@ Place actors on a stage, draw their paths, arrange actions on a timeline, and sh
 
 ## Get started
 
-Download **Stagebook-v9.0.0-offline.zip** from this repository's Releases. Extract it and open **走台本.html** in a desktop browser. Choose the named offline asset; the Source code archives are for development.
+Download **[Stagebook-v9.0.0-offline.zip](https://github.com/YiChenLu0119-prog/stagebook/releases/download/v9.0.0/Stagebook-v9.0.0-offline.zip)** from [Releases](https://github.com/YiChenLu0119-prog/stagebook/releases). Extract it and open **走台本.html** in a desktop browser. Choose the named offline asset; the Source code archives are for development.
 
 Explore the generic sample, create a production from the application menu, or use **Import** to open a production ZIP or folder. End users do not need Python or Node.js.
 

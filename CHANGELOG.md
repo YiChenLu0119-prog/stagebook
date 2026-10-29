@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased — 9.0.0
+## 9.0.0 — 2026-10-29
 
 This multilingual preview succeeds the local v8 editing release. The production data format remains version 1.
 
