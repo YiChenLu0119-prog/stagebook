@@ -13,7 +13,7 @@ let dirty=false,history=[],future=[],historyFiles=[],futureFiles=[],rootDir=null
 const show=()=>lib.shows.find(s=>s.id===showId), song=()=>show()?.songs.find(s=>s.id===songId), entity=id=>[...(show()?.actors||[]),...(show()?.props||[])].find(e=>e.id===id);
 const activeEntities=()=>[...(song()?.castIds||[]),...(song()?.propIds||[])].map(entity).filter(Boolean);
 const fmt=(v,dec=1)=>{v=Math.max(0,Number(v)||0);return `${String(Math.floor(v/60)).padStart(2,'0')}:${(v%60).toFixed(dec).padStart(dec?4:2,'0')}`;};
-const time=()=>C.total(song(),audioDuration);
+const time=()=>C.total(song()||{cues:[],lyrics:[]},audioDuration);
 const stepPausesEnabled=()=>show()?.pauseAtSteps!==false;
 const displayName=e=>e?.name||e?.label||e?.id||tr('未知对象');
 const field=(label,key,value,type='text',extra='')=>`<label class="field"><span>${esc(label)}</span><input data-field="${esc(key)}" type="${type}" value="${esc(value??'')}" ${extra}></label>`;
@@ -21,6 +21,19 @@ const notesField=(obj,key='notes')=>ui`<label class="field"><span>自由备注</
 function toast(s){$('#toast').textContent=s;$('#toast').classList.remove('hidden');clearTimeout(toast.timer);toast.timer=setTimeout(()=>$('#toast').classList.add('hidden'),4200);}
 function modal(title,body){$('#dialogTitle').textContent=title;$('#dialogBody').innerHTML=body;if(!$('#dialog').open)$('#dialog').showModal();}
 function closeModal(){$('#dialog').close();}
+function confirmAction(message){
+ pause();return new Promise(resolve=>{
+  const dialog=$('#dialog');let settled=false;
+  const finish=value=>{if(settled)return;settled=true;dialog.removeEventListener('cancel',cancel);dialog.removeEventListener('close',closed);dialog.close();resolve(value);};
+  const cancel=event=>{event.preventDefault();finish(false);},closed=()=>finish(false);
+  modal(tr('请确认'),ui`<p>${esc(message)}</p><div class="dialogactions"><button id="confirmCancel">取消</button><button id="confirmContinue" class="gold">继续</button></div>`);
+  $('#confirmCancel').onclick=()=>finish(false);$('#confirmContinue').onclick=()=>finish(true);dialog.addEventListener('cancel',cancel);dialog.addEventListener('close',closed);$('#confirmCancel').focus();
+ });
+}
+function nameDialog(title,label,onCreate){
+ pause();modal(title,ui`<form id="nameForm"><label class="field"><span>${label}</span><input id="newName" aria-label="${label}" autocomplete="off" maxlength="160"></label><p id="nameError" class="warning" role="status"></p><div class="dialogactions"><button type="button" id="nameCancel">取消</button><button type="submit" class="gold">创建</button></div></form>`);
+ $('#nameCancel').onclick=closeModal;$('#nameForm').onsubmit=async event=>{event.preventDefault();const name=$('#newName').value.trim();if(!name){$('#nameError').textContent=tr('请输入名称。');$('#newName').focus();return;}closeModal();try{await onCreate(name);}catch(error){toast(error.message);}};$('#newName').focus();
+}
 function setInterfaceLanguage(language){
  const previous=StageI18n.language;if(language===previous)return;
  const savedStatus=$('#saveState').textContent,savedToast=$('#toast').textContent;
@@ -42,18 +55,18 @@ function mutate(fn,render=true){snapshot();fn();changed();if(render)renderAll();
 function changed(){editVersion++;dirty=true;$('#saveState').textContent=tr('未保存');$('#saveState').classList.add('dirty');$$('[data-action=save]').forEach(b=>{b.textContent=tr('保存 ·');b.title=tr('有未保存修改');});clearTimeout(changed.timer);changed.timer=setTimeout(saveDraft,650);}
 function clean(){dirty=false;$('#saveState').textContent=rootDir?tr('已保存到文件夹'):tr('已下载演出包');$('#saveState').classList.remove('dirty');$$('[data-action=save]').forEach(b=>{b.textContent=tr('保存');b.title=rootDir?tr('保存到 ')+rootDir.name:tr('下载演出包');});saveDraft();}
 function undo(redo=false){
- closeContextMenu(false);selectedRouteNode=null;lyricEditId=null;pause();const src=redo?future:history,dst=redo?history:future,srcFiles=redo?futureFiles:historyFiles,dstFiles=redo?historyFiles:futureFiles;if(!src.length)return;
+ const geometryContext=['stage','wall','backstage','anchor'].includes(inspect.type)?{...inspect}:null;const routeContext=inspect.type==='move'?{id:inspect.id,node:selectedRouteNode&&{...selectedRouteNode}}:null;closeContextMenu(false);selectedRouteNode=null;lyricEditId=null;pause();const src=redo?future:history,dst=redo?history:future,srcFiles=redo?futureFiles:historyFiles,dstFiles=redo?historyFiles:futureFiles;if(!src.length)return;
  const oldTime=current,oldSong=showId+'/'+songId;
- const oldKey=showId+'/'+songId+'/'+(song().audio?.file||''),assetKey=song().audio?keyPath()+song().audio.file:null,oldAsset=assetKey&&(pendingAssets.get(assetKey)||resources.get(assetKey));
+ const oldKey=showId+'/'+songId+'/'+(song()?.audio?.file||''),assetKey=song()?.audio?keyPath()+song().audio.file:null,oldAsset=assetKey&&(pendingAssets.get(assetKey)||resources.get(assetKey));
  dst.push(C.clone(lib));dstFiles.push(fileSnapshot());lib=src.pop();const files=srcFiles.pop();if(files){resources=files.resources;pendingAssets=files.pending;if(rootDir!==files.root)diskSnapshots=files.snapshots;rootDir=files.root;if(typeof appRootDir!=='undefined')appRootDir=files.parent;}
- repairSelection();if(oldSong===showId+'/'+songId)positionMusicCursor(oldTime);changed();renderAll();const newAssetKey=song().audio?keyPath()+song().audio.file:null,newAsset=newAssetKey&&(pendingAssets.get(newAssetKey)||resources.get(newAssetKey));if(oldKey!==showId+'/'+songId+'/'+(song().audio?.file||'')||oldAsset!==newAsset||audioState==='loading'||audioImportBusy)loadAudio().then(()=>renderAll());
+ repairSelection();if(geometryContext){inspect=geometryContext;if(!target())inspect={type:'song',id:songId};selected=[];}if(routeContext&&oldSong===showId+'/'+songId){const cue=song().cues.find(c=>c.moves.some(m=>m.id===routeContext.id)),move=cue?.moves.find(m=>m.id===routeContext.id);if(move){selectedCue=cue.id;selected=[move.entityId];inspect={type:'move',id:move.id};tool='select';stagePhase='end';if(routeContext.node){const index=Math.min(routeContext.node.index,move.points.length-1),key=routeContext.node.key;selectedRouteNode={...routeContext.node,index,key:key==='point'||C.point(move.points[index][key])?key:'point'};}}}if(oldSong===showId+'/'+songId)positionMusicCursor(oldTime);changed();renderAll();const newAssetKey=song()?.audio?keyPath()+song().audio.file:null,newAsset=newAssetKey&&(pendingAssets.get(newAssetKey)||resources.get(newAssetKey));if(oldKey!==showId+'/'+songId+'/'+(song()?.audio?.file||'')||oldAsset!==newAsset||audioState==='loading'||audioImportBusy)loadAudio().then(()=>renderAll());
 }
 
 function repairSelection(){if(!show())showId=lib.shows[0]?.id;if(!song())songId=show()?.songs[0]?.id;selected=selected.filter(id=>activeEntities().some(e=>e.id===id));if(!song().cues.some(c=>c.id===selectedCue))prepareHumanScene();else{stagePhase='end';inspect=selected.length>1?{type:'group'}:selected.length===1?{type:'entity',id:selected[0]}:{type:'cue',id:selectedCue};}}
-function target(){const s=show(),q=song();if(!s||!q)return null;switch(inspect.type){case 'show':return s;case 'stage':return s.stage;case 'song':return q;case 'entity':return entity(inspect.id);case 'cue':return q.cues.find(x=>x.id===inspect.id);case 'move':return q.cues.flatMap(x=>x.moves).find(x=>x.id===inspect.id);case 'lyric':return q.lyrics.find(x=>x.id===inspect.id);case 'annotation':return q.annotations.find(x=>x.id===inspect.id);case 'anchor':return s.stage.anchors.find(x=>x.id===inspect.id);case 'wall':return s.stage.walls.find(x=>x.id===inspect.id);case 'backstage':return s.stage.backstage.find(x=>x.id===inspect.id);}}
-function inspectObject(type,id){if(type!=='move')selectedRouteNode=null;inspect={type,id};if(type==='entity'){pause();singleStepEnd=null;selected=[id];syncPlaybackContext();inspect={type,id};}if(type==='cue'){selectedCue=id;}if(type==='move'){const c=song().cues.find(c=>c.moves.some(m=>m.id===id));selectedCue=c?.id;selected=[target()?.entityId].filter(Boolean);}if(['cue','move'].includes(type)&&!rehearsal){pause();singleStepEnd=null;stagePhase='end';tool='select';}renderInspector();renderStage();renderBottom();renderEditorBar();updateTransport();renderLyricsDock();}
-async function switchSong(id){pause();songId=id;selected=[];prepareHumanScene();focusActor=song()?.castIds[0]||'';renderAll();await loadAudio();renderAll();}
-async function switchShow(id){pause();showId=id;songId=show().songs[0]?.id;selected=[];prepareHumanScene();focusActor=song()?.castIds[0]||'';renderAll();await loadAudio();renderAll();}
+function target(){const s=show(),q=song();if(!s||!q)return null;switch(inspect.type){case 'show':return s;case 'stage':return s.stage;case 'song':case 'song-settings':return q;case 'entity':return entity(inspect.id);case 'cue':return q.cues.find(x=>x.id===inspect.id);case 'move':return q.cues.flatMap(x=>x.moves).find(x=>x.id===inspect.id);case 'lyric':return q.lyrics.find(x=>x.id===inspect.id);case 'annotation':return q.annotations.find(x=>x.id===inspect.id);case 'anchor':return s.stage.anchors.find(x=>x.id===inspect.id);case 'wall':return s.stage.walls.find(x=>x.id===inspect.id);case 'backstage':return s.stage.backstage.find(x=>x.id===inspect.id);}}
+function inspectObject(type,id){if(type!=='move')selectedRouteNode=null;if(['stage','wall','backstage','anchor'].includes(type))selected=[];inspect={type,id};if(type==='entity'){pause();singleStepEnd=null;selected=[id];syncPlaybackContext();inspect={type,id};}if(type==='cue'){selectedCue=id;}if(type==='move'){const c=song().cues.find(c=>c.moves.some(m=>m.id===id));selectedCue=c?.id;selected=[target()?.entityId].filter(Boolean);}if(['cue','move'].includes(type)&&!rehearsal){pause();singleStepEnd=null;stagePhase='end';tool='select';}renderInspector();renderStage();renderBottom();renderEditorBar();updateTransport();renderLyricsDock();}
+async function switchSong(id){songId=id;pause();selected=[];prepareHumanScene();focusActor=song()?.castIds[0]||'';renderAll();await loadAudio();renderAll();}
+async function switchShow(id){showId=id;songId=show()?.songs[0]?.id;pause();selected=[];prepareHumanScene();focusActor=song()?.castIds[0]||'';renderAll();await loadAudio();renderAll();}
 function renderAll(){
  if(!song())return;
  syncRouteSelection();if(!playing&&stagePhase==='live')syncPlaybackContext();
@@ -86,7 +99,7 @@ function renderStage(){
  const s=show(),q=song();if(!q)return;
  const svg=$('#stage'),bounds=[...C.flatten(s.stage.boundary),...s.stage.backstage.flatMap(z=>z.points)];
  const width=Math.max(180,...bounds.map(p=>Math.abs(p.x)*2+28)),height=Math.max(115,...bounds.map(p=>Math.abs(p.y)*2+35));
- const vw=(rotation%180?height:width)/zoom,vh=(rotation%180?width:height)/zoom;const visualScale=Math.max(.2,Math.min(svg.clientWidth/vw,svg.clientHeight/vh));svg.setAttribute('viewBox',`${-vw/2} ${-vh/2} ${vw} ${vh}`);
+ const frozen=drag?.viewBox?.split(' ').map(Number),vw=frozen?.[2]||(rotation%180?height:width)/zoom,vh=frozen?.[3]||(rotation%180?width:height)/zoom;const visualScale=Math.max(.2,Math.min(svg.clientWidth/vw,svg.clientHeight/vh));svg.setAttribute('viewBox',`${-vw/2} ${-vh/2} ${vw} ${vh}`);
  $('#rotationLabel').textContent=rotation+'°';
  let html=`<defs><marker id="routeArrow" markerWidth="5" markerHeight="5" refX="4" refY="2.5" orient="auto-start-reverse"><path d="M 0 0 L 5 2.5 L 0 5 Z" fill="context-stroke"/></marker><pattern id="grid" width="10" height="10" patternUnits="userSpaceOnUse"><path d="M 10 0 L 0 0 0 10" fill="none" stroke="#8c7a55" stroke-opacity=".16" stroke-width=".2"/></pattern><filter id="shadow"><feDropShadow dx="0" dy=".6" stdDeviation=".5" flood-opacity=".19"/></filter></defs><g id="scene" transform="rotate(${rotation})">`;
  for(const z of s.stage.backstage)html+=`<path d="${C.path(z.points,true)}" fill="#ad9c7d27" stroke="#9a8b6b" stroke-width=".35" stroke-dasharray="1 1" data-obj="backstage" data-id="${esc(z.id)}"/><text x="${z.points[0].x+3}" y="${z.points[0].y+4}" fill="#8b7854" font-size="${Math.max(2.5,8/visualScale)}" pointer-events="none">${esc(z.name)}</text>`;
@@ -113,6 +126,9 @@ function renderStage(){
  }
  const m=inspect.type==='move'?target():null;
  if(m&&!rehearsal&&!playing&&stagePhase==='end'&&tool!=='initial')html+=routeHandlesHTML(m,visualScale);
+ if(!rehearsal&&['wall','backstage'].includes(inspect.type)){
+  const object=target(),radius=Math.max(1.4,6/visualScale);if(object){html+=`<path d="${C.path(object.points,inspect.type==='backstage')}" fill="none" stroke="#bb7c2d" stroke-width=".8" data-obj="${inspect.type}" data-id="${esc(object.id)}" style="cursor:move"/>`;object.points.forEach((p,i)=>{html+=ui`<g data-stage-point="${i}" role="button" tabindex="0" aria-label="拖动${esc(object.name)}的第 ${i+1} 个点" class="object-control"><circle cx="${p.x}" cy="${p.y}" r="${radius*1.8}" fill="transparent"/><rect x="${p.x-radius}" y="${p.y-radius}" width="${radius*2}" height="${radius*2}" fill="#fff4d3" stroke="#9b651f" stroke-width=".6"/></g>`;});}
+ }
  if(inspect.type==='stage'&&!rehearsal)s.stage.boundary.forEach((p,i)=>{html+=`<circle cx="${p.x}" cy="${p.y}" r="1.1" fill="#d9b777" stroke="#735d34" stroke-width=".4" data-boundary="${i}:point" class="object-control"/>`;for(const k of ['c1','c2'])if(p[k])html+=`<circle cx="${p[k].x}" cy="${p[k].y}" r=".9" fill="#bd7b57" data-boundary="${i}:${k}" class="object-control"/>`;});
  const audience=s.stage.audience||'south';const ax=audience==='west'?-width/2+7:audience==='east'?width/2-7:0,ay=audience==='north'?-height/2+7:audience==='south'?height/2-7:0;
  html+=ui`<g transform="translate(${ax} ${ay}) rotate(${-rotation})"><text text-anchor="middle" font-size="2.5" fill="#8b7249" letter-spacing="1.5">— 观 众 侧 —</text></g></g>`;
@@ -122,7 +138,7 @@ function renderInspector(){
  $('#inspectorTitle').textContent=rehearsal?tr('演员排练'):tr('详情与笔记');
  if(rehearsal){renderRehearsal();return;}
  if(renderHumanInspector())return;
- const t=target()||song();if(!target())inspect={type:'song',id:songId};const type=inspect.type,q=song();
+ const t=target()||song();if(!target())inspect={type:'song',id:songId};const type=inspect.type==='song-settings'?'song':inspect.type,q=song();
  let html=`<span class="tag">${({show:'PRODUCTION',stage:'STAGE PLAN',song:'SONG',entity:'CHARACTER / PROP',cue:'BLOCKING STEP',move:'MOVEMENT',lyric:'LYRIC',annotation:'NOTE',anchor:'MARK',wall:'WALL',backstage:'BACKSTAGE'})[type]||'DETAIL'}</span>`;
  if(type==='show')html+=field(tr('演出名称'),'title',t.title)+notesField(t)+ui`<button class="danger full" data-action="delete-show">删除这场演出</button>`;
  else if(type==='song'){
@@ -131,7 +147,7 @@ function renderInspector(){
  const p=q.initial[t.id]||{x:0,y:0};html+=field(tr('角色／道具名称'),'name',t.name)+ui`<div class="two">${field(tr('舞台短标签'),'label',t.label)}${field(tr('颜色'),'color',t.color,'color')}</div><h3>本曲目起始位置</h3><div class="two">${field('X','initial.x',p.x,'number','step="0.1"')}${field('Y','initial.y',p.y,'number','step="0.1"')}</div>`+notesField(t)+ui`<button class="full" data-action="entity-records">查看本曲目全部记录</button><button class="danger full" data-action="delete-entity">从演出删除对象</button>`;
  }else if(type==='cue'){
  const ev=C.events(q).find(e=>e.cue.id===t.id);$('#inspectorTitle').textContent=tr('本步笔记');
- html=field(tr('步骤名称'),'title',t.title)+ui`<label class="field"><span>这一步的安排</span><textarea aria-label="本步安排" data-field="notes" placeholder="例如：所有人面向观众，Burr 向前两步。">${esc(t.notes||'')}</textarea></label><p class="context-tip">点击舞台上的演员，写下他在这一步的动作。</p><details class="advanced-details"><summary>时间与暂停 · ${t.duration} 秒</summary>${q.mode==='timed'?field(tr('开始秒数'),'at',t.at,'number','min="0" step="0.1"'):''}${field(tr('移动时长（秒）'),'duration',t.duration,'number','min="0" step="0.1"')}<label class="smallcheck"><input type="checkbox" data-field="stopAfter" ${t.stopAfter?'checked':''}>到达后暂停</label>${!stepPausesEnabled()?tr('<p class="footer-note">当前为连续播放，暂停标记暂不生效。</p>'):''}</details><details class="advanced-details"><summary>本步行动 · ${t.moves.length}</summary>`+t.moves.map(m=>`<button class="routeitem full" data-inspect="entity" data-id="${esc(m.entityId)}">${esc(displayName(entity(m.entityId)))}</button>`).join('')+ui`</details><details class="advanced-details"><summary>复制、排序与删除</summary><div class="row wrap"><button data-action="cue-up">↑ 前移</button><button data-action="cue-down">↓ 后移</button><button data-action="duplicate-cue">复制步骤</button><button class="danger" data-action="delete-cue">删除步骤</button></div></details>`;
+ html=field(tr('步骤名称'),'title',t.title)+ui`<label class="field"><span>这一步的安排</span><textarea aria-label="本步安排" data-field="notes" placeholder="例如：所有人面向观众，Burr 向前两步。">${esc(t.notes||'')}</textarea></label><p class="context-tip">点击舞台上的演员，写下他在这一步的动作。</p><details class="advanced-details"><summary>时间与暂停 · ${t.duration} 秒</summary>${q.mode==='timed'?field(tr('开始秒数'),'at',t.at,'number','min="0" step="0.1"'):''}${field(tr('移动时长（秒）'),'duration',t.duration,'number','min="0" step="0.1"')}<label class="smallcheck"><input type="checkbox" data-field="stopAfter" ${t.stopAfter?'checked':''}>到达后暂停</label>${!stepPausesEnabled()?tr('<p class="footer-note">当前为连续播放，暂停标记暂不生效。</p>'):''}</details><details class="advanced-details"><summary>本步行动 · ${t.moves.length}</summary>`+t.moves.map(m=>`<button class="routeitem full" data-inspect="entity" data-id="${esc(m.entityId)}">${esc(displayName(entity(m.entityId)))}</button>`).join('')+ui`</details><details class="advanced-details"><summary>${tr(q.mode==='steps'?'复制、排序与删除':'复制与删除')}</summary><div class="row wrap">${q.mode==='steps'?tr('<button data-action="cue-up">↑ 前移</button><button data-action="cue-down">↓ 后移</button>'):''}<button data-action="duplicate-cue">复制步骤</button><button class="danger" data-action="delete-cue">删除步骤</button></div></details>`;
 
  }else if(type==='move'){
  html=pathInspectorHTML(t);
@@ -139,9 +155,9 @@ function renderInspector(){
  else if(type==='annotation')html+=field(tr('记录标题'),'title',t.title)+ui`<div class="two">${field(tr('开始秒数（可空）'),'start',t.start,'number','min="0" step="0.1"')}${field(tr('结束秒数（可空）'),'end',t.end,'number','min="0" step="0.1"')}</div><div class="field"><span>提醒谁（不选则提醒全体）</span><div class="people-checks">${activeEntities().map(en=>`<label><input type="checkbox" data-note-entity="${esc(en.id)}" ${t.entityIds?.includes(en.id)?'checked':''}>${esc(en.name)}</label>`).join('')}</div></div>`+notesField(t)+ui`<button class="danger full" data-action="delete-annotation">删除这条记录</button>`;
 
  else if(type==='stage'){
- html+=ui`<h2 style="margin-top:14px">固定舞台 · 自由单位</h2><label class="field"><span>观众所在方向（原始坐标）</span><select data-field="audience">${[['south',tr('下侧')],['north',tr('上侧')],['west',tr('左侧')],['east',tr('右侧')]].map(([v,l])=>`<option value="${v}" ${t.audience===v?'selected':''}>${l}</option>`).join('')}</select></label><p class="footer-note">X 向右，Y 向下。四向旋转只改变视图。边界圆点和曲线控制点可以直接拖动。</p><div class="row wrap"><button data-action="add-anchor">＋ 标记／入口</button><button data-action="add-wall">＋ 墙</button><button data-action="add-backstage">＋ 后台</button></div>`+['anchors','walls','backstage'].map(k=>`<h3>${({anchors:tr('标记与出入口'),walls:tr('墙'),backstage:tr('后台区域')})[k]}</h3>`+t[k].map(x=>`<div class="routeitem" data-inspect="${({anchors:'anchor',walls:'wall',backstage:'backstage'})[k]}" data-id="${esc(x.id)}">${esc(x.name)}</div>`).join('')).join('')+notesField(t)+ui`<button class="full" data-action="stage-json">编辑舞台坐标文本</button>`;
+ html+=ui`<h2 style="margin-top:14px">舞台布局</h2><label class="field"><span>观众所在方向</span><select data-field="audience">${[['south',tr('下侧')],['north',tr('上侧')],['west',tr('左侧')],['east',tr('右侧')]].map(([v,l])=>`<option value="${v}" ${t.audience===v?'selected':''}>${l}</option>`).join('')}</select></label><p class="context-tip">拖动舞台边界点改变外形。选中墙线、后台或标记后，可直接在舞台上拖动调整。</p><div class="row wrap"><button data-action="add-anchor">＋ 标记／入口</button><button data-action="add-wall">＋ 墙</button><button data-action="add-backstage">＋ 后台</button></div>`+['anchors','walls','backstage'].map(k=>`<h3>${({anchors:tr('标记与出入口'),walls:tr('墙'),backstage:tr('后台区域')})[k]}</h3>`+t[k].map(x=>`<div class="routeitem" data-inspect="${({anchors:'anchor',walls:'wall',backstage:'backstage'})[k]}" data-id="${esc(x.id)}">${esc(x.name)}</div>`).join('')).join('')+notesField(t)+ui`<details class="advanced-details"><summary>高级舞台数据</summary><button class="full" data-action="stage-json">编辑舞台坐标文本</button></details>`;
  }else {
- html+=field(tr('名称'),'name',t.name);if(type==='anchor')html+=ui`<div class="two">${field('X','x',t.x,'number','step="0.1"')}${field('Y','y',t.y,'number','step="0.1"')}</div><label class="field"><span>类型</span><select data-field="kind"><option value="mark" ${t.kind==='mark'?'selected':''}>位置标记</option><option value="gate" ${t.kind==='gate'?'selected':''}>上下场口</option></select></label>`;else html+=ui`<label class="field"><span>坐标点（JSON）</span><textarea data-field="points" class="importarea">${esc(JSON.stringify(t.points,null,2))}</textarea></label>`;
+ html+=field(tr('名称'),'name',t.name);if(type==='anchor')html+=ui`<p class="context-tip">拖动舞台上的标记改变位置。</p><details class="advanced-details"><summary>高级坐标数据</summary><div class="two">${field('X','x',t.x,'number','step="0.1"')}${field('Y','y',t.y,'number','step="0.1"')}</div></details><label class="field"><span>类型</span><select data-field="kind"><option value="mark" ${t.kind==='mark'?'selected':''}>位置标记</option><option value="gate" ${t.kind==='gate'?'selected':''}>上下场口</option></select></label>`;else html+=ui`<p class="context-tip">拖动舞台上的方点改变形状；拖动轮廓整体移动。</p><details class="advanced-details"><summary>高级坐标数据</summary><label class="field"><span>坐标点（JSON）</span><textarea data-field="points" class="importarea">${esc(JSON.stringify(t.points,null,2))}</textarea></label></details>`;
  html+=notesField(t)+ui`<button class="danger full" data-action="delete-stage-object">删除对象</button>`;
  }
  const relevant=issuesCache.filter(i=>i.type===type&&i.id===inspect.id);html+=relevant.map(i=>`<p class="warning">${esc(i.text)}</p>`).join('');
@@ -175,7 +191,7 @@ function records(){
 }
 function recordHTML(r){return `<div class="searchresult" data-record='${esc(JSON.stringify({showId:r.showId,songId:r.songId,type:r.type,id:r.id,time:r.time}))}'><small>${esc(r.label)}${r.time!=null?' · '+fmt(r.time):''}</small><p>${esc(r.notes)}</p></div>`;}
 
-function updatePlayhead(){const head=$('#playhead');if(head){const w=head.parentElement.clientWidth-TIMELINE_LABEL;head.style.left=(TIMELINE_LABEL+Math.min(1,current/time())*w)+'px';}}
+function updatePlayhead(){const head=$('#playhead');if(head&&bottomTab==='timeline')head.style.left=(TIMELINE_LABEL+current*timelineMetrics().pixelsPerSecond)+'px';}
 function updateTransport(){
  $('#currentTime').textContent=fmt(current);$('#totalTime').textContent='/ '+fmt(time());$('#playButton').textContent=playing?'Ⅱ':'▶';
  const pauses=stepPausesEnabled(),pauseButton=$('#stepPauseButton');pauseButton.textContent=pauses?tr('逐步暂停'):tr('连续播放');pauseButton.classList.toggle('selected',!pauses);pauseButton.setAttribute('aria-pressed',String(pauses));pauseButton.title=pauses?tr('点击统一关闭本场全部曲目的步骤结束暂停'):tr('点击恢复各步骤原有的暂停设置');
@@ -187,8 +203,8 @@ function setStepPauses(enabled){
  mutate(()=>show().pauseAtSteps=enabled,false);updateTransport();renderInspector();toast(enabled?tr('已恢复各步骤原有的暂停设置。'):tr('本场全部曲目已切为连续播放；预览本步仍会在结束时停止。'));
 }
 function pause(){audioPlayGeneration++;playing=false;audio.pause();cancelAnimationFrame(frame);clearInterval(countdownTimer);countdownTimer=null;$('#countdownOverlay').classList.add('hidden');updateTransport();if(song())renderEditorBar();}
-function positionMusicCursor(t){current=Math.max(0,Math.min(time(),t));if(audioPlayable()&&!audioSilentMode)try{audio.currentTime=Math.min(current,audioDuration||current);if(playing&&audio.paused&&current<audioDuration)audio.play().catch(()=>{if(playing){pause();toast(tr('音乐未能继续播放，请重新点播放。'));}});}catch{}lastClock=performance.now();}
-function seek(t){stagePhase='live';positionMusicCursor(t);syncPlaybackContext();renderInspector();renderBottom();renderStage();updateTransport();renderEditorBar();if(rehearsal)renderRehearsal();}
+function positionMusicCursor(t){const value=Number.isFinite(t)?t:0;current=Math.max(0,Math.min(rehearsal||playing?time():86400,value));if(!rehearsal&&!playing)ensureTimelineRange(current);if(audioPlayable()&&!audioSilentMode)try{audio.currentTime=Math.min(current,audioDuration||current);if(playing&&audio.paused&&current<audioDuration)audio.play().catch(()=>{if(playing){pause();toast(tr('音乐未能继续播放，请重新点播放。'));}});}catch{}lastClock=performance.now();}
+function seek(t){if(!rehearsal&&tool==='initial'&&t>0){tool='select';selected=[];inspect={type:'song',id:songId};}stagePhase='live';positionMusicCursor(t);syncPlaybackContext();renderInspector();renderBottom();renderStage();updateTransport();renderEditorBar();if(rehearsal)renderRehearsal();}
 async function play(immediate=false,silent=false){
  if(playing||countdownTimer){pause();return;}const request=++audioPlayGeneration,identity=song();
  if(identity.audio&&!silent){if(audioState==='loading')await audioReady;if(request!==audioPlayGeneration||identity!==song())return;if(!audioPlayable()){toast(tr('音乐未连接，请连接音乐或点「静音走台」。'));return;}}
@@ -223,7 +239,13 @@ function keyPath(){return `shows/${showId}/songs/${songId}/`;}
 async function resourceFile(key){const r=pendingAssets.get(key)||resources.get(key);return r?.getFile?await r.getFile():r||embeddedAudioFile(key);}
 function prepareHumanSceneAfterDelete(){const at=current;if(selectedCue){chooseStep(selectedCue,'end',false,true);}else{prepareHumanScene();positionMusicCursor(at);renderAll();}}
 function addCue(){return createStepAt(current);}
-function addEntity(isProp){const name=prompt(isProp?tr('道具名称'):tr('剧中角色名'));if(!name?.trim())return;const list=isProp?show().props:show().actors;const en={id:C.id(isProp?'prop':'actor'),name:name.trim(),label:name.trim().replace(/\s/g,'').slice(0,2),color:palette[list.length%palette.length],notes:''};mutate(()=>{list.push(en);(isProp?song().propIds:song().castIds).push(en.id);song().initial[en.id]={x:0,y:0};},false);leftTab=isProp?'props':'actors';inspect={type:'entity',id:en.id};selected=[en.id];renderAll();}
+function nextInitialPosition(q=song()){
+ const boundary=C.flatten(show().stage.boundary),xs=boundary.map(p=>p.x),ys=boundary.map(p=>p.y),cx=(Math.min(...xs)+Math.max(...xs))/2,cy=(Math.min(...ys)+Math.max(...ys))/2;
+ const gap=Math.max(2,Math.min(14,(Math.max(...xs)-Math.min(...xs))/8,(Math.max(...ys)-Math.min(...ys))/6)),used=[...q.castIds,...q.propIds].map(id=>q.initial[id]).filter(C.point),candidates=[];
+ for(let row=-8;row<=8;row++)for(let col=-8;col<=8;col++){const p={x:prettyCoordinate(cx+col*gap),y:prettyCoordinate(cy+row*gap)};if(C.inside(p,boundary)&&C.allowed(p,show().stage))candidates.push(p);}
+ candidates.sort((a,b)=>Math.hypot(a.x-cx,a.y-cy)-Math.hypot(b.x-cx,b.y-cy));return candidates.find(p=>used.every(q=>Math.hypot(p.x-q.x,p.y-q.y)>=gap*.9))||candidates[used.length%candidates.length]||{x:cx,y:cy};
+}
+function addEntity(isProp){nameDialog(tr(isProp?'添加道具':'添加角色'),tr(isProp?'道具名称':'剧中角色名'),name=>{const list=isProp?show().props:show().actors,en={id:C.id(isProp?'prop':'actor'),name,label:name.replace(/\s/g,'').slice(0,2),color:palette[list.length%palette.length],notes:''};mutate(()=>{const p=nextInitialPosition();list.push(en);(isProp?song().propIds:song().castIds).push(en.id);song().initial[en.id]=p;},false);leftTab=isProp?'props':'actors';inspect={type:'entity',id:en.id};selected=[en.id];renderAll();});}
 const liveEditedFields=new WeakSet();
 document.addEventListener('input',ev=>{
  const input=ev.target,key=input.dataset?.field;
@@ -241,7 +263,7 @@ document.addEventListener('change',async ev=>{
   }catch(e){toast(e.message);renderInspector();}
  }else if(input.matches('[data-note-entity]')){const t=target();if(inspect.type==='annotation')mutate(()=>t.entityIds=input.checked?[...new Set([...t.entityIds,input.dataset.noteEntity])]:t.entityIds.filter(id=>id!==input.dataset.noteEntity));
  }else if(input.matches('[data-participation]')){
-  const id=input.dataset.participation;mutate(()=>{const key=show().actors.some(a=>a.id===id)?'castIds':'propIds';if(input.checked){song()[key].push(id);song().initial[id]||={x:0,y:0};}else song()[key]=song()[key].filter(x=>x!==id);});
+  const id=input.dataset.participation;mutate(()=>{const key=show().actors.some(a=>a.id===id)?'castIds':'propIds';if(input.checked){song().initial[id]||=nextInitialPosition();if(!song()[key].includes(id))song()[key].push(id);}else song()[key]=song()[key].filter(x=>x!==id);});
  }else if(input.id==='focusActor'){focusActor=input.value;renderStage();renderRehearsal();}
  else if(input.id==='speed'){rate=Number(input.value);audio.playbackRate=rate;}
  else if(input.id==='showRoutes'||input.id==='showGrid'||input.id==='allRoutes')renderStage();
@@ -262,14 +284,16 @@ $('#dialog').addEventListener('close',()=>{restoring=false;});
 function svgPoint(e){const g=$('#scene');if(!g)return {x:0,y:0};const p=new DOMPoint(e.clientX,e.clientY).matrixTransform(g.getScreenCTM().inverse());return{x:Math.round(p.x*10)/10,y:Math.round(p.y*10)/10};}
 let drag=null;
 $('#stage').addEventListener('pointerdown',ev=>{
- if(ev.button!==0)return;pause();const item=ev.target.closest('[data-entity]'),obj=ev.target.closest('[data-obj]'),handle=ev.target.closest('[data-handle]'),boundary=ev.target.closest('[data-boundary]'),bend=ev.target.closest('[data-bend]');
+ if(ev.button!==0)return;pause();const item=ev.target.closest('[data-entity]'),obj=ev.target.closest('[data-obj]'),handle=ev.target.closest('[data-handle]'),boundary=ev.target.closest('[data-boundary]'),geometry=ev.target.closest('[data-stage-point]'),bend=ev.target.closest('[data-bend]');
  if(item){const id=item.dataset.entity;singleStepEnd=null;if(ev.shiftKey)selected=selected.includes(id)?selected.filter(x=>x!==id):[...selected,id];else if(!selected.includes(id))selected=[id];inspect={type:selected.length>1?'group':'entity',id};if(rehearsal){focusActor=id;renderAll();return;}syncPlaybackContext();const positions={};for(const id of selected)positions[id]=C.clone(viewPosition(id));drag={kind:'entities',origin:svgPoint(ev),ids:[...selected],positions,base:C.clone(song()),started:false,readOnly:tool!=='initial'&&!selectedCue};}
  else if(bend&&!rehearsal){const move=selectedEvent()?.cue.moves.find(m=>m.id===bend.dataset.bend);if(!move)return;const index=+bend.dataset.segment,origin=svgPoint(ev);let t=.5,d=Infinity;for(let i=1;i<20;i++){const q=C.segment(move.points[index-1],move.points[index],i/20),distance=Math.hypot(q.x-origin.x,q.y-origin.y);if(distance<d){d=distance;t=i/20;}}inspect={type:'entity',id:move.entityId};selected=[move.entityId];drag={kind:'bend',origin,id:move.id,index,t,base:C.clone(move.points),started:false};}
  else if(handle&&!rehearsal){selectRouteHandle(handle.dataset.handle,false);drag={kind:'handle',origin:svgPoint(ev),handle:handle.dataset.handle,started:false};}
  else if(boundary&&!rehearsal)drag={kind:'boundary',origin:svgPoint(ev),handle:boundary.dataset.boundary,started:false};
+ else if(geometry&&!rehearsal){drag={kind:'geometry',origin:svgPoint(ev),index:+geometry.dataset.stagePoint,base:C.clone(target().points),started:false};}
+ else if(obj&&!rehearsal&&['wall','backstage','anchor'].includes(obj.dataset.obj)){inspectObject(obj.dataset.obj,obj.dataset.id);const object=target();drag={kind:inspect.type==='anchor'?'anchor':'shape',origin:svgPoint(ev),base:C.clone(inspect.type==='anchor'?{x:object.x,y:object.y}:object.points),started:false};}
  else if(obj&&obj.dataset.obj!=='stage'){inspectObject(obj.dataset.obj,obj.dataset.id);return;}
  else{if(rehearsal)return;drag={kind:'box',origin:svgPoint(ev),started:false,previous:ev.shiftKey?[...selected]:[]};if(!ev.shiftKey){selected=[];inspect={type:selectedCue?'cue':'song',id:selectedCue||songId};}}
- $('#stage').focus({preventScroll:true});$('#stage').setPointerCapture(ev.pointerId);renderInspector();renderStage();
+ if(drag)drag.viewBox=$('#stage').getAttribute('viewBox');$('#stage').focus({preventScroll:true});$('#stage').setPointerCapture(ev.pointerId);renderInspector();renderStage();
 });
 $('#stage').addEventListener('pointermove',ev=>{
  if(!drag)return;const p=svgPoint(ev);let dx=p.x-drag.origin.x,dy=p.y-drag.origin.y;
@@ -281,6 +305,8 @@ $('#stage').addEventListener('pointermove',ev=>{
   const positions={};for(const id of drag.ids){const original=drag.positions[id];if(original)positions[id]={x:Math.round((original.x+dx)*10)/10,y:Math.round((original.y+dy)*10)/10};}
   const q=song();q.initial=C.clone(drag.base.initial);q.cues=C.clone(drag.base.cues);applyPositions(positions);
  }else if(drag.kind==='bend'){const move=selectedEvent()?.cue.moves.find(m=>m.id===drag.id);if(move){move.points=C.clone(drag.base);C.bendSegment(move.points,drag.index,dx,dy,drag.t);changed();}
+ }else if(['geometry','shape','anchor'].includes(drag.kind)){
+  const object=target();if(object){if(drag.kind==='anchor'){object.x=prettyCoordinate(drag.base.x+dx);object.y=prettyCoordinate(drag.base.y+dy);}else{object.points=C.clone(drag.base);const move=p=>{p.x=prettyCoordinate(p.x+dx);p.y=prettyCoordinate(p.y+dy);};if(drag.kind==='shape')for(const p of object.points){move(p);if(p.c1)move(p.c1);if(p.c2)move(p.c2);}else{const p=object.points[drag.index];move(p);if(p.c2)move(p.c2);if(object.points[drag.index+1]?.c1)move(object.points[drag.index+1].c1);}}changed();}
  }else if(drag.kind==='handle'||drag.kind==='boundary'){
   const [i,key]=drag.handle.split(':');const points=drag.kind==='boundary'?show().stage.boundary:target()?.points;if(points){const dest=key==='point'?points[+i]:points[+i][key];dest.x=snapToGrid?Math.round(p.x):p.x;dest.y=snapToGrid?Math.round(p.y):p.y;changed();}
  }else {const lo={x:Math.min(p.x,drag.origin.x),y:Math.min(p.y,drag.origin.y)},hi={x:Math.max(p.x,drag.origin.x),y:Math.max(p.y,drag.origin.y)};selected=[...new Set([...drag.previous,...activeEntities().filter(e=>{const pos=viewPosition(e.id);return pos&&pos.x>=lo.x&&pos.x<=hi.x&&pos.y>=lo.y&&pos.y<=hi.y;}).map(e=>e.id)])];inspect={type:selected.length>1?'group':selected.length?'entity':'cue',id:selected.length===1?selected[0]:selectedCue};}
@@ -328,7 +354,7 @@ async function action(a){
  case 'zoom-in':zoom=Math.min(3,zoom*1.2);renderStage();break;
  case 'zoom-out':zoom=Math.max(.5,zoom/1.2);renderStage();break;
  case 'zoom-reset':zoom=1;renderStage();break;
- case 'song-settings':case 'inspect-song':rehearsal=false;inspectObject('song',songId);break;
+ case 'song-settings':case 'inspect-song':pause();rehearsal=false;inspectObject('song-settings',songId);break;
  case 'show-settings':rehearsal=false;inspectObject('show',showId);break;
  case 'stage-settings':rehearsal=false;inspectObject('stage',showId);break;
  case 'play':singleStepEnd=null;await play();break;
@@ -342,11 +368,11 @@ async function action(a){
  case 'add-cue':createNextStep();break;
  case 'add-actor':addEntity(false);break;
  case 'add-prop':addEntity(true);break;
- case 'add-song':{const name=prompt(tr('曲目名称'));if(!name?.trim())return;const n=C.newSong(name.trim());mutate(()=>s.songs.push(n),false);await switchSong(n.id);break;}
+ case 'add-song':nameDialog(tr('添加曲目'),tr('曲目名称'),async name=>{const n=C.newSong(name);mutate(()=>s.songs.push(n),false);await switchSong(n.id);});break;
  case 'duplicate-song':{const n=C.clone(q);n.id=C.id('song');n.title+=tr(' · 副本');if(q.audio){const f=await resourceFile(keyPath()+q.audio.file);if(f)pendingAssets.set(`shows/${s.id}/songs/${n.id}/${n.audio.file}`,f);}mutate(()=>s.songs.splice(s.songs.indexOf(q)+1,0,n),false);await switchSong(n.id);break;}
- case 'delete-song':if(s.songs.length===1){toast(tr('每场演出至少保留一个曲目。'));break;}if(confirm(tr('删除此曲目及其走台？可通过撤销恢复。'))){mutate(()=>s.songs=s.songs.filter(x=>x.id!==q.id),false);await switchSong(s.songs[0].id);}break;
- case 'delete-show':if(lib.shows.length===1){toast(tr('演出库至少保留一场演出。'));break;}if(confirm(tr('删除这场演出？可通过撤销恢复。'))){mutate(()=>lib.shows=lib.shows.filter(x=>x.id!==s.id),false);await switchShow(lib.shows[0].id);}break;
- case 'delete-entity':if(confirm(tr('从演出名单及所有曲目删除这个对象和它的路线？可撤销。'))){mutate(()=>{s.actors=s.actors.filter(x=>x.id!==t.id);s.props=s.props.filter(x=>x.id!==t.id);for(const song of s.songs){song.castIds=song.castIds.filter(x=>x!==t.id);song.propIds=song.propIds.filter(x=>x!==t.id);delete song.initial[t.id];for(const c of song.cues)c.moves=c.moves.filter(m=>m.entityId!==t.id);for(const n of song.annotations)n.entityIds=(n.entityIds||[]).filter(id=>id!==t.id);}},false);inspect={type:'song',id:q.id};selected=[];renderAll();}break;
+ case 'delete-song':if(s.songs.length===1){toast(tr('每场演出至少保留一个曲目。'));break;}if(await confirmAction(tr('删除此曲目及其走台？可通过撤销恢复。'))){mutate(()=>s.songs=s.songs.filter(x=>x.id!==q.id),false);await switchSong(s.songs[0].id);}break;
+ case 'delete-show':if(lib.shows.length===1){toast(tr('演出库至少保留一场演出。'));break;}if(await confirmAction(tr('删除这场演出？可通过撤销恢复。'))){mutate(()=>lib.shows=lib.shows.filter(x=>x.id!==s.id),false);await switchShow(lib.shows[0].id);}break;
+ case 'delete-entity':if(await confirmAction(tr('从演出名单及所有曲目删除这个对象和它的路线？可撤销。'))){mutate(()=>{s.actors=s.actors.filter(x=>x.id!==t.id);s.props=s.props.filter(x=>x.id!==t.id);for(const song of s.songs){song.castIds=song.castIds.filter(x=>x!==t.id);song.propIds=song.propIds.filter(x=>x!==t.id);delete song.initial[t.id];for(const c of song.cues)c.moves=c.moves.filter(m=>m.entityId!==t.id);for(const n of song.annotations)n.entityIds=(n.entityIds||[]).filter(id=>id!==t.id);}},false);inspect={type:'song',id:q.id};selected=[];renderAll();}break;
  case 'delete-cue':deleteCurrentStep();break;
  case 'duplicate-cue':duplicateCurrentStep();break;
  case 'cue-up':case 'cue-down':reorderCurrentStep(a==='cue-up'?-1:1);break;
@@ -369,7 +395,7 @@ async function action(a){
  case 'remove-audio':if(q.audio){mutate(()=>q.audio=null,false);await loadAudio();renderAll();}break;
  }
 }
-function libraryDialog(){modal(tr('演出库'),ui`<div class="row"><span class="muted">每场演出独立保存舞台、角色、道具与曲目。</span><span class="spacer"></span><button id="newShow" class="gold">＋ 新建演出</button></div><div class="librarygrid" style="margin-top:18px">`+lib.shows.map((s,i)=>ui`<div class="librarycard ${s.id===showId?'active':''}" data-library-show="${esc(s.id)}"><div class="eyebrow">PRODUCTION ${String(i+1).padStart(2,'0')}</div><h3>${esc(s.title)}</h3><p class="muted">${s.songs.length} 首曲目 · ${s.actors.length} 位角色</p><span class="tag">LOCAL / OFFLINE</span></div>`).join('')+'</div>');$('#newShow').onclick=()=>{const title=prompt(tr('演出名称'));if(!title?.trim())return;const s=C.newShow(title.trim());mutate(()=>lib.shows.push(s),false);closeModal();switchShow(s.id);};$$('[data-library-show]').forEach(el=>el.onclick=()=>{closeModal();switchShow(el.dataset.libraryShow);});}
+function libraryDialog(){modal(tr('演出库'),ui`<div class="row"><span class="muted">每场演出独立保存舞台、角色、道具与曲目。</span><span class="spacer"></span><button id="newShow" class="gold">＋ 新建演出</button></div><div class="librarygrid" style="margin-top:18px">`+lib.shows.map((s,i)=>ui`<div class="librarycard ${s.id===showId?'active':''}" data-library-show="${esc(s.id)}"><div class="eyebrow">PRODUCTION ${String(i+1).padStart(2,'0')}</div><h3>${esc(s.title)}</h3><p class="muted">${s.songs.length} 首曲目 · ${s.actors.length} 位角色</p><span class="tag">LOCAL / OFFLINE</span></div>`).join('')+'</div>');$('#newShow').onclick=()=>nameDialog(tr('新建演出'),tr('演出名称'),async title=>{const s=C.newShow(title);mutate(()=>lib.shows.push(s),false);await switchShow(s.id);});$$('[data-library-show]').forEach(el=>el.onclick=()=>{closeModal();switchShow(el.dataset.libraryShow);});}
 function actorRecords(id){const name=displayName(entity(id)),rows=records().filter(r=>r.showId===showId&&(!r.songId||r.songId===songId)&&(!r.entityIds.length||r.entityIds.includes(id)));const moves=C.events(song()).flatMap(e=>e.cue.moves.filter(m=>m.entityId===id).map(m=>({showId,songId,type:'move',id:m.id,label:e.cue.title+' · '+fmt(C.moveEvent(e,m).start)+' → '+fmt(C.moveEvent(e,m).end),notes:m.notes||e.cue.notes||tr('按舞台路线移动'),time:C.moveEvent(e,m).start,entityIds:[id]})));modal(name+tr(' · 本曲目完整记录'),[...moves,...rows.filter(r=>r.type!=='move')].map(recordHTML).join('')||tr('<div class="empty">还没有为此角色添加走台或备注。</div>'));}
 function searchDialog(){modal(tr('检索整个演出库'),ui`<input id="searchInput" class="full" placeholder="角色、歌词、动作、道具或任意备注关键词"><div id="searchResults"></div>`);const input=$('#searchInput');input.oninput=()=>{const term=input.value.trim().toLowerCase();$('#searchResults').innerHTML=term?records().filter(r=>(r.label+' '+r.notes).toLowerCase().includes(term)).map(recordHTML).join('')||tr('<div class="empty">没有匹配的记录。</div>'):tr('<div class="empty">搜索所有演出里的备注，点击结果跳回对应对象。</div>');};input.oninput();input.focus();}
 function issueContext(issue){

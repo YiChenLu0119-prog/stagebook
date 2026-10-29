@@ -77,7 +77,7 @@ function renderHumanInspector(){
   $('#inspector').innerHTML=ui`<div class="human-inspector-title"><h2>已选 ${selected.length} 个对象</h2><p>${selected.map(id=>esc(displayName(entity(id)))).join(' · ')}</p></div>${selectionTools()}<div class="row wrap"><button data-action="human-copy">复制这组站位</button><button data-action="human-clear">取消选择</button></div><label class="field"><span>给这组人写本步动作</span><textarea id="groupNote" placeholder="例如：同时看向 Hamilton，停住两拍。"></textarea></label><button data-action="human-group-note" class="gold full" ${!selectedCue?'disabled':''}>写入这 ${selected.length} 人的本步动作</button><p class="context-tip">每人都能在自己的本步动作里看到；各自已有备注会保留。</p>`;return true;
  }
  if(inspect.type!=='entity'||!activeEntities().some(en=>en.id===inspect.id))return false;
- const en=entity(inspect.id),e=selectedEvent(),initial=tool==='initial',p=initial?song().initial[en.id]:e?C.cuePosition(song(),e.cue.id,en.id):viewPosition(en.id);
+ const en=entity(inspect.id),isProp=show().props.some(p=>p.id===inspect.id),e=selectedEvent(),initial=tool==='initial',p=initial?song().initial[en.id]:e?C.cuePosition(song(),e.cue.id,en.id):viewPosition(en.id);
  const m=e?.cue.moves.find(m=>m.entityId===en.id),before=e?C.beforeCue(song(),e.cue.id,en.id):p;
  $('#inspectorTitle').textContent=initial?tr('起始站位与角色'):tr('本步行动');
  let html=`<div class="human-inspector-title"><span class="entitydot" style="background:${safeColor(en.color)}">${esc(en.label)}</span><h2>${esc(en.name)}</h2><p>${initial?tr('走台开始前的位置'):e?esc(e.cue.title):tr('先选择一个步骤')}</p></div>`;
@@ -89,7 +89,7 @@ function renderHumanInspector(){
   if(initial)html+=ui`<details class="advanced-details position-details"><summary>移到指定位置 / 更多</summary>`;
   html+=ui`<div class="zone-picker"><label class="field"><span>舞台区域 · 按观众视角</span><select id="stageZone">${stageZones().map(z=>`<option value="${z.key}">${z.name}</option>`).join('')}</select></label><button data-action="human-place" class="outline">移到这里</button></div><label class="field"><span>已有标记 / 出入口</span><select id="humanAnchor"><option value="">选择标记或出入口…</option>${show().stage.anchors.map(a=>`<option value="${esc(a.id)}">${esc(a.name)}</option>`).join('')}</select></label><details class="data-details"><summary>高级坐标与路径节点</summary>${humanPositionFields(p)}${!initial?tr('<button data-action="human-route" class="full">编辑路径节点</button>'):''}</details></details>`;
  }
- html+=ui`<details class="advanced-details"><summary>角色资料与长期备注</summary>${field(tr('角色／道具名称'),'name',en.name)}<div class="two">${field(tr('短标签'),'label',en.label)}${field(tr('颜色'),'color',en.color,'color')}</div><div class="two">${field(tr('起始 X'),'initial.x',song().initial[en.id]?.x,'number','step="0.1"')}${field(tr('起始 Y'),'initial.y',song().initial[en.id]?.y,'number','step="0.1"')}</div>${notesField(en)}<button class="danger full" data-action="delete-entity">从演出删除对象</button></details><button class="full" data-action="entity-records">查看这个角色的全部记录</button><p class="footer-note">Shift + 点击人物或框选空白区域，可选中多人。</p>`;
+ html+=ui`<details class="advanced-details"><summary>${tr(isProp?'道具资料与长期备注':'角色资料与长期备注')}</summary>${field(tr('角色／道具名称'),'name',en.name)}<div class="two">${field(tr('短标签'),'label',en.label)}${field(tr('颜色'),'color',en.color,'color')}</div><div class="two">${field(tr('起始 X'),'initial.x',song().initial[en.id]?.x,'number','step="0.1"')}${field(tr('起始 Y'),'initial.y',song().initial[en.id]?.y,'number','step="0.1"')}</div>${notesField(en)}<button class="danger full" data-action="delete-entity">从演出删除对象</button></details><button class="full" data-action="entity-records">${tr(isProp?'查看这个道具的全部记录':'查看这个角色的全部记录')}</button><p class="footer-note">Shift + 点击人物或框选空白区域，可选中多人。</p>`;
  $('#inspector').innerHTML=html;return true;
 }
 function editablePositions(){
@@ -169,7 +169,7 @@ function parsePlaybackTime(text){
 }
 function goToTimeDialog(){
  pause();modal(tr('定位播放时间'),ui`<form id="seekForm"><label class="field"><span>分:秒，或直接输入秒数</span><input id="seekTime" aria-label="要定位的播放时间" value="${fmt(current)}" placeholder="01:25.6" inputmode="decimal"></label><p id="seekError" class="warning" role="status"></p><div class="dialogactions"><button type="button" id="seekCancel">取消</button><button type="submit" class="gold">定位</button></div></form>`);
- $('#seekCancel').onclick=closeModal;$('#seekForm').onsubmit=e=>{e.preventDefault();const t=parsePlaybackTime($('#seekTime').value);if(t===null||t>time()){$('#seekError').textContent=ui`请输入 00:00 到 ${fmt(time())} 之间的时间。`;return;}singleStepEnd=null;closeModal();seek(t);revealTimelineCursor();};$('#seekTime').focus();$('#seekTime').select();
+ $('#seekCancel').onclick=closeModal;$('#seekForm').onsubmit=e=>{e.preventDefault();const t=parsePlaybackTime($('#seekTime').value);if(t===null||!Number.isFinite(t)||t>86400){$('#seekError').textContent=tr('请输入 0 到 24 小时之间的时间。');return;}singleStepEnd=null;closeModal();seek(t);revealTimelineCursor();};$('#seekTime').focus();$('#seekTime').select();
 }
 
 async function humanAction(a){

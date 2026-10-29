@@ -35,7 +35,7 @@ function duplicateCurrentStep(){
  const copy=C.clone(cue);copy.id=C.id('cue');copy.title+=tr(' · 副本');copy.at+=copy.duration;copy.moves.forEach(m=>m.id=C.id('move'));mutate(()=>q.cues.splice(q.cues.indexOf(cue)+1,0,copy),false);chooseStep(copy.id,'end',false);toast(tr('已复制步骤；可继续调整时间或站位。'));
 }
 function reorderCurrentStep(direction){
- if(!canEdit())return;const q=song(),index=q.cues.findIndex(c=>c.id===selectedCue),to=index+direction;if(index<0||to<0||to>=q.cues.length)return;
+ if(!canEdit())return;const q=song();if(q.mode==='timed')return toast(tr('按时间编排请调整开始时间，其他步骤不会移动。'));const index=q.cues.findIndex(c=>c.id===selectedCue),to=index+direction;if(index<0||to<0||to>=q.cues.length)return;
  mutate(()=>{const [cue]=q.cues.splice(index,1);q.cues.splice(to,0,cue);});
 }
 function deleteSelectedRouteNode(){
@@ -123,7 +123,7 @@ function showContextMenu(title,items,x,y,data={}){
  menu.classList.remove('hidden');menu.setAttribute('aria-hidden','false');const width=menu.offsetWidth||260,height=menu.offsetHeight||items.length*35+36;
  menu.style.left=Math.max(8,Math.min(x,window.innerWidth-width-8))+'px';menu.style.top=Math.max(8,Math.min(y,window.innerHeight-height-8))+'px';menu.querySelector?.('button:not(:disabled)')?.focus({preventScroll:true});
 }
-function stepMenu(){return[menuItem(tr('预览本步'),'human-preview',tr('Shift 空格')),menuItem(tr('重命名'),'edit-rename-step','F2'),menuItem(tr('复制步骤'),'edit-duplicate-step','⌘/Ctrl D'),menuItem(song().mode==='timed'?tr('在当前时间添加动作'):tr('在后面加一步'),'human-next-step','N'),menuItem(tr('前移一步'),'cue-up'),menuItem(tr('后移一步'),'cue-down'),null,menuItem(tr('删除本步'),'edit-delete-step','Delete')];}
+function stepMenu(){return[menuItem(tr('预览本步'),'human-preview',tr('Shift 空格')),menuItem(tr('重命名'),'edit-rename-step','F2'),menuItem(tr('复制步骤'),'edit-duplicate-step','⌘/Ctrl D'),menuItem(song().mode==='timed'?tr('在当前时间添加动作'):tr('在后面加一步'),'human-next-step','N'),...(song().mode==='steps'?[menuItem(tr('前移一步'),'cue-up'),menuItem(tr('后移一步'),'cue-down')]:[]),null,menuItem(tr('删除本步'),'edit-delete-step','Delete')];}
 function rehearsalMenu(){return[menuItem(tr('播放 / 暂停'),'play',tr('空格')),menuItem(tr('上一步'),'previous','['),menuItem(tr('下一步'),'next',']'),menuItem(tr('快捷键'),'edit-shortcuts','?')];}
 function actorMenu(){const m=editedMove();return[menuItem(tr('编辑本步动作'),'edit-actor-details'),menuItem(tr('调整移动时间'),'edit-timing','',!m),menuItem(tr('编辑路径节点'),'edit-path','E',!m),menuItem(tr('复制站位'),'human-copy','⌘/Ctrl C'),menuItem(tr('粘贴站位'),'human-paste','⌘/Ctrl V',!formationClipboard),...(selected.length>1?[menuItem(tr('排成横排'),'human-align-horizontal'),menuItem(tr('排成竖排'),'human-align-vertical')]:[]),null,menuItem(tr('删除本步行动'),'edit-delete-movement','Delete',!selectedEvent()||tool==='initial')];}
 function routeMenu(){const n=routeNode(),m=editedMove(),canDelete=n&&(n.key!=='point'||n.index>0&&n.index<m.points.length-1);return[menuItem(tr('添加经过点'),'edit-insert-node-here'),menuItem(tr('编辑路径节点'),'edit-path','E'),...(n?[menuItem(n.key==='point'?tr('删除此经过点'):tr('清除弯度控制点'),'edit-delete-node','Delete',!canDelete)]:[]),menuItem(tr('改为直走'),'human-straight'),menuItem(tr('改为绕弯'),'human-curve'),menuItem(tr('调整移动时间'),'edit-timing'),null,menuItem(tr('删除本步这次行动'),'edit-delete-movement')];}
@@ -138,7 +138,7 @@ function openEditingContext(ev){
  if(nodeRow&&inspect.type==='move'){ev.preventDefault();const button=nodeRow.querySelector?.('[data-action^="edit-node-select:"]');if(button)selectRouteHandle(button.dataset.action.split(':')[1]+':point');showContextMenu(tr('路径节点'),routeMenu(),ev.clientX,ev.clientY);return;}
  if(route){ev.preventDefault();const p=svgPoint(ev),m=selectMoveForContext(route.dataset.bend||route.dataset.id);if(m)showContextMenu(tr('移动路线'),routeMenu(),ev.clientX,ev.clientY,nearestRoutePoint(m,p));return;}
  if(actor){ev.preventDefault();pause();if(!selected.includes(actor.dataset.entity))selected=[actor.dataset.entity];selectedRouteNode=null;inspect={type:selected.length>1?'group':'entity',id:actor.dataset.entity};renderAll();showContextMenu(selected.length>1?tr('多人站位'):displayName(entity(actor.dataset.entity)),actorMenu(),ev.clientX,ev.clientY);return;}
- if(lane&&bottomTab==='timeline'){ev.preventDefault();const rect=lane.getBoundingClientRect(),at=Math.max(0,Math.min(time(),(ev.clientX-rect.left)/rect.width*time()));showContextMenu(fmt(at),[menuItem(tr('从这里播放'),'edit-play-here'),menuItem(tr('定位到这里'),'edit-seek-here'),menuItem(tr('在这里添加步骤'),'edit-step-here'),null,menuItem(tr('适配整曲'),'timeline-fit','0')],ev.clientX,ev.clientY,{time:at});return;}
+ if(lane&&bottomTab==='timeline'){ev.preventDefault();const rect=lane.getBoundingClientRect(),at=Math.max(0,(ev.clientX-rect.left)/timelineMetrics().pixelsPerSecond);showContextMenu(fmt(at),[menuItem(tr('从这里播放'),'edit-play-here'),menuItem(tr('定位到这里'),'edit-seek-here'),menuItem(tr('在这里添加步骤'),'edit-step-here'),null,menuItem(tr('适配整曲'),'timeline-fit','0')],ev.clientX,ev.clientY,{time:at});return;}
  if(stage){ev.preventDefault();showContextMenu(tr('舞台'),[menuItem(tr('全选演员与道具'),'edit-select-all','⌘/Ctrl A'),menuItem(tr('粘贴站位'),'human-paste','⌘/Ctrl V',!formationClipboard),menuItem(tr('在播放指针处添加动作'),'human-next-step','N'),menuItem(tr('编辑起始站位'),'tool-initial'),menuItem(tr('舞台设置'),'stage-settings'),null,menuItem(tr('快捷键与右键说明'),'edit-shortcuts','?')],ev.clientX,ev.clientY);}
 }
 document.addEventListener('contextmenu',openEditingContext);
