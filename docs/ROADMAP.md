@@ -9,6 +9,10 @@ Stagebook is being developed gradually from real blocking and rehearsal work. Th
 - Portable production packages, Undo/Redo and path checks.
 - English, Simplified Chinese and Traditional Chinese interfaces.
 
+## Desktop edition under exploration
+
+We are evaluating a desktop edition that reuses the offline editor with native project opening, saving and installation. The first milestone would be a small macOS pilot, followed by real rehearsal feedback before other platforms. No release date or platform availability is committed. See the [implementation plan](desktop-app-plan.md).
+
 ## Areas for future updates
 
 - Refine the first-time workflow through more rehearsals and hands-on testing.
