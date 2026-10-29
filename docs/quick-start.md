@@ -1,0 +1,48 @@
+# Stagebook quick start
+
+OPEN AND SAVE
+Extract the package and open “走台本.html”. The “演出资料” folder contains the editable data. Import a complete ZIP or folder to continue another production.
+Use Save (⌘ / Ctrl + S) to download a durable package, or write to a connected folder when the browser supports it. Browser recovery drafts do not replace saving a file. Share with cast exports blocking, lyrics and connected audio together.
+
+INTERFACE LANGUAGE
+Use the language selector in the top bar: 简体中文, 繁體中文 or English. The choice is remembered in this browser and included in exported HTML. A viewer's own saved preference takes priority. Switching language keeps the playhead, view and selection; it does not translate character names, lyrics or notes.
+
+BLOCK A MOVEMENT
+1. Add cast members in the left panel. Choose Opening to drag their initial positions.
+2. Click the playback clock or timeline to choose a start time.
+3. Choose Add action or press N. The action starts at the playhead and keeps your current view. Existing start times do not shift.
+4. Drag an actor to set a destination. Write their Action note in the right panel. Drag a path handle to bend the route, or use Path points for intermediate points.
+5. Set Delay and Move for independently for each actor, or drag and resize their timeline clip. A movement may continue beyond the step.
+6. Preview step stops after all movements in that step finish. Normal playback can pause at steps or continue throughout the production.
+Editing destinations, notes and movement duration does not move the playhead. Shift-click or box-select actors to move a group. Shared notes are added to each selected actor's action while preserving existing notes.
+
+TIMELINE AND LAYOUT
+Use the zoom slider or + / − to zoom around the playhead. ⌘ / Ctrl + wheel zooms around the mouse. 0 fits the song. Click the clock to enter minutes:seconds or seconds. Timeline clip edges change an actor's timing, not other actors or the whole step.
+Focus stage keeps the lyrics and inspector visible. Expand timeline or drag the divider to resize panels. Longer labels wrap rather than changing your production.
+
+DELETE AND UNDO
+Select a step and choose Delete step or press Delete / Backspace. With an actor selected, Delete removes only that actor's movement in the step; it keeps the character.
+In Path points, select an intermediate point and press Delete. Start and end points are kept. Delete a curve handle to straighten that segment. You can undo each deletion.
+Right-click a step, actor, path or point for relevant actions. Normal text editing shortcuts stay available inside input fields.
+
+COMMON SHORTCUTS
+Space: Play / pause. Shift + Space: Preview step.
+N: Add action at playhead. ⌘ / Ctrl + D: Duplicate step. F2: Rename.
+[ / ] or PageUp / PageDown: Previous / next step. Home / End: First / last step.
+Arrow keys: Nudge a selected actor or point. Shift increases the distance. Without an actor selection, Left / Right changes steps.
+⌘ / Ctrl + A: Select actors and props. ⌘ / Ctrl + C / V: Copy / paste positions.
+E: Path points. V: Return to placement. Esc: Close menu or clear selection.
+⌘ / Ctrl + Z: Undo. ⌘ / Ctrl + Shift + Z: Redo.
+⌘ / Ctrl + O: Import. ⌘ / Ctrl + K: Search. ?: Full shortcut guide.
+
+AUDIO AND LYRICS
+Each song may use one MP3. Wait for Audio ready before playback. A failed replacement keeps the previous audio; retry, reconnect or choose Silent playback if needed.
+Timed lyrics accept JSON or lines such as “12.3 - 16.8 | A lyric line”. Clicking a lyric seeks to its time. Edit changes its text, timing and notes in place while keeping the stage and timeline visible. Start-time changes keep the line's duration; the end is also editable.
+The app does not transcribe music or automatically align lyrics. Prepare those with an external assistant if needed. Missing audio or lyrics never prevents blocking.
+
+CHECK AND REHEARSE
+Check blocking pauses playback and identifies the actor, step and time. Choose an issue to edit its route or timing. A wall-crossing path can be routed through an entrance; complex routes need more points. Checks use a schematic stage and do not simulate body sizes or actor collisions.
+In Rehearse mode, select your character to see current and upcoming actions and relevant notes.
+
+EXTERNAL AI EDITING
+Save your work first. Have an assistant read AI-GUIDE.md and edit the JSON in “演出资料”. Reload a connected folder or reimport the updated ZIP. The app checks for external changes before writing back. No networked AI, login or cloud sync is built in.
