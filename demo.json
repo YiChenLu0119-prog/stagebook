@@ -1,0 +1,632 @@
+{
+  "version": 1,
+  "shows": [
+    {
+      "id": "show-demo",
+      "title": "Stagebook practice studio",
+      "notes": "Generic sample for learning the editor. No production soundtrack or lyrics are included.",
+      "actors": [
+        {
+          "id": "actorA",
+          "name": "Actor A",
+          "label": "A",
+          "color": "#376f7b",
+          "notes": "Character notes belong here."
+        },
+        {
+          "id": "actorB",
+          "name": "Actor B",
+          "label": "B",
+          "color": "#a96c52",
+          "notes": ""
+        },
+        {
+          "id": "actorC",
+          "name": "Actor C",
+          "label": "C",
+          "color": "#8a718e",
+          "notes": ""
+        },
+        {
+          "id": "actorD",
+          "name": "Actor D",
+          "label": "D",
+          "color": "#72845a",
+          "notes": ""
+        }
+      ],
+      "props": [
+        {
+          "id": "table",
+          "name": "Desk",
+          "label": "DS",
+          "color": "#9b7845",
+          "notes": "Describe prop handling in movement notes."
+        },
+        {
+          "id": "chair",
+          "name": "Chair",
+          "label": "CH",
+          "color": "#756c5a",
+          "notes": "Describe prop handling in movement notes."
+        }
+      ],
+      "songs": [
+        {
+          "id": "song-demo-01",
+          "title": "Opening rehearsal",
+          "notes": "Generic sample. Music is optional.",
+          "mode": "steps",
+          "audio": null,
+          "duration": null,
+          "castIds": [
+            "actorA",
+            "actorB",
+            "actorC",
+            "actorD"
+          ],
+          "propIds": [
+            "table",
+            "chair"
+          ],
+          "initial": {
+            "actorA": {
+              "x": -36,
+              "y": 0
+            },
+            "actorB": {
+              "x": 32,
+              "y": 0
+            },
+            "actorC": {
+              "x": -20,
+              "y": -22
+            },
+            "actorD": {
+              "x": 20,
+              "y": -22
+            },
+            "table": {
+              "x": 0,
+              "y": 24
+            },
+            "chair": {
+              "x": 14,
+              "y": 24
+            }
+          },
+          "lyrics": [],
+          "cues": [
+            {
+              "id": "cue-01",
+              "title": "Gather at center",
+              "at": 0,
+              "duration": 5,
+              "notes": "Describe the shared action here.",
+              "stopAfter": false,
+              "moves": [
+                {
+                  "id": "move-01",
+                  "entityId": "actorA",
+                  "points": [
+                    {
+                      "x": -36,
+                      "y": 0
+                    },
+                    {
+                      "x": -10,
+                      "y": 0
+                    }
+                  ],
+                  "notes": "Follow this path and hold the destination."
+                },
+                {
+                  "id": "move-02",
+                  "entityId": "actorB",
+                  "points": [
+                    {
+                      "x": 32,
+                      "y": 0
+                    },
+                    {
+                      "x": 10,
+                      "y": 0
+                    }
+                  ],
+                  "notes": "Follow this path and hold the destination."
+                }
+              ]
+            },
+            {
+              "id": "cue-02",
+              "title": "Curved exchange",
+              "at": 5,
+              "duration": 7,
+              "notes": "Describe the shared action here.",
+              "stopAfter": false,
+              "moves": [
+                {
+                  "id": "move-03",
+                  "entityId": "actorC",
+                  "points": [
+                    {
+                      "x": -20,
+                      "y": -22
+                    },
+                    {
+                      "x": 20,
+                      "y": 12,
+                      "c1": {
+                        "x": -42,
+                        "y": 3
+                      },
+                      "c2": {
+                        "x": -8,
+                        "y": 20
+                      }
+                    }
+                  ],
+                  "notes": "Follow this path and hold the destination."
+                },
+                {
+                  "id": "move-04",
+                  "entityId": "actorD",
+                  "points": [
+                    {
+                      "x": 20,
+                      "y": -22
+                    },
+                    {
+                      "x": -20,
+                      "y": 12,
+                      "c1": {
+                        "x": 42,
+                        "y": 3
+                      },
+                      "c2": {
+                        "x": 8,
+                        "y": 20
+                      }
+                    }
+                  ],
+                  "notes": "Follow this path and hold the destination."
+                }
+              ]
+            },
+            {
+              "id": "cue-03",
+              "title": "Exit backstage",
+              "at": 12,
+              "duration": 8,
+              "notes": "Describe the shared action here.",
+              "stopAfter": false,
+              "moves": [
+                {
+                  "id": "move-05",
+                  "entityId": "actorA",
+                  "gateId": "gate-left",
+                  "points": [
+                    {
+                      "x": -10,
+                      "y": 0
+                    },
+                    {
+                      "x": -60,
+                      "y": 0
+                    },
+                    {
+                      "x": -74,
+                      "y": 0
+                    }
+                  ],
+                  "notes": "Follow this path and hold the destination."
+                }
+              ]
+            }
+          ],
+          "annotations": [
+            {
+              "id": "note-01",
+              "title": "Shared reminder",
+              "start": 0,
+              "end": 5,
+              "entityIds": [
+                "actorA",
+                "actorB"
+              ],
+              "notes": "This note appears for both linked actors."
+            }
+          ]
+        },
+        {
+          "id": "song-demo-02",
+          "title": "Timed text example",
+          "notes": "Generic sample. Music is optional.",
+          "mode": "timed",
+          "audio": null,
+          "duration": null,
+          "castIds": [
+            "actorA",
+            "actorB",
+            "actorC",
+            "actorD"
+          ],
+          "propIds": [
+            "table",
+            "chair"
+          ],
+          "initial": {
+            "actorA": {
+              "x": -36,
+              "y": 0
+            },
+            "actorB": {
+              "x": 32,
+              "y": 0
+            },
+            "actorC": {
+              "x": -20,
+              "y": -22
+            },
+            "actorD": {
+              "x": 20,
+              "y": -22
+            },
+            "table": {
+              "x": 0,
+              "y": 24
+            },
+            "chair": {
+              "x": 14,
+              "y": 24
+            }
+          },
+          "lyrics": [
+            {
+              "id": "line-01",
+              "start": 0,
+              "end": 5,
+              "text": "Each line can have its own time range.",
+              "notes": ""
+            },
+            {
+              "id": "line-02",
+              "start": 5,
+              "end": 12,
+              "text": "Lyrics and blocking share the same timeline.",
+              "notes": ""
+            },
+            {
+              "id": "line-03",
+              "start": 12,
+              "end": 20,
+              "text": "Click a line to seek to its time.",
+              "notes": ""
+            }
+          ],
+          "cues": [
+            {
+              "id": "cue-01",
+              "title": "Gather at center",
+              "at": 0,
+              "duration": 5,
+              "notes": "Describe the shared action here.",
+              "stopAfter": false,
+              "moves": [
+                {
+                  "id": "move-01",
+                  "entityId": "actorA",
+                  "points": [
+                    {
+                      "x": -36,
+                      "y": 0
+                    },
+                    {
+                      "x": -10,
+                      "y": 0
+                    }
+                  ],
+                  "notes": "Follow this path and hold the destination."
+                },
+                {
+                  "id": "move-02",
+                  "entityId": "actorB",
+                  "points": [
+                    {
+                      "x": 32,
+                      "y": 0
+                    },
+                    {
+                      "x": 10,
+                      "y": 0
+                    }
+                  ],
+                  "notes": "Follow this path and hold the destination."
+                }
+              ]
+            },
+            {
+              "id": "cue-02",
+              "title": "Curved exchange",
+              "at": 5,
+              "duration": 7,
+              "notes": "Describe the shared action here.",
+              "stopAfter": false,
+              "moves": [
+                {
+                  "id": "move-03",
+                  "entityId": "actorC",
+                  "points": [
+                    {
+                      "x": -20,
+                      "y": -22
+                    },
+                    {
+                      "x": 20,
+                      "y": 12,
+                      "c1": {
+                        "x": -42,
+                        "y": 3
+                      },
+                      "c2": {
+                        "x": -8,
+                        "y": 20
+                      }
+                    }
+                  ],
+                  "notes": "Follow this path and hold the destination."
+                },
+                {
+                  "id": "move-04",
+                  "entityId": "actorD",
+                  "points": [
+                    {
+                      "x": 20,
+                      "y": -22
+                    },
+                    {
+                      "x": -20,
+                      "y": 12,
+                      "c1": {
+                        "x": 42,
+                        "y": 3
+                      },
+                      "c2": {
+                        "x": 8,
+                        "y": 20
+                      }
+                    }
+                  ],
+                  "notes": "Follow this path and hold the destination."
+                }
+              ]
+            },
+            {
+              "id": "cue-03",
+              "title": "Exit backstage",
+              "at": 12,
+              "duration": 8,
+              "notes": "Describe the shared action here.",
+              "stopAfter": false,
+              "moves": [
+                {
+                  "id": "move-05",
+                  "entityId": "actorA",
+                  "gateId": "gate-left",
+                  "points": [
+                    {
+                      "x": -10,
+                      "y": 0
+                    },
+                    {
+                      "x": -60,
+                      "y": 0
+                    },
+                    {
+                      "x": -74,
+                      "y": 0
+                    }
+                  ],
+                  "notes": "Follow this path and hold the destination."
+                }
+              ]
+            }
+          ],
+          "annotations": [
+            {
+              "id": "note-01",
+              "title": "Shared reminder",
+              "start": 0,
+              "end": 5,
+              "entityIds": [
+                "actorA",
+                "actorB"
+              ],
+              "notes": "This note appears for both linked actors."
+            }
+          ]
+        },
+        {
+          "id": "song-demo-03",
+          "title": "Start from blank",
+          "notes": "Generic sample. Music is optional.",
+          "mode": "steps",
+          "audio": null,
+          "duration": null,
+          "castIds": [],
+          "propIds": [],
+          "initial": {},
+          "lyrics": [],
+          "cues": [],
+          "annotations": []
+        }
+      ],
+      "stage": {
+        "notes": "",
+        "audience": "south",
+        "boundary": [
+          {
+            "x": -60,
+            "y": -35
+          },
+          {
+            "x": 60,
+            "y": -35
+          },
+          {
+            "x": 60,
+            "y": 25
+          },
+          {
+            "x": -60,
+            "y": 25,
+            "c1": {
+              "x": 45,
+              "y": 55
+            },
+            "c2": {
+              "x": -45,
+              "y": 55
+            }
+          }
+        ],
+        "backstage": [
+          {
+            "id": "back-left",
+            "name": "Left backstage",
+            "notes": "",
+            "points": [
+              {
+                "x": -85,
+                "y": -15
+              },
+              {
+                "x": -60,
+                "y": -15
+              },
+              {
+                "x": -60,
+                "y": 15
+              },
+              {
+                "x": -85,
+                "y": 15
+              }
+            ]
+          },
+          {
+            "id": "back-right",
+            "name": "Right backstage",
+            "notes": "",
+            "points": [
+              {
+                "x": 60,
+                "y": -15
+              },
+              {
+                "x": 85,
+                "y": -15
+              },
+              {
+                "x": 85,
+                "y": 15
+              },
+              {
+                "x": 60,
+                "y": 15
+              }
+            ]
+          }
+        ],
+        "walls": [
+          {
+            "id": "wall-l1",
+            "name": "Upper left wall",
+            "notes": "",
+            "points": [
+              {
+                "x": -60,
+                "y": -35
+              },
+              {
+                "x": -60,
+                "y": -10
+              }
+            ]
+          },
+          {
+            "id": "wall-l2",
+            "name": "Lower left wall",
+            "notes": "",
+            "points": [
+              {
+                "x": -60,
+                "y": 10
+              },
+              {
+                "x": -60,
+                "y": 25
+              }
+            ]
+          },
+          {
+            "id": "wall-r1",
+            "name": "Upper right wall",
+            "notes": "",
+            "points": [
+              {
+                "x": 60,
+                "y": -35
+              },
+              {
+                "x": 60,
+                "y": -10
+              }
+            ]
+          },
+          {
+            "id": "wall-r2",
+            "name": "Lower right wall",
+            "notes": "",
+            "points": [
+              {
+                "x": 60,
+                "y": 10
+              },
+              {
+                "x": 60,
+                "y": 25
+              }
+            ]
+          }
+        ],
+        "anchors": [
+          {
+            "id": "gate-left",
+            "name": "Left entrance",
+            "kind": "gate",
+            "x": -60,
+            "y": 0,
+            "notes": ""
+          },
+          {
+            "id": "gate-right",
+            "name": "Right entrance",
+            "kind": "gate",
+            "x": 60,
+            "y": 0,
+            "notes": ""
+          },
+          {
+            "id": "center",
+            "name": "Center",
+            "kind": "mark",
+            "x": 0,
+            "y": 0,
+            "notes": ""
+          }
+        ]
+      }
+    }
+  ]
+}

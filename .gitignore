@@ -1,0 +1,28 @@
+# Generated app and release packages
+/dist/
+/release-build/
+*.zip
+
+# Local production files and personal media
+/private-productions/
+/imports/
+/exports/
+/shows/
+/backups/
+/CURRENT-PRODUCTION.json
+*.mp3
+!tests/fixtures/silence.mp3
+*.m4a
+*.aac
+*.mp4
+*.mov
+
+# Machine files
+.DS_Store
+Thumbs.db
+__pycache__/
+*.py[cod]
+.env
+.env.*
+!.env.example
+node_modules/
