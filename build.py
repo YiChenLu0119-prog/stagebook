@@ -19,7 +19,7 @@ def schema():
     defs['annotation']=obj({'id':string,'title':string,'start':nullable,'end':nullable,'entityIds':arr(string),**notes},['id','title','entityIds','notes'])
     defs['song']=obj({'id':string,'title':string,'mode':{'enum':['steps','timed']},'audio':{'oneOf':[{'type':'null'},obj({'file':string,'originalName':string},['file'])]},'duration':nullable,'castIds':arr(string),'propIds':arr(string),'initial':{'type':'object','additionalProperties':ref('xy')},'cues':arr(ref('cue')),'lyrics':arr(ref('lyric')),'annotations':arr(ref('annotation')),**notes},['id','title','mode','castIds','propIds','initial','cues','lyrics','annotations'])
     defs['show']=obj({'id':string,'title':string,'stage':ref('stage'),'pauseAtSteps':{'type':'boolean'},'actors':arr(ref('entity')),'props':arr(ref('entity')),'songs':arr(obj({'id':string,'title':string,'path':string},['id','path'])),**notes},['id','title','stage','actors','props','songs'])
-    defs['manifest']=obj({'format':{'const':'stagebook-library'},'version':{'const':1},'shows':arr(obj({'id':string,'path':string},['id','path']))},['format','version','shows'])
+    defs['manifest']=obj({'format':{'const':'stagebook-library'},'version':{'const':1},'workspace':obj({'showId':string,'songId':string},['showId','songId']),'shows':arr(obj({'id':string,'path':string},['id','path']))},['format','version','shows'])
     return {'$schema':'https://json-schema.org/draft/2020-12/schema','title':'Stagebook v1 files','oneOf':[ref('manifest'),ref('show'),ref('song')],'$defs':defs}
 def main():
     out=ROOT/'dist';out.mkdir(exist_ok=True);data=json.loads((ROOT/'demo.json').read_text());sc=schema();(ROOT/'schema.json').write_text(json.dumps(sc,ensure_ascii=False,indent=2)+'\n')
@@ -29,8 +29,8 @@ def main():
     html=(ROOT/'src/index.html').read_text().replace('/*__CSS__*/',(ROOT/'src/style.css').read_text()).replace('/*__CORE__*/',i18n+'\n'+(ROOT/'src/core.js').read_text()).replace('/*__PAYLOAD__*/','const PAYLOAD='+json.dumps(payload,ensure_ascii=False).replace('</','<\\/')+';').replace('/*__APP__*/',('\n'.join((ROOT/'src'/name).read_text() for name in ['app.js','audio.js','human.js','timeline.js','editing.js','lyrics.js','io.js'])).replace('</script','<\\/script'))
     license_text=(ROOT/'LICENSE').read_text()
     assert '-->' not in license_text
-    html=html.replace('</head>','\n<!-- Stagebook — SPDX-License-Identifier: GPL-3.0-only\nCorresponding source: Stagebook-v9.0.0-source.zip, distributed alongside this app.\n'+license_text+'\n-->\n</head>',1)
-    (out/'index.html').write_text(html);(out/'走台本.html').write_text(html)
+    html=html.replace('</head>','\n<!-- Stagebook — SPDX-License-Identifier: GPL-3.0-only\nCorresponding source: Stagebook-v9.1.0-source.zip, distributed alongside this app.\n'+license_text+'\n-->\n</head>',1)
+    (out/'index.html').write_text(html);(out/'走台本.html').write_text(html);(out/'Stagebook.html').write_text(html)
     for name in ['AI-GUIDE.md','schema.json','validate.py','使用说明.txt','LICENSE']:shutil.copyfile(ROOT/name,out/name)
     (out/'AGENTS.md').write_text(payload['entry'])
     refs=[]

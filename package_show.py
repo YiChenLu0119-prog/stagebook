@@ -2,7 +2,7 @@
 """Package existing JSON with the current offline app; never regex-edit JS source."""
 import argparse,base64,json,pathlib,shutil,zipfile
 ROOT=pathlib.Path(__file__).resolve().parent
-def package(source,output,zip_path,neat=False):
+def package(source,output,zip_path,neat=False,english=False):
     source=source.resolve();output=output.resolve()
     if source==output:raise ValueError('Use a separate output folder to preserve the source.')
     manifest=json.loads((source/'manifest.json').read_text())
@@ -28,14 +28,14 @@ def package(source,output,zip_path,neat=False):
         data=output/'演出资料';data.mkdir(exist_ok=True)
         shutil.copyfile(source/'manifest.json',data/'manifest.json')
         shutil.copytree(source/'shows',data/'shows',dirs_exist_ok=True)
-        (output/'走台本.html').write_text(html)
+        (output/('Stagebook.html' if english else '走台本.html')).write_text(html)
         technical=data/'技术资料';technical.mkdir(exist_ok=True)
         for name in ['AI-GUIDE.md','AGENTS.md','schema.json','validate.py','LICENSE']:
             shutil.copyfile(ROOT/'dist'/name,technical/name)
     else:
         shutil.copytree(source,output,dirs_exist_ok=True)
         (output/'index.html').write_text(html)
-        (output/'走台本.html').write_text(html)
+        (output/('Stagebook.html' if english else '走台本.html')).write_text(html)
         for name in ['AI-GUIDE.md','AGENTS.md','schema.json','validate.py','使用说明.txt','LICENSE']:
             shutil.copyfile(ROOT/'dist'/name,output/name)
     with zipfile.ZipFile(zip_path,'w',zipfile.ZIP_DEFLATED)as archive:
@@ -45,7 +45,7 @@ def package(source,output,zip_path,neat=False):
         assert archive.testzip() is None
     return html
 if __name__=='__main__':
-    args=argparse.ArgumentParser();args.add_argument('source',type=pathlib.Path);args.add_argument('output',type=pathlib.Path);args.add_argument('zip',type=pathlib.Path);args.add_argument('--preview',type=pathlib.Path);args.add_argument('--neat',action='store_true')
-    opts=args.parse_args();html=package(opts.source,opts.output,opts.zip,neat=opts.neat)
+    args=argparse.ArgumentParser();args.add_argument('source',type=pathlib.Path);args.add_argument('output',type=pathlib.Path);args.add_argument('zip',type=pathlib.Path);args.add_argument('--preview',type=pathlib.Path);args.add_argument('--neat',action='store_true');args.add_argument('--english',action='store_true')
+    opts=args.parse_args();html=package(opts.source,opts.output,opts.zip,neat=opts.neat,english=opts.english)
     if opts.preview:opts.preview.write_text(html)
     print('Packaged',opts.zip)

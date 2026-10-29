@@ -497,6 +497,21 @@
         "version": {
           "const": 1
         },
+        "workspace": {
+          "type": "object",
+          "properties": {
+            "showId": {
+              "type": "string"
+            },
+            "songId": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "showId",
+            "songId"
+          ]
+        },
         "shows": {
           "type": "array",
           "items": {
