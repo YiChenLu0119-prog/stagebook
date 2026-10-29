@@ -1,0 +1,22 @@
+const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),vm=require('node:vm'),crypto=require('node:crypto'),{createApp}=require('./app-harness.cjs');
+(async()=>{
+ const html=fs.readFileSync(path.join(__dirname,'../dist/index.html'),'utf8'),options={appHTML:html,syncMediaDuration:20.898},h=createApp(options);
+ h.ctx.PAYLOAD.guide='guide';h.ctx.PAYLOAD.entry='entry';h.ctx.PAYLOAD.schema={};h.ctx.PAYLOAD.validator='validator';h.ctx.PAYLOAD.readme='readme';
+ Object.assign(h.ctx,{TextEncoder,TextDecoder,Uint8Array,Uint32Array,DataView,Response,DecompressionStream});
+ const source=fs.readFileSync(path.join(__dirname,'../src/io.js'),'utf8').split('let draftDB;')[0];vm.runInContext(source+'\nglobalThis.fileAPI={exportPackage,readZip,parsePackage,importMap,reloadFolder};const realZip=makeZip;makeZip=async files=>{globalThis.packedFiles=files;return realZip(files);};download=(blob,name)=>{globalThis.lastExport=blob;};',h.ctx);
+ const bytes=fs.readFileSync(path.join(__dirname,'fixtures/silence.mp3'));
+ await h.api.importAudio(new File([bytes],'silence.mp3',{type:'audio/mpeg'}));const q=h.api.state().lib.shows[0].songs[0];q.lyrics=[{id:'lyric-test',start:2,end:4,text:'同屏编辑测试',notes:'备注保留'}];h.api.setStepPauses(false);h.api.renderAll();
+ await h.ctx.fileAPI.exportPackage(h.api.state().lib.shows);assert(h.ctx.lastExport instanceof Blob);const map=await h.ctx.fileAPI.readZip(h.ctx.lastExport),loaded=await h.ctx.fileAPI.parsePackage(map),restored=loaded.library.shows[0].songs[0],key='shows/s/songs/q/'+restored.audio.file;
+ const hash=b=>crypto.createHash('sha256').update(b).digest('hex');assert.equal(hash(Buffer.from(await map.get(key).arrayBuffer())),hash(bytes));assert.equal(restored.audio.originalName,'silence.mp3');assert.equal(restored.lyrics[0].text,q.lyrics[0].text);assert.equal(restored.lyrics[0].notes,'备注保留');assert.equal(loaded.library.shows[0].pauseAtSteps,false);
+ const savedHTML=h.ctx.packedFiles.get('走台本.html'),fresh=createApp({appHTML:savedHTML,syncMediaDuration:20.898});
+ fresh.ctx.exportedLibrary=loaded.library;vm.runInContext('lib=C.clone(exportedLibrary);showId=lib.shows[0].id;songId=lib.shows[0].songs[0].id;prepareHumanScene();',fresh.ctx);
+ for(const id of ['embedded-library','embedded-audio']){const match=savedHTML.match(new RegExp('<script id="'+id+'"[^>]*>([\\s\\S]*?)<\\/script>'));assert(match,id);fresh.$('#'+id).textContent=match[1];}
+ await fresh.api.loadAudio();assert.equal(fresh.api.audioStatus().state,'ready','A fresh local HTML can read its own music bytes without reopening the MP3');
+ Object.assign(fresh.ctx,{TextEncoder,TextDecoder,Uint8Array,Uint32Array,DataView,Response,DecompressionStream});fresh.ctx.PAYLOAD.guide='guide';fresh.ctx.PAYLOAD.entry='entry';fresh.ctx.PAYLOAD.schema={};fresh.ctx.PAYLOAD.validator='validator';fresh.ctx.PAYLOAD.readme='readme';
+ vm.runInContext(source+'\nglobalThis.fileAPI={exportPackage,readZip};download=(blob)=>{globalThis.lastExport=blob;};confirm=()=>{throw Error("Unexpected missing music warning");};',fresh.ctx);
+ await fresh.ctx.fileAPI.exportPackage(fresh.api.state().lib.shows);assert(fresh.ctx.lastExport instanceof Blob,'A fresh Safari-style local file can export a complete musical package');const second=await fresh.ctx.fileAPI.readZip(fresh.ctx.lastExport);assert.equal(hash(Buffer.from(await second.get(key).arrayBuffer())),hash(bytes));
+ assert.equal((savedHTML.slice(0,savedHTML.indexOf('</head>')).match(/id="embedded-audio"/g)||[]).length,1,'Repeated saves keep one current music snapshot');
+ await h.ctx.fileAPI.importMap(map);assert.equal(h.api.audioStatus().state,'ready');assert.equal(h.api.audioStatus().duration,20.898);assert(h.$('#lyricsList').innerHTML.includes('同屏编辑测试'));h.api.preparePlayback();await h.api.play();assert.equal(h.api.audioPlayer().playCalls,1);
+ options.syncMediaDuration=0;h.ctx.reloadMap=map;vm.runInContext('rootDir={name:"test-library"};walkDirectory=async()=>reloadMap;',h.ctx);const reload=h.ctx.fileAPI.reloadFolder();await new Promise(r=>setImmediate(r));h.api.addDockLyric();h.api.audioPlayer().metadata(20.898);await reload;assert.equal(vm.runInContext('dirty',h.ctx),true,'Editing during a slow audio reload must remain unsaved after audio becomes ready');
+ console.log('PASS: generated silent audio fixture round trip with mocked media readiness, packaged with unique asset, bytes and simultaneous lyric edits preserved, ZIP reopened with music ready and playback started');
+})().catch(e=>{console.error(e);process.exitCode=1;});

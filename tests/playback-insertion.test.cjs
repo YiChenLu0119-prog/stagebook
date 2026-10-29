@@ -1,0 +1,24 @@
+const assert=require('node:assert/strict'),{createApp}=require('./app-harness.cjs');
+const q=h=>h.api.state().lib.shows[0].songs[0];
+(async()=>{
+ let h=createApp(),song=q(h);song.cues.forEach(c=>c.stopAfter=true);
+ const original=JSON.stringify(song.cues);assert.equal(h.api.stepPausesEnabled(),true);
+ h.api.preparePlayback();await h.api.play();h.api.advance(11);assert.equal(h.api.state().playing,false);assert.equal(h.api.state().current,10);
+ h.api.preparePlayback();await h.api.action('toggle-step-pauses');assert.equal(h.api.state().lib.shows[0].pauseAtSteps,false);assert.equal(h.$('#stepPauseButton').textContent,'连续播放');assert.equal(JSON.stringify(song.cues),original,'Master switch preserves individual pause flags and all choreography');
+ await h.api.play();h.api.advance(11);assert.equal(h.api.state().playing,true);assert.equal(h.api.state().current,11);h.api.advance(9);assert.equal(h.api.state().playing,false);assert.equal(h.api.state().current,20,'Continuous mode still stops at song end');
+ h.api.selectStep('c1');await h.api.preview();h.api.advance(10);assert.equal(h.api.state().playing,false);assert.equal(h.api.state().current,10,'Explicit one-step preview still stops');
+ h.api.preparePlayback();h.api.playbackDialog();assert(h.$('#dialogBody').innerHTML.includes('modalStepPauses'));h.$('#modalStepPauses').onchange({target:{checked:true}});assert.equal(h.api.stepPausesEnabled(),true);await h.api.play();h.api.advance(11);assert.equal(h.api.state().playing,false);assert.equal(h.api.state().current,10);
+ h.api.undo();assert.equal(h.api.stepPausesEnabled(),false);h.api.undo(true);assert.equal(h.api.stepPausesEnabled(),true,'Master setting is undoable');
+ const invalid=h.C.clone(h.api.state().lib);invalid.shows[0].pauseAtSteps='false';assert.throws(()=>h.C.checkStructure(invalid),/pauseAtSteps/);
+ h=createApp();song=q(h);h.api.seek(6.7);const prior=h.C.clone(song.cues),zoom=h.api.state().zoom;
+ await h.api.action('human-next-step');const created=song.cues.find(c=>!prior.some(p=>p.id===c.id));assert.equal(created.at,6.7);assert.equal(created.duration,4);assert.equal(h.api.state().current,6.7);assert.equal(h.api.state().selectedCue,created.id);assert.equal(h.api.state().zoom,zoom);assert(h.$('#bottomContent').innerHTML.includes('clip-timeline'),'Insertion keeps the timeline open');assert.deepEqual(song.cues.filter(c=>c.id!==created.id),prior);
+ h.api.undo();assert.deepEqual(q(h).cues,prior);h.api.seek(0);await h.api.action('add-cue');assert.equal(q(h).cues.find(c=>!prior.some(p=>p.id===c.id)).at,0,'Zero is a valid insertion point');
+ h=createApp();song=q(h);h.api.seek(19.9);const late=h.api.createStepAt(19.9);assert.equal(song.cues.at(-1).id,late.id);assert.equal(h.api.state().current,19.9);assert(h.C.total(song)>20,'Inserting at the end extends the timeline');
+ h=createApp();song=q(h);song.mode='steps';song.cues[0].at=111;song.cues[1].at=222;
+ const sequential=h.C.clone(song),starts=h.C.events(song).map(e=>e.start);h.api.seek(6.4);await h.api.action('human-next-step');assert.equal(song.mode,'timed');assert.equal(h.api.state().current,6.4);assert.deepEqual(song.cues.filter(c=>sequential.cues.some(p=>p.id===c.id)).map(c=>c.at),starts);
+ for(const time of [0,2,3,6.4,10,15,20])for(const id of song.castIds)assert.deepEqual(h.C.position(song,id,time),h.C.position(sequential,id,time),'Converting timeline insertion preserves existing playback');
+ h.api.undo();assert.deepEqual(q(h),sequential,'Undo restores sequential mode and original data in one operation');
+ h=createApp();song=q(h);song.mode='steps';h.api.setBottomTab('steps');h.api.selectStep('c1');const oldSecond=song.cues[1].id;await h.api.action('human-next-step');assert.equal(song.mode,'timed');assert.equal(song.cues[2].id,oldSecond,'Existing sequential steps keep their starts while insertion uses the current playhead');assert.equal(song.cues[1].at,0);assert.equal(h.api.state().bottomTab,'steps','Adding from cards keeps the current view');
+ h=createApp();h.api.setRehearsal(true);const before=JSON.stringify(h.api.state().lib);await h.api.action('human-next-step');assert.equal(JSON.stringify(h.api.state().lib),before);
+ console.log('PASS: master pause switch, continuous playback, song end and single-step preview, restore/undo, invalid preference rejection, timed insertion at zero/middle/end, playhead and timeline retention, sequential conversion with unchanged playback and one-step undo, sequential cards and rehearsal protection');
+})().catch(e=>{console.error(e);process.exitCode=1;});
