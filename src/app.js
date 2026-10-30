@@ -52,7 +52,7 @@ $('#interfaceLanguage').addEventListener('change',event=>setInterfaceLanguage(ev
 function fileSnapshot(){return{resources:new Map(resources),pending:new Map(pendingAssets),root:rootDir,snapshots:new Map(diskSnapshots),parent:typeof appRootDir==='undefined'?null:appRootDir};}
 function snapshot(){history.push(C.clone(lib));historyFiles.push(fileSnapshot());if(history.length>45){history.shift();historyFiles.shift();}future=[];futureFiles=[];$$('[data-action=undo]').forEach(b=>b.disabled=false);$$('[data-action=redo]').forEach(b=>b.disabled=true);}
 function mutate(fn,render=true){snapshot();fn();changed();if(render)renderAll();}
-function changed(){editVersion++;dirty=true;$('#saveState').textContent=tr('未保存');$('#saveState').classList.add('dirty');$$('[data-action=save]').forEach(b=>{b.textContent=tr('保存 ·');b.title=tr('有未保存修改');});clearTimeout(changed.timer);changed.timer=setTimeout(saveDraft,650);}
+function changed(){editVersion++;dirty=true;$('#saveState').textContent=tr('未保存');$('#saveState').classList.add('dirty');$$('[data-action=save]').forEach(b=>{b.textContent=tr('保存 ·');b.title=tr('有未保存修改');});clearTimeout(changed.timer);changed.timer=setTimeout(saveDraft,650);renderHandoff();}
 function clean(){dirty=false;$('#saveState').textContent=rootDir?tr('已保存到文件夹'):tr('已下载演出包');$('#saveState').classList.remove('dirty');$$('[data-action=save]').forEach(b=>{b.textContent=tr('保存');b.title=rootDir?tr('保存到 ')+rootDir.name:tr('下载演出包');});saveDraft();}
 function undo(redo=false){
  const geometryContext=['stage','wall','backstage','anchor'].includes(inspect.type)?{...inspect}:null;const routeContext=inspect.type==='move'?{id:inspect.id,node:selectedRouteNode&&{...selectedRouteNode}}:null;closeContextMenu(false);selectedRouteNode=null;lyricEditId=null;pause();const src=redo?future:history,dst=redo?history:future,srcFiles=redo?futureFiles:historyFiles,dstFiles=redo?historyFiles:futureFiles;if(!src.length)return;
@@ -82,7 +82,7 @@ function renderAll(){
  $('#toolInitial').classList.toggle('selected',tool==='initial');$('#toolSelect').classList.toggle('selected',tool==='select');
  $('#stageHint').textContent=inspect.type==='move'&&!rehearsal?tr('点选经过点后按 Delete 删除 · 右键添加节点'):rehearsal?tr('选择你的角色，跟着音乐排练'):tool==='initial'?tr('拖动演员，摆好开场位置'):stagePhase==='start'?tr('正在查看起点 · 切到「落点」继续编排'):selected.length?tr('拖演员改位置 · 拖路线圆点改弯度'):tr('拖动演员摆位 · Shift 多选');
  issuesCache=C.issues(show(),song());$('#issuesButton').textContent=issuesCache.length?ui`${issuesCache.length} 处待检查`:tr('检查走台');$('#issuesButton').classList.toggle('warning',issuesCache.some(i=>i.level==='error'));
- renderLeft();renderStage();renderInspector();renderBottom();updateTransport();renderEditorBar();renderLyricsDock();
+ renderLeft();renderStage();renderInspector();renderBottom();updateTransport();renderEditorBar();renderLyricsDock();renderHandoff();
 }
 function renderLeft(){
  $('#leftTabs').innerHTML=[['songs',tr('曲目')],['actors',tr('角色')],['props',tr('道具')]].map(([k,v])=>`<button data-action="left-${k}" class="${leftTab===k?'selected':''}">${v}</button>`).join('');
@@ -152,7 +152,7 @@ function renderInspector(){
  }else if(type==='move'){
  html=pathInspectorHTML(t);
  }else if(type==='lyric')html+=ui`<label class="field"><span>歌词文字</span><textarea data-field="text">${esc(t.text)}</textarea></label><div class="two">${field(tr('开始秒数'),'start',t.start,'number','min="0" step="0.1"')}${field(tr('结束秒数'),'end',t.end,'number','min="0" step="0.1"')}</div>`+notesField(t)+ui`<button class="danger full" data-action="delete-lyric">删除这句歌词</button>`;
- else if(type==='annotation')html+=field(tr('记录标题'),'title',t.title)+ui`<div class="two">${field(tr('开始秒数（可空）'),'start',t.start,'number','min="0" step="0.1"')}${field(tr('结束秒数（可空）'),'end',t.end,'number','min="0" step="0.1"')}</div><div class="field"><span>提醒谁（不选则提醒全体）</span><div class="people-checks">${activeEntities().map(en=>`<label><input type="checkbox" data-note-entity="${esc(en.id)}" ${t.entityIds?.includes(en.id)?'checked':''}>${esc(en.name)}</label>`).join('')}</div></div>`+notesField(t)+ui`<button class="danger full" data-action="delete-annotation">删除这条记录</button>`;
+ else if(type==='annotation')html+=annotationInspector(t);
 
  else if(type==='stage'){
  html+=ui`<h2 style="margin-top:14px">舞台布局</h2><label class="field"><span>观众所在方向</span><select data-field="audience">${[['south',tr('下侧')],['north',tr('上侧')],['west',tr('左侧')],['east',tr('右侧')]].map(([v,l])=>`<option value="${v}" ${t.audience===v?'selected':''}>${l}</option>`).join('')}</select></label><p class="context-tip">拖动舞台边界点改变外形。选中墙线、后台或标记后，可直接在舞台上拖动调整。</p><div class="row wrap"><button data-action="add-anchor">＋ 标记／入口</button><button data-action="add-wall">＋ 墙</button><button data-action="add-backstage">＋ 后台</button></div>`+['anchors','walls','backstage'].map(k=>`<h3>${({anchors:tr('标记与出入口'),walls:tr('墙'),backstage:tr('后台区域')})[k]}</h3>`+t[k].map(x=>`<div class="routeitem" data-inspect="${({anchors:'anchor',walls:'wall',backstage:'backstage'})[k]}" data-id="${esc(x.id)}">${esc(x.name)}</div>`).join('')).join('')+notesField(t)+ui`<details class="advanced-details"><summary>高级舞台数据</summary><button class="full" data-action="stage-json">编辑舞台坐标文本</button></details>`;
@@ -172,10 +172,10 @@ function renderRehearsal(){
  html+=ui`<div class="rehearsal-card"><div class="eyebrow">下一次移动</div><div class="big" id="nextCountdown">${next?(next.start-current).toFixed(1)+tr(' 秒'):'—'}</div><div>${esc(next?.cue.title||tr('本曲目没有后续移动'))}</div></div>`;
  html+=tr('<h3>当前行动</h3>');if(!active.length)html+=tr('<p class="context-tip">这一步保持站位，等待下一次行动。</p>');
  for(const e of active){html+=`<div class="notecard"><small>${fmt(e.start)} → ${fmt(e.end)} · ${esc(e.cue.title)}</small>${esc(e.cue.notes||tr('沿舞台路线移动'))}${e.move.notes?'<br>'+esc(e.move.notes):''}</div>`;}
- for(const a of q.annotations)if((!a.entityIds?.length||a.entityIds.includes(focusActor))&&(a.start==null||a.start<=current)&&(a.end==null||a.end>=current))html+=`<div class="notecard"><small>${esc(a.title)}</small>${esc(a.notes)}</div>`;
+ for(const a of q.annotations)if(annotationVisibleForActor(a,focusActor,current))html+=`<div class="notecard"><small>${esc(a.title)}</small>${esc(a.notes)}</div>`;
  const en=entity(focusActor);if(en?.notes)html+=ui`<details class="advanced-details"><summary>角色提醒</summary><div class="notecard">${esc(en.notes)}</div></details>`;
  if(q.notes)html+=ui`<details class="advanced-details"><summary>曲目说明与参考资料</summary><div class="notecard">${esc(q.notes)}</div></details>`;
- html+=ui`<button data-action="actor-records" class="full">查看我的全部记录</button>`;$('#inspector').innerHTML=html;
+ html+=ui`<button data-action="actor-records" class="full">查看我的全部记录</button><button data-action="session-actor" class="full">我的排练提示单</button>`;$('#inspector').innerHTML=html;
 }
 function renderBottom(){
  $('#timelineZoomBar').classList.toggle('hidden',bottomTab!=='timeline');
@@ -184,12 +184,12 @@ function renderBottom(){
  $('#timelineHint').textContent=song().mode==='steps'?tr('顺序演示 · 拖动步骤可查看详情'):tr('点击空白跳转 · 拖动色条调整时间');
  if(bottomTab==='timeline'){renderTimeline();
  }else if(bottomTab==='lyrics')$('#bottomContent').innerHTML=ui`<div class="lyricslist"><div class="row"><button data-action="lyrics">导入逐句歌词</button><button data-action="add-lyric">＋ 手动添加</button></div>`+(song().lyrics.length?song().lyrics.map(l=>ui`<div class="lyricrow ${l.start<=current&&l.end>current?'active':''}" data-lyric="${esc(l.id)}"><span class="lyrictime">${fmt(l.start)}–${fmt(l.end)}</span><span class="lyrictext">${esc(l.text)}</span><button class="tiny" data-inspect="lyric" data-id="${esc(l.id)}">编辑</button></div>`).join(''):tr('<div class="empty">没有歌词也可以完整编排。<br>以后导入 AI 对好的逐句秒数即可。</div>'))+'</div>';
- else $('#bottomContent').innerHTML=ui`<div class="noteslist"><div class="row"><button data-action="add-annotation">＋ 自由记录</button><button data-action="search">检索整个演出库</button></div>`+records().filter(r=>r.showId===showId&&(!r.songId||r.songId===songId)).map(recordHTML).join('')+'</div>';
+ else $('#bottomContent').innerHTML=ui`<div class="noteslist"><div class="row"><button data-action="add-annotation">＋ 自由记录</button><button data-action="session-list">本次排练清单</button><button data-action="search">检索整个演出库</button></div>`+records().filter(r=>r.showId===showId&&(!r.songId||r.songId===songId)).map(recordHTML).join('')+'</div>';
 }
 function records(){
- const out=[];for(const s of lib.shows){const add=(o,type,label,songId=null,time=null,entityIds=[])=>{if(o.notes)out.push({showId:s.id,songId,type,id:o.id||s.id,label,notes:o.notes,time,entityIds});};add(s,'show',s.title);add(s.stage,'stage',s.title+tr(' / 舞台'));for(const en of [...s.actors,...s.props])add(en,'entity',en.name,null,null,[en.id]);for(const [key,type]of [['anchors','anchor'],['walls','wall'],['backstage','backstage']])for(const a of s.stage[key])add(a,type,a.name);for(const q of s.songs){add(q,'song',q.title,q.id);for(const e of C.events(q)){add(e.cue,'cue',q.title+' / '+e.cue.title,q.id,e.start,e.cue.moves.map(m=>m.entityId));for(const m of e.cue.moves)add(m,'move',q.title+' / '+e.cue.title+' / '+(s.actors.concat(s.props).find(x=>x.id===m.entityId)?.name||m.entityId),q.id,C.moveEvent(e,m).start,[m.entityId]);}for(const l of q.lyrics)add(l,'lyric',l.text,q.id,l.start);for(const a of q.annotations)add(a,'annotation',a.title,q.id,a.start,a.entityIds);}}return out;
+ const out=[];for(const s of lib.shows){const add=(o,type,label,songId=null,time=null,entityIds=[])=>{if(o.notes)out.push({showId:s.id,songId,type,id:o.id||s.id,label,notes:o.notes,time,entityIds});};add(s,'show',s.title);add(s.stage,'stage',s.title+tr(' / 舞台'));for(const en of [...s.actors,...s.props])add(en,'entity',en.name,null,null,[en.id]);for(const [key,type]of [['anchors','anchor'],['walls','wall'],['backstage','backstage']])for(const a of s.stage[key])add(a,type,a.name);for(const q of s.songs){add(q,'song',q.title,q.id);for(const e of C.events(q)){add(e.cue,'cue',q.title+' / '+e.cue.title,q.id,e.start,e.cue.moves.map(m=>m.entityId));for(const m of e.cue.moves)add(m,'move',q.title+' / '+e.cue.title+' / '+(s.actors.concat(s.props).find(x=>x.id===m.entityId)?.name||m.entityId),q.id,C.moveEvent(e,m).start,[m.entityId]);}for(const l of q.lyrics)add(l,'lyric',l.text,q.id,l.start);for(const a of q.annotations)add(a,'annotation',a.title,q.id,C.annotationRange(s,q,a).start,a.entityIds);}}return out;
 }
-function recordHTML(r){return `<div class="searchresult" data-record='${esc(JSON.stringify({showId:r.showId,songId:r.songId,type:r.type,id:r.id,time:r.time}))}'><small>${esc(r.label)}${r.time!=null?' · '+fmt(r.time):''}</small><p>${esc(r.notes)}</p></div>`;}
+function recordHTML(r){return `<div class="searchresult" data-record='${esc(JSON.stringify({showId:r.showId,songId:r.songId,type:r.type,id:r.id,time:r.time}))}'><small>${esc(r.label)}${r.time!=null?' · '+fmt(r.time):''}</small><p>${esc(r.notes)}</p><button class="tiny" data-session-source='${esc(JSON.stringify(sessionSourceRef(r)))}'>${tr('加入排练清单')}</button></div>`;}
 
 function updatePlayhead(){const head=$('#playhead');if(head&&bottomTab==='timeline')head.style.left=(TIMELINE_LABEL+current*timelineMetrics().pixelsPerSecond)+'px';}
 function updateTransport(){
@@ -269,8 +269,9 @@ document.addEventListener('change',async ev=>{
  else if(input.id==='showRoutes'||input.id==='showGrid'||input.id==='allRoutes')renderStage();
 });
 document.addEventListener('click',async ev=>{
- const el=ev.target.closest('[data-action],[data-song],[data-inspect],[data-entity],[data-lyric],[data-record],[data-issue]');if(!el)return;
+ const el=ev.target.closest('[data-action],[data-song],[data-inspect],[data-entity],[data-lyric],[data-record],[data-issue],[data-session-source]');if(!el)return;
  if(ev.target.matches('input,select,textarea'))return;
+ if(el.dataset.sessionSource){addSessionRef(JSON.parse(el.dataset.sessionSource));return;}
  if(el.dataset.action){$$('details.app-menu[open],details.stage-tools[open]').forEach(d=>d.open=false);try{await action(el.dataset.action);}catch(e){console.error(e);toast(e.message||tr('操作失败'));}return;}
  if(el.dataset.song){await switchSong(el.dataset.song);return;}
  if(el.dataset.inspect){inspectObject(el.dataset.inspect,el.dataset.id);return;}
@@ -318,6 +319,11 @@ $('#stage').addEventListener('pointercancel',()=>{drag=null;renderAll();});
 for(const [id,axis,prop,min,max,invert] of [['leftSplit','x','--left',130,420,false],['rightSplit','x','--right',230,520,true],['bottomSplit','y','--bottom',160,600,true]])$('#'+id).addEventListener('pointerdown',e=>{e.preventDefault();const start=axis==='x'?e.clientX:e.clientY,initial=parseFloat(getComputedStyle(document.documentElement).getPropertyValue(prop));const move=ev=>{const delta=(axis==='x'?ev.clientX:ev.clientY)-start;document.documentElement.style.setProperty(prop,Math.max(min,Math.min(max,initial+(invert?-delta:delta)))+'px');};const up=()=>{document.removeEventListener('pointermove',move);document.removeEventListener('pointerup',up);updatePlayhead();};document.addEventListener('pointermove',move);document.addEventListener('pointerup',up,{once:true});});
 
 async function action(a){
+ if(a==='versions'){versionsDialog();return;}
+ if(a==='handoff-info'){handoffDialog();return;}
+ if(a==='session-list'){openSessionList();return;}
+ if(a==='session-actor'){openSessionList(focusActor);return;}
+ if(a==='session-unlink'){unlinkSessionAnnotation();return;}
  if(a==='play'){await play();return;}
  if(a==='seek-time'){goToTimeDialog();return;}
  if(a==='layout-stage'){toggleStageFocus();return;}

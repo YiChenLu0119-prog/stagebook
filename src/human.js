@@ -122,7 +122,7 @@ function writeGroupActionNote(){
  toast(ui`已写入 ${selected.length} 人的本步动作；切换到任一演员都能看到。`);
 }
 function linkedStepNotes(id,event){
- const notes=song().annotations.filter(a=>a.entityIds?.includes(id)&&(a.start==null||a.start<=C.cuePlaybackEnd(event))&&(a.end==null||a.end>=event.start));
+ const notes=song().annotations.filter(a=>{const range=C.annotationRange(show(),song(),a);return !range.missing&&(!a.entityIds?.length||a.entityIds.includes(id))&&(range.start==null||range.start<=C.cuePlaybackEnd(event))&&(range.end==null||range.end>=event.start);});
  return notes.map(a=>ui`<div class="linked-step-note"><small>共同提醒</small><p>${esc(a.notes)}</p><button data-inspect="annotation" data-id="${esc(a.id)}">编辑这条提醒</button></div>`).join('');
 }
 function blockedRoute(points){

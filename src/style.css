@@ -106,3 +106,8 @@ body{font-size:14px}.brand{letter-spacing:2px;gap:7px}.brand-star{font-size:25px
 .menu-popover .compact-share{display:none}
 #helpText{white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.65}
 @media(max-width:600px){.menu-popover .compact-share{display:block}}
+
+/* Rare handoff/history controls stay out of the main editing workflow. */
+.handoff-badge{display:block;max-width:min(48ch,100%);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:10px;padding:3px 7px;margin-top:4px;color:var(--muted)}
+.handoff-summary,.note-text{white-space:pre-wrap;overflow-wrap:anywhere}.session-filters{display:grid;grid-template-columns:minmax(140px,1.4fr) 1fr 1fr;gap:10px;margin:14px 0}.session-note{border-top:1px solid var(--line);padding:14px 0}.session-note h3{margin:4px 0}.session-note small{color:var(--muted);overflow-wrap:anywhere}.session-note select{max-width:100%}.session-state{font-size:11px;color:var(--muted)}.session-preview{padding:16px;background:#fff;color:#111;border-radius:8px;overflow-wrap:anywhere}.session-preview header{border-bottom:2px solid #777}.session-preview small{color:#444}.session-preview .session-note{border-color:#999}.session-preview h1{font-size:22px}.session-preview h2{font-size:18px}.searchresult .tiny{margin-top:6px}
+@media(max-width:640px){.session-filters{grid-template-columns:1fr 1fr}.session-filters>label:first-child{grid-column:1/-1}.handoff-badge{max-width:26ch}.session-note .row{align-items:flex-start}}

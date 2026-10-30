@@ -1,6 +1,44 @@
 #!/usr/bin/env python3
 """Validate an offline Stagebook library. Python 3.9+, standard library only."""
-import argparse, json, math, pathlib, re, sys
+import argparse, json, math, pathlib, re, sys, datetime
+
+def validate_rehearsal_metadata(show, add, loc):
+    def fail(text): add('error',loc,text)
+    def strings(obj,keys):return isinstance(obj,dict) and all(isinstance(obj.get(k),str) for k in keys)
+    def date(value):
+        try: datetime.datetime.fromisoformat(value.replace('Z','+00:00'));return True
+        except (ValueError,TypeError,AttributeError):return False
+    h=show.get('handoff')
+    if h is not None and (not strings(h,['id','label','createdAt','summary','fingerprint']) or not h.get('id') or not h.get('label') or not date(h.get('createdAt'))):fail('Invalid handoff metadata')
+    refs=show.get('rehearsalList',[])
+    if not isinstance(refs,list):fail('rehearsalList must be an array');refs=[]
+    seen=set();sources=set();types={'show','stage','song','entity','cue','move','lyric','annotation','anchor','wall','backstage'}
+    for ref in refs:
+        if not strings(ref,['id','sourceType','sourceId','status']) or ref.get('sourceType') not in types or ref.get('status') not in {'discussion','decided','checked'} or (ref.get('songId') is not None and not isinstance(ref['songId'],str)) or ('cueId' in ref and not isinstance(ref['cueId'],str)) or ('checkedFingerprint' in ref and not isinstance(ref['checkedFingerprint'],str)):
+            fail('Invalid rehearsal note reference');continue
+        key=(ref.get('songId'),ref['sourceType'],ref['sourceId'])
+        if not ref['id'] or ref['id'] in seen or key in sources:fail('Duplicate rehearsal note ID/source')
+        seen.add(ref['id']);sources.add(key)
+    versions=show.get('versions',[])
+    if not isinstance(versions,list):fail('versions must be an array');return
+    seen=set()
+    for v in versions:
+        if not strings(v,['id','label','createdAt','summary']) or not v.get('id') or v['id'] in seen or not date(v.get('createdAt')) or ('missingAudio' in v and (not isinstance(v['missingAudio'],list) or not all(isinstance(x,str) for x in v['missingAudio']))):fail('Invalid version record');continue
+        seen.add(v['id']);snapshot=v.get('snapshot')
+        if not isinstance(snapshot,dict) or snapshot.get('id')!=show['id'] or 'versions' in snapshot:fail('A version must contain the same production, without nested versions');continue
+        if not all(isinstance(snapshot.get(k),list) for k in ['actors','props','songs']) or not isinstance(snapshot.get('stage'),dict):fail('Invalid version snapshot structure');continue
+        stage=snapshot['stage']
+        if len(stage.get('boundary',[]))<3 or not all(point(p) for p in stage.get('boundary',[])):fail('Invalid version stage boundary')
+        for key in ['anchors','walls','backstage']:
+            if not isinstance(stage.get(key),list):fail('Invalid version stage arrays')
+        for q in snapshot['songs']:
+            if not isinstance(q,dict) or q.get('mode') not in ['steps','timed'] or not all(isinstance(q.get(k),list) for k in ['castIds','propIds','cues','lyrics','annotations']) or not isinstance(q.get('initial'),dict):fail('Invalid version song structure');continue
+            if q.get('audio') and not safe_path(q['audio'].get('file')):fail('Invalid version audio path')
+            for cue in q['cues']:
+                if not isinstance(cue,dict) or not isinstance(cue.get('id'),str) or not isinstance(cue.get('moves'),list):fail('Invalid version step');continue
+                for move in cue['moves']:
+                    if not isinstance(move,dict) or not isinstance(move.get('id'),str) or not isinstance(move.get('points'),list) or len(move['points'])<2 or not all(point(p) and (('c1' not in p and 'c2' not in p) or point(p.get('c1')) and point(p.get('c2'))) for p in move['points']):fail('Invalid version route')
+        validate_rehearsal_metadata(snapshot,add,loc+'#'+v['id'])
 
 def point(p):
     return isinstance(p, dict) and all(isinstance(p.get(k), (int,float)) and not isinstance(p.get(k),bool) and math.isfinite(p[k]) for k in ('x','y'))
@@ -49,6 +87,7 @@ def validate(root):
         if not s.get('songs'):raise ValueError('Each show must have at least one song')
         if s['id']!=entry['id'] or s['id'] in show_ids:add('error',entry['path'],'Show ID mismatch/duplicate')
         if 'pauseAtSteps' in s and not isinstance(s['pauseAtSteps'],bool):add('error',entry['path'],'pauseAtSteps must be a boolean')
+        validate_rehearsal_metadata(s,add,entry['path'])
         show_ids.add(s['id']);all_objects=s['actors']+s['props'];ids={o['id'] for o in all_objects}
         if len(ids)!=len(all_objects):add('error',entry['path'],'Duplicate actor / prop IDs')
         if len(stage.get('boundary',[]))<3 or not all(point(p) for p in stage['boundary']):add('error',entry['path'],'Invalid stage boundary');continue

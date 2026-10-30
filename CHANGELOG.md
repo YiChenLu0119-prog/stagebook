@@ -1,5 +1,22 @@
 # Changelog
 
+## 9.2.0 — 2026-10-30
+
+- Keep optional production versions under More, with dates, times, names and descriptions.
+- View or export past versions; restore with an automatic backup and Undo.
+- Retain available historical MP3 bytes under content-derived asset names and identify music that was unavailable at capture.
+- Add optional edition labels and change summaries to cast shares, and mark later data changes.
+- Save the full history while sharing only current production data by default.
+- Collect existing notes in one rehearsal list without duplicating shared text; add notes at the current step.
+- Distinguish discussion, decisions and manual rehearsal checks; flag checks after related edits and identify broken links.
+- Preview selected role/time-filtered notes and export a printable HTML notes sheet.
+- Fix missing MP3 media types after ZIP extraction and normalize untyped/octet-stream files before playback.
+- Retain imported audio in the assets available to draft recovery.
+- Carry corresponding source with portable exports when embedded in the release app.
+- Document the upgrade flow: save work, open the new HTML, then import data.
+
+Validated with 18 automated suites and own-browser simulated editing, save/reimport, version restore/Undo and audio playback. Strict media-type regression covers the import fix; this is not a claim that every Safari version or browser/OS combination was tested. Real-team rehearsal validation remains pending.
+
 ## 9.1.0 — 2026-10-29
 
 - Open song settings directly from Opening, including an empty song.

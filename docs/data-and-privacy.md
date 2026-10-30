@@ -19,3 +19,10 @@ The public sample uses generic actors, schematic paths and instructional text. I
 Source code uses GPL-3.0-only; see [LICENSE](../LICENSE). This does not determine the permissions for music, lyrics, scripts or other files imported by a user. Sending files to an external assistant or hosting service places them within that service's processing scope.
 
 When reporting a problem, prefer the generic sample. Remove private notes, personal information and production media from screenshots and reproduction packages.
+
+
+## Production history and note sheets
+
+A regular Save includes manually kept history, older notes and referenced historical audio. Share with cast excludes that history by default, while an exported past version contains the selected old production. Review which file you send. Deleting current text does not remove it from older snapshots.
+
+The rehearsal list references original notes. Filtering a printable sheet limits that sheet's contents; it does not restrict access to a whole production package. Discussion/decision/check labels are local records, not authenticated receipts, permissions or safety assurances. Edition markers identify local snapshots and do not establish a team-wide latest version.

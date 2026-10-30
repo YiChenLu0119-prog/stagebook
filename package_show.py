@@ -12,12 +12,13 @@ def package(source,output,zip_path,neat=False,english=False):
         show['songs']=[json.loads((path.parent/song['path']).read_text()) for song in show['songs']]
         library['shows'].append(show)
     html=(ROOT/'dist/index.html').read_text()
+    if english:html=html.replace('<html lang="zh-CN">','<html lang="en" data-ui-language="en">',1)
     snapshot=json.dumps(library,ensure_ascii=False).replace('<','\\u003c')
     data_root=' data-library-root="演出资料/"' if neat else ''
     html=html.replace('</head>','<script id="embedded-library"'+data_root+' type="application/json">'+snapshot+'</script></head>',1)
     audio={}
     for show in library['shows']:
-        for song in show['songs']:
+        for song in [q for production in [show]+[v['snapshot'] for v in show.get('versions',[])] for q in production['songs']]:
             if song.get('audio'):
                 key=f"shows/{show['id']}/songs/{song['id']}/{song['audio']['file']}"
                 if (source/key).is_file():audio[key]=base64.b64encode((source/key).read_bytes()).decode('ascii')

@@ -1,4 +1,4 @@
-Stagebook · Multilingual edition v9.1
+Stagebook · Multilingual edition v9.2
 
 OPEN AND SAVE
 Extract the package and open “Stagebook.html”. The “演出资料” folder contains the editable data. New productions, songs, actors and props use in-app forms; press Enter to create or Cancel to return. Import a complete ZIP or folder to continue another production.
@@ -47,3 +47,13 @@ In Rehearse mode, select your character to see current and upcoming actions and 
 
 EXTERNAL AI EDITING
 Save your work first. Have an assistant read AI-GUIDE.md and edit the JSON in “演出资料”. Reload a connected folder or reimport the updated ZIP. The app checks for external changes before writing back. No networked AI, login or cloud sync is built in.
+
+
+版本记录（可选）
+在“更多 → 版本记录”中手动保留排练节点，自动记录日期和时间，可填名称与说明。普通保存不会增加历史条目。恢复前会自动保留当前内容，也能撤销。使用“保存”下载的包才会带上历史及历史音频；“发给演员”默认只含当前版本。历史中未连接的音乐会标明。
+
+排练清单
+在“笔记”中把已有备注加入本次排练清单，或在清单中直接记录当前步骤。正文始终沿用原备注。可标为待讨论、已决定、现场已复核；改动后旧复核会提醒重查。按角色、时间及勾选项预览、下载可打印的笔记提示单。分享版名与摘要放在分享面板的可选项中。
+
+
+更新应用：先保存当前进度，再打开新版 HTML。导入演出包只会更换演出资料，不会更新当前页面的程序。新版会自动识别包内 MP3；不用每次重新选择音乐。

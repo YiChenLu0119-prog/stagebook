@@ -19,11 +19,12 @@ Open `dist/走台本.html` after building. Edit `src`, not the generated HTML. T
 - `app.js` and `human.js`: application state, stage interaction and actor editing.
 - `timeline.js` and `editing.js`: clips, shortcuts, context menus and path points.
 - `audio.js` and `lyrics.js`: media state and persistent lyric editing.
+- `rehearsal.js`: edition labels, optional production history and selected rehearsal notes sheets.
 - `io.js`: folder access, ZIPs, embedded audio and draft recovery.
 - `i18n.js` and `locales`: interface translation, preferences and localized help.
 - `index.html` and `style.css`: layout, controls and language-aware wrapping.
 
-Application version 9.1.0 is separate from the production data format, which remains `stagebook-library` version 1.
+Application version 9.2.0 is separate from the production data format, which remains `stagebook-library` version 1.
 
 ## Localization
 
@@ -36,18 +37,27 @@ Review terminology in context. Test long labels, plural/count wording, ARIA labe
 ## Release packaging
 
 ```sh
-python3 package_show.py dist release-build Stagebook-v9.1.0-offline.zip --neat --english
+python3 package_show.py dist release-build Stagebook-v9.2.0-offline.zip --neat --english
 python3 validate.py release-build
 ```
 
-The output folder must be new or empty. Preserve the source data. Release packages contain “走台本.html” and “演出资料”; the latter includes the license in its technical folder. The full GPL text is also embedded in the HTML and preserved by subsequent app exports.
+The output folder must be new or empty. Preserve the source data. English release packages contain “Stagebook.html” and “演出资料”; the latter contains editable data and technical documentation. The corresponding source archive in its technical folder includes LICENSE. The full GPL text is also embedded in the HTML and preserved by subsequent app exports.
 
-Distribute the complete corresponding source as `Stagebook-v9.1.0-source.zip` alongside the offline asset. Include source, build scripts, generic examples, documentation and license; exclude generated output and private production material.
+Distribute the complete corresponding source as `Stagebook-v9.2.0-source.zip` alongside the offline asset. Include source, build scripts, generic examples, documentation and license; exclude generated output and private production material.
 
 ## Verification limits
 
-Fifteen automated suites cover geometry, timing, media state, file round trips, lyrics, playback context, editing, deletion continuity and localization. Audio readiness is simulated; byte-preserving round trips do not replace real browser decoding or listening.
+Eighteen automated suites cover geometry, timing, media state, file round trips, lyrics, playback context, editing, deletion continuity and localization. Audio readiness is simulated; byte-preserving round trips do not replace real browser decoding or listening.
 
 For interface changes, use your own independent test browser. Exercise seek, insert, drag, notes, independent timing, language switching, deletion, Undo/Redo, export and reopen. Do not use someone else's working session. Complete mobile editing and every browser/OS combination are not yet verified.
 
 Production manifests may contain an optional `workspace` object with `showId` and `songId`, used only to reopen the selected production and song. Older packages without it remain supported; production content and timing format remain version 1.
+
+
+## History and media compatibility
+
+The optional handoff, version and rehearsal-list metadata is defined in AI-GUIDE.md and the generated schema. Version snapshots contain full song objects and cannot contain recursive history. Do not duplicate the source text of a shared note. Keep schemas, normalization, file serializers and the portable validator consistent when adding fields.
+
+ZIP files do not preserve Blob MIME types. Mark extracted MP3s as audio/mpeg, and normalize untyped resources before creating playback URLs. The strict-MIME media test rejects an untyped Blob instead of silently accepting it. Imported media is retained in pending assets so the existing recovery-draft writer can store it. Actual browser decoding and listening remain separate checks.
+
+Release HTML embeds its corresponding source archive. Its capsule identifies the source ZIP filename; subsequent exports keep it in the technical folder. Older capsules without a name retain the legacy filename. The public release uses generic samples only.

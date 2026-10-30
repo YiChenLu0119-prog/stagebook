@@ -15,6 +15,11 @@ function embeddedAudioFile(key){
 }
 let audioPendingLoad=null,audioImportCancel=null,audioReady=Promise.resolve(false),audioSilentMode=false,audioImportBusy=false;
 function audioPlayable(){return audioState==='ready'&&!!audio.src;}
+function mp3PlaybackFile(file){
+ // ZIP extraction and some folder pickers supply untyped/octet-stream Blobs.
+ // A blob URL has no .mp3 extension for the media decoder to fall back to.
+ return file&&file.type!=='audio/mpeg'?new Blob([file],{type:'audio/mpeg'}):file;
+}
 function mediaProbe(player,url){
  let done=false,resolve,timer;const promise=new Promise(r=>resolve=r);
  const finish=result=>{if(done)return;done=true;clearTimeout(timer);player.removeEventListener('loadedmetadata',ready);player.removeEventListener('durationchange',ready);player.removeEventListener('loadeddata',ready);player.removeEventListener('canplay',ready);player.removeEventListener('error',failed);resolve(result);};
@@ -56,7 +61,7 @@ async function loadAudio(){
  if(!identity?.audio){audioReady=Promise.resolve(false);return false;}
  const operation=(async()=>{
   try{const key=keyPath()+identity.audio.file,file=await resourceFile(key);if(generation!==audioLoadGeneration||identity!==song())return false;
-   const url=file?URL.createObjectURL(file):embeddedAudioSource(key);if(!url){audioState='missing';audioError=tr('这首曲目的音乐尚未连接，请选择原 MP3 或导入完整演出包。');updateTransport();return false;}
+   const url=file?URL.createObjectURL(mp3PlaybackFile(file)):embeddedAudioSource(key);if(!url){audioState='missing';audioError=tr('这首曲目的音乐尚未连接，请选择原 MP3 或导入完整演出包。');updateTransport();return false;}
    if(file)audioURL=url;const player=audio,probe=mediaProbe(player,url);audioPendingLoad=probe;probe.start();const result=await probe.promise;
    if(generation!==audioLoadGeneration||identity!==song()||result.cancelled)return false;audioPendingLoad=null;
    if(!result.ok){audioState='error';audioError=result.error;player.removeAttribute('src');player.load();updateTransport();return false;}
@@ -67,7 +72,7 @@ async function loadAudio(){
 async function importAudio(file){
  if(!file)return false;
  if(!/\.mp3$/i.test(file.name)||!file.size){toast(!file.size?tr('这个音乐文件是空的，请重新选择。'):tr('请选择 MP3 音乐文件。'));return false;}
- pause();audioImportCancel?.();const generation=++audioImportGeneration,identity=song(),s=show(),url=URL.createObjectURL(file),candidate=new Audio(),probe=mediaProbe(candidate,url);let adopted=false;
+ pause();audioImportCancel?.();const generation=++audioImportGeneration,identity=song(),s=show(),url=URL.createObjectURL(mp3PlaybackFile(file)),candidate=new Audio(),probe=mediaProbe(candidate,url);let adopted=false;
  audioImportCancel=probe.cancel;audioImportBusy=true;updateTransport();probe.start();
  try{const result=await probe.promise;if(generation!==audioImportGeneration||identity!==song()||s!==show()||result.cancelled)return false;
   if(!result.ok){toast(result.error+tr(' 原来的音乐已保留。'));return false;}

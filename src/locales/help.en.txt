@@ -1,4 +1,4 @@
-Stagebook · Multilingual edition v9.1
+Stagebook · Multilingual edition v9.2
 
 OPEN AND SAVE
 Extract the package and open “Stagebook.html”. The “演出资料” folder contains the editable data. New productions, songs, actors and props use in-app forms; press Enter to create or Cancel to return. Import a complete ZIP or folder to continue another production.
@@ -47,3 +47,13 @@ In Rehearse mode, select your character to see current and upcoming actions and 
 
 EXTERNAL AI EDITING
 Save your work first. Have an assistant read AI-GUIDE.md and edit the JSON in “演出资料”. Reload a connected folder or reimport the updated ZIP. The app checks for external changes before writing back. No networked AI, login or cloud sync is built in.
+
+
+Optional version history
+Use More → Version history to keep a rehearsal milestone, with an automatic date/time and optional name/description. Regular Save does not create history entries. Restore keeps your displaced work and can be undone. Save packages retain history and historical audio; Share with cast includes only the current version. Missing historical music is identified.
+
+Rehearsal notes
+In Notes, add an existing note to the rehearsal list, or write one at the current step. Its text stays in the original note. Mark discussion, decision or a manual rehearsal check; later changes flag old checks for review. Filter by role/time, select notes and preview a printable HTML sheet. Edition names and change summaries are optional, collapsed in the Share panel.
+
+
+Updating the app: save your current work, then open the new HTML file. Importing a production package changes its data; it does not update the program in the current tab. MP3 files in a complete package connect automatically in the updated app.

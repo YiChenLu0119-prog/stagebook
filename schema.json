@@ -477,6 +477,21 @@
         },
         "notes": {
           "type": "string"
+        },
+        "handoff": {
+          "$ref": "#/$defs/handoff"
+        },
+        "rehearsalList": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/rehearsalRef"
+          }
+        },
+        "versions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/showVersion"
+          }
         }
       },
       "required": [
@@ -486,6 +501,173 @@
         "actors",
         "props",
         "songs"
+      ]
+    },
+    "handoff": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "createdAt": {
+          "type": "string"
+        },
+        "summary": {
+          "type": "string"
+        },
+        "fingerprint": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "label",
+        "createdAt",
+        "summary",
+        "fingerprint"
+      ]
+    },
+    "rehearsalRef": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "songId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "sourceType": {
+          "enum": [
+            "show",
+            "stage",
+            "song",
+            "entity",
+            "cue",
+            "move",
+            "lyric",
+            "annotation",
+            "anchor",
+            "wall",
+            "backstage"
+          ]
+        },
+        "sourceId": {
+          "type": "string"
+        },
+        "cueId": {
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "discussion",
+            "decided",
+            "checked"
+          ]
+        },
+        "checkedFingerprint": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "sourceType",
+        "sourceId",
+        "status"
+      ]
+    },
+    "embeddedShow": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        },
+        "stage": {
+          "$ref": "#/$defs/stage"
+        },
+        "pauseAtSteps": {
+          "type": "boolean"
+        },
+        "actors": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/entity"
+          }
+        },
+        "props": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/entity"
+          }
+        },
+        "songs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/song"
+          }
+        },
+        "notes": {
+          "type": "string"
+        },
+        "handoff": {
+          "$ref": "#/$defs/handoff"
+        },
+        "rehearsalList": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/rehearsalRef"
+          }
+        },
+        "versions": false
+      },
+      "required": [
+        "id",
+        "title",
+        "stage",
+        "actors",
+        "props",
+        "songs"
+      ]
+    },
+    "showVersion": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "createdAt": {
+          "type": "string"
+        },
+        "summary": {
+          "type": "string"
+        },
+        "snapshot": {
+          "$ref": "#/$defs/embeddedShow"
+        },
+        "missingAudio": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "id",
+        "label",
+        "createdAt",
+        "summary",
+        "snapshot"
       ]
     },
     "manifest": {

@@ -6,7 +6,7 @@ Put actors on a stage, draw their movement, and place it against song time and l
 
 **Interface languages:** English · 简体中文 · 繁體中文. Switch languages in the top bar. Character names, lyrics and your production notes stay exactly as written.
 
-[Download](https://github.com/YiChenLu0119-prog/stagebook/releases/tag/v9.1.0) · [Quick start](docs/quick-start.md) · [Roadmap](docs/ROADMAP.md) · [Changelog](CHANGELOG.md) · [Contributing](CONTRIBUTING.md)
+[Download](https://github.com/YiChenLu0119-prog/stagebook/releases/tag/v9.2.0) · [Quick start](docs/quick-start.md) · [Roadmap](docs/ROADMAP.md) · [Changelog](CHANGELOG.md) · [Contributing](CONTRIBUTING.md)
 
 ## Built around musical-theatre rehearsals
 
@@ -43,13 +43,31 @@ Give the assistant the saved production package and [AI-GUIDE.md](AI-GUIDE.md). 
 
 ## Get started
 
-1. Download **[Stagebook-v9.1.0-offline.zip](https://github.com/YiChenLu0119-prog/stagebook/releases/download/v9.1.0/Stagebook-v9.1.0-offline.zip)** from [Releases](https://github.com/YiChenLu0119-prog/stagebook/releases). Choose the named offline asset; source archives are for development.
+1. Download **[Stagebook-v9.2.0-offline.zip](https://github.com/YiChenLu0119-prog/stagebook/releases/download/v9.2.0/Stagebook-v9.2.0-offline.zip)** from [Releases](https://github.com/YiChenLu0119-prog/stagebook/releases). Choose the named offline asset; source archives are for development.
 2. Extract the ZIP and open **Stagebook.html** in a desktop browser. Older packages may call this file **走台本.html**.
 3. Explore the generic sample, or open the production menu at the top left and choose **New production**. Add your cast and drag their opening positions into place.
 4. Click the playback clock or timeline to choose a start time, then choose **Add step** or press `N`. Drag an actor to a destination and set their movement timing and note.
 5. Use **Save → Download package**. The saved library remembers the selected production and song. Use **Import** to reopen it; **Share with cast** packages it for others.
 
 A **step** is a timed blocking cue for the cast. A **movement** is one actor’s path, delay and duration associated with that step. Movements can have different timings and can continue beyond their step.
+
+## Keep rehearsal changes traceable
+
+Use **More → Version history** when you want to keep a milestone. Add an optional name and description; the date and time are recorded automatically. View or export an older version, or restore it with a backup of the displaced work and Undo available. Connected music is retained with the snapshot; missing music is identified. Ordinary Save does not create a history entry or ask for a version name.
+
+**Save → Download package** keeps the full production history and historical audio. **Share with cast** includes the current production without its history by default. Its collapsed optional settings let you name the edition and write a brief change summary. The exported file carries that identity; subsequent edits are marked as changes since that edition. Offline files do not know which edition everyone else is using, and changes from different files are not merged automatically.
+
+## Turn existing notes into rehearsal handoffs
+
+In **Notes**, add an existing note to **Rehearsal notes**, or write one at the current step. One shared note keeps one editable body, even when it concerns several performers. Mark it **For discussion**, **Decided** or manually **Checked in rehearsal**. Changes to the related song, stage or note flag an earlier check for review. Linked notes follow their step's timing; missing links are identified.
+
+Filter by role and time, select the notes to include, and preview a printable HTML notes sheet with the edition, audience side and named entrances. Whole-step notes also reach performers holding a position. A notes sheet is a selected handoff, not a full movement score or an access-control system. Manual status labels are not delivery receipts or proof that an actor understands the change.
+
+## Updating from an earlier release
+
+Save your current work first. Extract the new offline download and open its **Stagebook.html**, then import your saved production ZIP. **Import replaces production data; it does not upgrade the program in an already-open older tab.**
+
+Version 9.2 fixes MP3s losing their audio media type during ZIP import and normalizes untyped folder/cache files before playback. The imported audio is retained for recovery drafts. Existing version-1 production packages remain supported, including packages with no audio or lyrics. Browser drafts still do not replace a saved file.
 
 ## Editing without fighting the timeline
 
@@ -71,9 +89,11 @@ Public downloads contain generic examples only, without commercial soundtracks, 
 
 ## Ongoing development
 
-Stagebook will continue to evolve through real rehearsals and hands-on feedback. This preview improves the first-time workflow; future work will explore editing comfort, browser and file compatibility, accessibility, translation quality and useful public examples.
+Stagebook will continue to evolve through real rehearsals and hands-on feedback. This preview adds traceable versions and rehearsal handoffs; future work will explore editing comfort, browser and file compatibility, accessibility, translation quality and useful public examples.
 
 A desktop edition is also being evaluated, reusing the editor while adding native file opening, saving and installation. It is an exploration, with no release date or supported-platform promise yet. See the [roadmap](docs/ROADMAP.md) and [desktop edition plan](docs/desktop-app-plan.md).
+
+Future exploration also includes named rehearsal passages and lightweight call planning, after real teams confirm they reduce rather than duplicate work. Scheduling, performer/track mapping and cloud collaboration are not included in this release.
 
 Open an Issue with a specific rehearsal task and the point where the workflow got in your way. Watch Releases to follow completed updates. Priorities may change with feedback.
 

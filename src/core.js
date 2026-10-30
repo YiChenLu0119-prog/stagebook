@@ -226,11 +226,63 @@
         for(const n of song.annotations)if(n.entityIds!==undefined&&(!Array.isArray(n.entityIds)||!n.entityIds.every(id=>typeof id==='string')))throw Error(tr('记录 entityIds 必须为字符串数组。'));
         if(song.audio&&!safePath(song.audio.file))throw Error(tr('音频必须是曲目文件夹内的相对路径。'));
       }
+      checkRehearsalMetadata(s);
     }return lib;
   }
   function safePath(path){return typeof path==='string'&&path.length>0&&!path.startsWith('/')&&!path.includes('\\')&&!path.split('/').some(p=>!p||p==='.'||p==='..')&&!/^[a-z]+:/i.test(path);}
   function newSong(title=tr('未命名曲目')){return {id:id('song'),title,notes:'',mode:'steps',audio:null,duration:null,castIds:[],propIds:[],initial:{},lyrics:[],cues:[],annotations:[]};}
   function newShow(title=tr('新演出')){return {id:id('show'),title,notes:'',actors:[],props:[],songs:[newSong(tr('第一首曲目'))],stage:{notes:'',audience:'south',boundary:[{x:-60,y:-35},{x:60,y:-35},{x:60,y:25},{x:-60,y:25,c1:{x:45,y:55},c2:{x:-45,y:55}}],backstage:[{id:'back-left',name:tr('左后台'),notes:'',points:[{x:-85,y:-15},{x:-60,y:-15},{x:-60,y:15},{x:-85,y:15}]},{id:'back-right',name:tr('右后台'),notes:'',points:[{x:60,y:-15},{x:85,y:-15},{x:85,y:15},{x:60,y:15}]}],walls:[{id:'wall-l1',name:tr('左墙上'),notes:'',points:[{x:-60,y:-35},{x:-60,y:-10}]},{id:'wall-l2',name:tr('左墙下'),notes:'',points:[{x:-60,y:10},{x:-60,y:25}]},{id:'wall-r1',name:tr('右墙上'),notes:'',points:[{x:60,y:-35},{x:60,y:-10}]},{id:'wall-r2',name:tr('右墙下'),notes:'',points:[{x:60,y:10},{x:60,y:25}]}],anchors:[{id:'gate-left',name:tr('左入口'),kind:'gate',x:-60,y:0,notes:''},{id:'gate-right',name:tr('右入口'),kind:'gate',x:60,y:0,notes:''},{id:'center',name:tr('中心'),kind:'mark',x:0,y:0,notes:''}]}};}
-  const api={clone,id,finite,point,segment,bendSegment,insertRoutePoint,removeRoutePoint,flatten,along,path,inside,crosses,allowed,events,moveEvent,moveEvents,cuePlaybackEnd,position,beforeCue,cuePosition,setDestinations,setInitialPositions,removeActions,total,issues,checkStructure,safePath,newSong,newShow};
+  // A deterministic data-change marker, not a security hash or an online revision authority.
+  function dataFingerprint(value){
+    const canonical=x=>x===null||typeof x!=='object'?JSON.stringify(x):Array.isArray(x)?'['+x.map(canonical).join(',')+']':'{'+Object.keys(x).filter(k=>x[k]!==undefined).sort().map(k=>JSON.stringify(k)+':'+canonical(x[k])).join(',')+'}';
+    const text=canonical(value);let a=2166136261,b=5381;
+    for(let i=0;i<text.length;i++){a=Math.imul(a^text.charCodeAt(i),16777619);b=Math.imul(b,33)^text.charCodeAt(i);}
+    return 'data1-'+(a>>>0).toString(16).padStart(8,'0')+(b>>>0).toString(16).padStart(8,'0')+'-'+text.length;
+  }
+  function showFingerprint(show){const copy=clone(show);delete copy.handoff;delete copy.versions;return dataFingerprint(copy);}
+  function handoffState(show){return !show.handoff?'unlabelled':show.handoff.fingerprint===showFingerprint(show)?'same':'changed';}
+  const noteTypes=['show','stage','song','entity','cue','move','lyric','annotation','anchor','wall','backstage'];
+  function checkRehearsalMetadata(show){
+    const h=show.handoff;
+    if(h!==undefined&&(!h||typeof h!=='object'||['id','label','createdAt','summary','fingerprint'].some(k=>typeof h[k]!=='string')||!h.id||!h.label||!Number.isFinite(Date.parse(h.createdAt))))throw Error(tr('资料版次格式无效。'));
+    if(show.rehearsalList!==undefined&&!Array.isArray(show.rehearsalList))throw Error(tr('排练清单必须为数组。'));
+    const ids=new Set(),sources=new Set();
+    for(const n of show.rehearsalList||[]){
+      if(!n||typeof n.id!=='string'||!n.id||ids.has(n.id)||!noteTypes.includes(n.sourceType)||typeof n.sourceId!=='string'||(n.songId!=null&&typeof n.songId!=='string')||(n.cueId!==undefined&&typeof n.cueId!=='string')||!['discussion','decided','checked'].includes(n.status)||(n.checkedFingerprint!==undefined&&typeof n.checkedFingerprint!=='string'))throw Error(tr('排练清单记录格式无效或 ID 重复。'));
+      const key=JSON.stringify([n.songId||null,n.sourceType,n.sourceId]);if(sources.has(key))throw Error(tr('同一备注不能重复加入排练清单。'));ids.add(n.id);sources.add(key);
+    }
+    if(show.versions!==undefined&&!Array.isArray(show.versions))throw Error(tr('版本记录必须为数组。'));
+    const versionIds=new Set();for(const v of show.versions||[]){
+      if(!v||['id','label','createdAt','summary'].some(k=>typeof v[k]!=='string')||!v.id||versionIds.has(v.id)||!Number.isFinite(Date.parse(v.createdAt))||(v.missingAudio!==undefined&&(!Array.isArray(v.missingAudio)||!v.missingAudio.every(x=>typeof x==='string')))||!v.snapshot||v.snapshot.id!==show.id||v.snapshot.versions!==undefined||!Array.isArray(v.snapshot.songs)||!v.snapshot.songs.length)throw Error(tr('版本记录格式无效。'));
+      versionIds.add(v.id);checkStructure({version:1,shows:[v.snapshot]});
+    }
+  }
+  function noteSource(show,ref){
+    const q=show.songs.find(q=>q.id===ref.songId);let obj=null,cue=null,start=null,end=null,entityIds=[];
+    switch(ref.sourceType){
+      case 'show':if(ref.sourceId===show.id)obj=show;break;
+      case 'stage':if(ref.sourceId===show.id)obj=show.stage;break;
+      case 'entity':obj=[...show.actors,...show.props].find(e=>e.id===ref.sourceId);if(obj)entityIds=[obj.id];break;
+      case 'anchor':case 'wall':case 'backstage':obj=show.stage[{anchor:'anchors',wall:'walls',backstage:'backstage'}[ref.sourceType]].find(o=>o.id===ref.sourceId);break;
+      case 'song':if(q?.id===ref.sourceId)obj=q;break;
+      case 'cue':cue=q?.cues.find(c=>c.id===ref.sourceId);obj=cue;break;
+      case 'move':cue=q?.cues.find(c=>c.moves.some(m=>m.id===ref.sourceId));obj=cue?.moves.find(m=>m.id===ref.sourceId);if(obj)entityIds=[obj.entityId];break;
+      case 'lyric':obj=q?.lyrics.find(l=>l.id===ref.sourceId);if(obj){start=obj.start;end=obj.end;}break;
+      case 'annotation':obj=q?.annotations.find(a=>a.id===ref.sourceId);if(obj){start=obj.start;end=obj.end;entityIds=obj.entityIds||[];}break;
+    }
+    if(ref.cueId){cue=q?.cues.find(c=>c.id===ref.cueId);if(!cue)start=end=null;}
+    const event=cue&&events(q).find(e=>e.cue.id===cue.id);
+    if(event&&(ref.sourceType!=='move'||obj)){const e=ref.sourceType==='move'?moveEvent(event,obj):event;start=e.start;end=ref.sourceType==='move'?e.end:cuePlaybackEnd(event);}
+    const missing=!obj||!String(obj.notes||'').trim()||!!ref.cueId&&!cue;
+    const fingerprint=dataFingerprint({notes:obj?.notes||'',entityIds,start,end,song:q||null,stage:show.stage,entity:ref.sourceType==='entity'?obj:null});
+    return {obj,song:q,cue,start,end,entityIds,title:obj?.title||obj?.name||cue?.title||'',notes:obj?.notes||'',missing,fingerprint,
+      stale:ref.status==='checked'&&ref.checkedFingerprint!==fingerprint};
+  }
+  function annotationRange(show,song,annotation){
+    const ref=show.rehearsalList?.find(r=>r.songId===song.id&&r.sourceType==='annotation'&&r.sourceId===annotation.id&&r.cueId);
+    if(!ref)return {start:annotation.start,end:annotation.end,missing:false};
+    const source=noteSource(show,ref);return {start:source.start,end:source.end,missing:source.missing};
+  }
+  const api={clone,id,finite,point,segment,bendSegment,insertRoutePoint,removeRoutePoint,flatten,along,path,inside,crosses,allowed,events,moveEvent,moveEvents,cuePlaybackEnd,position,beforeCue,cuePosition,setDestinations,setInitialPositions,removeActions,total,issues,checkStructure,safePath,newSong,newShow,dataFingerprint,showFingerprint,handoffState,checkRehearsalMetadata,noteSource,annotationRange};
   root.StageCore=api;if(typeof module!=='undefined')module.exports=api;
 })(globalThis);
