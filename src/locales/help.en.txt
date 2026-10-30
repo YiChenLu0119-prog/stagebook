@@ -1,4 +1,4 @@
-Stagebook · Multilingual edition v9.3
+Stagebook · Multilingual edition v9.4
 
 OPEN AND SAVE
 Extract the package and open “Stagebook.html”. The “演出资料” folder contains the editable data. New productions, songs, actors and props use in-app forms; press Enter to create or Cancel to return. Import a complete ZIP or folder to continue another production.
@@ -60,3 +60,5 @@ Updating the app: save your current work, then open the new HTML file. Importing
 
 Appearance and workspace
 More → Appearance offers Phantom, RENT, Hamilton and Dear Evan Hansen. Hamilton is the initial default; this browser remembers later choices. Appearance does not change actor colors or production data. The timeline spans the workspace; actor timing appears above the movement note. Use Focus stage or drag the divider to adjust space. System reduced motion disables transitions and makes lyric following immediate.
+
+Singing practice: choose Sing, then Choose my roles. Other singers remain visible. Jump between your lines, loop one phrase or a passage with a two-second pickup, and adjust text size and speed. Assign singer saves an unattributed line with Undo. Scroll to browse; Return to current line resumes centered following.

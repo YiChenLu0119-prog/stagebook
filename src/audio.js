@@ -45,7 +45,7 @@ function releaseAudio(){
 }
 function bindActiveAudio(player,generation){
  const failed=()=>{if(generation!==audioLoadGeneration||player!==audio||audioState!=='ready')return;pause();audioState='error';audioError=tr('音乐播放中断，请重新连接文件或静音走台。');updateTransport();};
- player._stagebookError=failed;player.addEventListener('error',failed);player.playbackRate=rate;
+ player._stagebookError=failed;player.addEventListener('error',failed);player.playbackRate=rate;player.preservesPitch=true;
 }
 function embeddedAudioSource(key){
  if(resources.size)return null;const embedded=$('#embedded-library');if(!embedded)return null;

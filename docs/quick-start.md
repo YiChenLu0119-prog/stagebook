@@ -62,3 +62,10 @@ Updating the app: save your current work, then open the new HTML file. Importing
 
 Appearance and workspace
 More → Appearance offers Phantom, RENT, Hamilton and Dear Evan Hansen. Hamilton is the initial default; this browser remembers later choices. Appearance does not change actor colors or production data. The timeline spans the workspace; actor timing appears above the movement note. Use Focus stage or drag the divider to adjust space. System reduced motion disables transitions and makes lyric following immediate.
+
+
+## Practice a vocal part
+
+Open a song with timed lyrics, choose **Sing**, then **Choose my roles**. Other singers remain visible. Select **Loop this line** for one phrase or **Loop practice** for a passage; adjust the pickup to include the lead-in you need. **Previous own line / Next own line** include that pickup. Use the speed selector to practice more slowly and the text-size selector to improve readability.
+
+Singer labels in square brackets are recognized without changing the lyric text. For an unlabeled line, **Assign singer** saves an explicit attribution with Undo. Use `[Actor A] … [Actor B] …` for split lines. **Back to workspace** restores your editing/rehearsal view at the current playhead. The first release uses timed lines, not word-level karaoke or isolated vocal tracks.

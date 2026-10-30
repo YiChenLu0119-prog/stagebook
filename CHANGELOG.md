@@ -1,5 +1,17 @@
 # Changelog
 
+## 9.4.0 — 2026-10-30
+
+- Add a lyric-focused Sing workspace with multi-role highlighting and readable other voices.
+- Support bracketed singer tags, separately attributed parts within one line, and optional saved `speakerIds` assignments. Untagged lines stay neutral.
+- Add previous/next own-line navigation, single-line and selected-passage loops with pickup, text sizes, and pitch-preserving speed controls.
+- Ignore blocking pause markers during singing practice without changing production settings; restore the previous workspace and retain the current playhead on exit.
+- Center followed lyrics inside their scroll container, including edge lines; browsing pauses follow until explicitly resumed.
+- Contain long sidebar song titles, scroll overflowing selected/hovered titles, and honor reduced motion.
+- Keep personal singing preferences local and provide English, Simplified Chinese and Traditional Chinese UI.
+
+Validated with twenty automated suites and a short independent-browser smoke check, as requested. Full device/browser coverage and real-team singing sessions remain future work. Existing version-1 files remain supported. No private music, lyrics or production data is included.
+
 ## 9.3.0 — 2026-10-30
 
 - Give the timeline the full workspace width and combine its tabs and zoom controls.

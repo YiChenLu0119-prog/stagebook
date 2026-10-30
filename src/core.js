@@ -223,6 +223,7 @@
         for(const key of ['castIds','propIds'])if(!song[key].every(id=>typeof id==='string'))throw Error(tr('参演名单只能包含字符串 ID。'));
         for(const o of [...song.cues,...song.lyrics,...song.annotations])if(!o||typeof o.id!=='string')throw Error(tr('走台步骤、歌词和记录需要字符串 ID。'));
         for(const c of song.cues){if(!Array.isArray(c.moves))throw Error(tr('每一步都需要 moves 数组。'));for(const m of c.moves)if(!m||typeof m.id!=='string'||!Array.isArray(m.points)||!m.points.every(point)||!validControls(m.points))throw Error(tr('路线需要 ID 及有效坐标 points 数组。'));else for(const key of ['startOffset','duration'])if(m[key]!==undefined&&(!finite(m[key])||m[key]<0))throw Error(tr('演员移动时间需要非负秒数。'));}
+        for(const l of song.lyrics)if(l.speakerIds!==undefined&&(!Array.isArray(l.speakerIds)||!l.speakerIds.every(id=>typeof id==='string')))throw Error(tr('歌词角色需要字符串 ID 数组。'));
         for(const n of song.annotations)if(n.entityIds!==undefined&&(!Array.isArray(n.entityIds)||!n.entityIds.every(id=>typeof id==='string')))throw Error(tr('记录 entityIds 必须为字符串数组。'));
         if(song.audio&&!safePath(song.audio.file))throw Error(tr('音频必须是曲目文件夹内的相对路径。'));
       }

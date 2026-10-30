@@ -30,3 +30,6 @@ The rehearsal list references original notes. Filtering a printable sheet limits
 ## Appearance preference
 
 The four palettes use a local browser preference (`stagebook-appearance`). Choosing a palette does not edit production data, actor colors or Undo history. A new browser defaults to Hamilton. There is no theme download, network font or third-party visual asset.
+
+
+Singing practice stores personal selected roles, text size and pickup preferences in this browser, keyed by production ID. These are not cast identity records and are not shared. Explicit **Assign singer** edits are part of the production lyric data, support Undo, and are included in production exports. Bracket labels are read locally; singing practice makes no AI/network requests and does not infer singers from blocking.

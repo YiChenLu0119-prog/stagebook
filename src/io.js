@@ -157,11 +157,12 @@ if(typeof ResizeObserver==='function'){
  const layoutObserver=new ResizeObserver(()=>{
   cancelAnimationFrame(layoutFrame);
   layoutFrame=requestAnimationFrame(()=>{
-   if(!drag)renderStage();
+   if(!drag&&!singing)renderStage();
+   updateSongTitleOverflow();updateLyricsFocus(true);updateSingingFocus(true);
    if(bottomTab==='timeline'&&!timelineDrag)renderTimeline();
    else updatePlayhead();
   });
  });
- layoutObserver.observe($('#stageWrap'));layoutObserver.observe($('#bottomContent'));
+ layoutObserver.observe($('#stageWrap'));layoutObserver.observe($('#bottomContent'));layoutObserver.observe($('#leftContent'));layoutObserver.observe($('#lyricsList'));layoutObserver.observe($('#singingList'));
 }else window.addEventListener('resize',()=>{if(!drag)renderStage();if(bottomTab==='timeline'&&!timelineDrag)renderTimeline();else updatePlayhead();});
 boot().catch(e=>{console.error(e);toast(tr('启动失败：')+e.message);});

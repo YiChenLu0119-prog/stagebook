@@ -10,7 +10,7 @@ function renderLyricsDock(force=false){
  if(!song())return;const identity=showId+'/'+songId;if(identity!==lyricDockSong){lyricDockSong=identity;lyricEditId=null;lyricRenderSignature='';lyricActiveId=null;}
  if(lyricEditId&&!lyricById(lyricEditId))lyricEditId=null;
  $('#lyricsDock').classList.toggle('hidden',!lyricDockVisible);$('#stageAndLyrics').classList.toggle('lyrics-hidden',!lyricDockVisible);$('#lyricsToggle').classList.toggle('selected',lyricDockVisible);$('#lyricsToggle').setAttribute('aria-pressed',String(lyricDockVisible));$('#lyricsCount').textContent=song().lyrics.length?ui`${song().lyrics.length} 句`:'';
- $('#lyricFollowButton').classList.toggle('selected',lyricFollow);$('#lyricFollowButton').setAttribute('aria-pressed',String(lyricFollow));
+ $('#lyricFollowButton').textContent=tr(lyricFollow?'跟随播放':'回到当前句');$('#lyricFollowButton').classList.toggle('selected',lyricFollow);$('#lyricFollowButton').setAttribute('aria-pressed',String(lyricFollow));
  const signature=JSON.stringify(song().lyrics)+'|'+lyricEditId+'|'+rehearsal+'|'+StageI18n.language,focused=document.activeElement?.closest?.('[data-lyric-inline]');
  if(force||signature!==lyricRenderSignature){
   if(!force&&focused&&focused.dataset.lyricInline===lyricEditId){lyricRenderSignature=signature;updateLyricsFocus();return;}
@@ -19,7 +19,7 @@ function renderLyricsDock(force=false){
    const edit=lyricEditId===l.id;
    return ui`<article class="dock-lyric ${edit?'editing':''}" data-lyric-row="${esc(l.id)}"><div class="dock-lyric-heading"><button data-action="lyrics-jump:${esc(l.id)}" class="lyric-time" aria-label="定位第 ${i+1} 句歌词，${fmt(l.start)}">${fmt(l.start)} → ${fmt(l.end)}</button>${!rehearsal?ui`<button data-action="lyrics-edit:${esc(l.id)}" class="lyric-edit-button" aria-label="编辑第 ${i+1} 句歌词">${edit?tr('收起'):tr('编辑')}</button>`:''}</div>${edit?lyricField(l,'text',tr('歌词内容'),'textarea')+ui`<div class="two">${lyricField(l,'start',tr('开始秒数'),'number')}${lyricField(l,'end',tr('结束秒数'),'number')}</div><p class="lyric-edit-tip">改开始时间会保留原时长；结束时间可单独调。</p><details><summary>这句的备注</summary>${lyricField(l,'notes',tr('歌词备注'),'textarea')}</details><div class="lyric-edit-actions"><button data-action="lyrics-edit:${esc(l.id)}">完成</button><button class="danger" data-action="lyrics-delete:${esc(l.id)}">删除这句</button></div>`:`<button class="lyric-line" data-action="lyrics-jump:${esc(l.id)}">${esc(l.text||tr('（空白歌词）'))}</button>${l.notes?`<p class="dock-lyric-note">${esc(l.notes)}</p>`:''}`}</article>`;
   }).join(''):ui`<div class="lyrics-empty"><p>歌词和走台可以一起看、一起改。</p><button data-action="lyrics">导入歌词</button><button data-action="add-lyric">在当前时间写一句</button></div>`;
-  lyricRenderSignature=signature;
+  lyricRenderSignature=signature;lyricActiveId=null;
  }
  updateLyricsFocus();
 }
@@ -27,10 +27,10 @@ function updateLyricsFocus(forceFollow=false){
  if(!song())return;$('#lyricClock').textContent=fmt(current);const active=currentLyric(),id=active?.id||null;
  $('#lyricCurrentLabel').textContent=active?tr('当前歌词'):song().lyrics.length?tr('间奏 · 当前没有歌词'):tr('尚未导入歌词');
  for(const row of $$('[data-lyric-row]')){const on=row.dataset.lyricRow===id;row.classList.toggle('active',on);row.setAttribute('aria-current',on?'true':'false');}
- if((id!==lyricActiveId||forceFollow)&&id&&lyricDockVisible&&lyricFollow&&!lyricEditId){const row=$$('[data-lyric-row]').find(row=>row.dataset.lyricRow===id);row?.scrollIntoView?.({block:'nearest',behavior:window.matchMedia?.('(prefers-reduced-motion: reduce)').matches?'auto':'smooth'});}lyricActiveId=id;
+ if((id!==lyricActiveId||forceFollow)&&id&&lyricDockVisible&&lyricFollow&&!lyricEditId){const row=$$('[data-lyric-row]').find(row=>row.dataset.lyricRow===id);centerLyricRow($('#lyricsList'),row);;}lyricActiveId=id;
 }
 function seekToLyric(id){
- const l=lyricById(id);if(!l)return;pause();singleStepEnd=null;current=l.start;const event=eventAtCursor();selectedCue=event?.cue.id||null;tool='select';stagePhase='live';
+ const l=lyricById(id);if(!l)return;lyricFollow=true;pause();singleStepEnd=null;current=l.start;const event=eventAtCursor();selectedCue=event?.cue.id||null;tool='select';stagePhase='live';
  if(!rehearsal)inspect=selected.length?{type:selected.length>1?'group':'entity',id:selected[0]}:{type:event?'cue':'song',id:event?.cue.id||songId};current=l.start;renderAll();seek(l.start);
 }
 function refreshLyricViews(){renderBottom();renderStage();if(rehearsal)renderRehearsal();updateTransport();}
@@ -62,4 +62,14 @@ document.addEventListener('change',e=>{
  if(input.value===''||!C.finite(value)||value<0||key==='end'&&value<l.start){input.value=l[key];toast(tr('请输入有效秒数，结束时间不能早于开始时间。'));return;}
  mutate(()=>{if(key==='start'){const duration=l.end-l.start;l.start=value;l.end=Math.round((value+duration)*1000)/1000;}else l.end=value;},false);const row=input.closest?.('[data-lyric-row]'),endInput=row?.querySelector('[data-lyric-field="end"]'),label=row?.querySelector('.lyric-time');if(endInput)endInput.value=l.end;if(label)label.textContent=fmt(l.start)+' → '+fmt(l.end);refreshLyricViews();renderLyricsDock();
 });
-$('#lyricsList').addEventListener('wheel',()=>{lyricFollow=false;$('#lyricFollowButton').classList.remove('selected');$('#lyricFollowButton').setAttribute('aria-pressed','false');},{passive:true});
+function centerLyricRow(list,row,immediate=false){
+ if(!row||!list.clientHeight)return;
+ list.style.setProperty('--lyric-edge',list.clientHeight/2+'px');
+ const view=list.getBoundingClientRect(),rect=row.getBoundingClientRect();
+ const top=Math.max(0,list.scrollTop+rect.top-view.top-(list.clientHeight-rect.height)/2);
+ list.scrollTo?.({top,behavior:immediate||window.matchMedia?.('(prefers-reduced-motion: reduce)').matches?'auto':'smooth'});
+}
+function suspendLyricFollow(){lyricFollow=false;$('#lyricFollowButton').textContent=tr('回到当前句');$('#lyricFollowButton').classList.remove('selected');$('#lyricFollowButton').setAttribute('aria-pressed','false');}
+for(const type of ['wheel','touchmove'])$('#lyricsList').addEventListener(type,suspendLyricFollow,{passive:true});
+$('#lyricsList').addEventListener('pointerdown',e=>{if(e.clientX>=$('#lyricsList').getBoundingClientRect().right-18)suspendLyricFollow();});
+$('#lyricsList').addEventListener('keydown',e=>{if(['ArrowUp','ArrowDown','PageUp','PageDown','Home','End'].includes(e.key))suspendLyricFollow();});

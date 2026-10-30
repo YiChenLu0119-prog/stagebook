@@ -133,6 +133,7 @@ def validate(root):
                 if before and math.hypot(before['x']-pts[0]['x'],before['y']-pts[0]['y'])>.15:add('warning',loc(mid),'Route starts away from the preceding position; playback will jump')
                 positions[obj]=pts[-1];spans.setdefault(obj,[]).append((start,end))
             for l in q.get('lyrics',[]):
+                if 'speakerIds' in l and (not isinstance(l['speakerIds'],list) or not all(isinstance(v,str) for v in l['speakerIds'])):add('error',loc(l.get('id')),'Lyric speakerIds must be an array of strings')
                 if not numeric(l.get('start')) or not numeric(l.get('end')) or l['start']<0 or l['end']<l['start']:add('error',loc(l.get('id')),'Invalid lyric times')
             for n in q.get('annotations',[]):
                 start=n.get('start');end=n.get('end')

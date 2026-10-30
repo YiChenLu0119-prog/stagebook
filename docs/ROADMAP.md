@@ -11,6 +11,8 @@ Stagebook is being developed gradually from real blocking and rehearsal work. Th
 - Optional timestamped production history with restore/backup and historical audio.
 - Edition labels, change summaries and selected role-specific rehearsal notes sheets.
 - A full-width timeline, responsive panels and four musical-inspired appearance palettes.
+- A lyric-focused singing workspace with role highlighting, pickup loops and slower playback.
+- Centered lyric follow and contained, scrolling long song titles.
 - Reduced-motion feedback and immediate lyric following under that system preference.
 
 ## Desktop edition under exploration
@@ -38,4 +40,4 @@ Release notes will record completed changes. Use this roadmap to discuss future 
 
 ## Later research
 
-Performer/track mapping, detailed scheduling, cloud collaboration and receipt tracking need further research. They are not included in v9.3.0. A manual rehearsal-check label records an action; it does not certify understanding or safety.
+Performer/track mapping, detailed scheduling, cloud collaboration and receipt tracking need further research. They are not included in v9.4.0. A manual rehearsal-check label records an action; it does not certify understanding or safety.

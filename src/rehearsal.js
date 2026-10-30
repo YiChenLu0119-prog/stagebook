@@ -14,7 +14,7 @@ function handoffDetailsHTML(s=show()){
  return `<h3>${esc(h.label)}</h3><p class="muted">${esc(versionDate(h.createdAt))} · ${esc(h.id.slice(-6))}</p><p class="handoff-summary">${esc(h.summary||tr('未填写改动摘要'))}</p><p>${esc(handoffStatusText(s))}</p>`;
 }
 function handoffDialog(){
- modal(tr('资料版次'),handoffDetailsHTML()+ui`<p class="footer-note">版次标记用于核对这份文件；离线无法判断全团使用的是哪一版。</p><p class="footer-note">软件版本</p><p>${esc(PAYLOAD.appVersion||'9.3.0')}</p>`);
+ modal(tr('资料版次'),handoffDetailsHTML()+ui`<p class="footer-note">版次标记用于核对这份文件；离线无法判断全团使用的是哪一版。</p><p class="footer-note">软件版本</p><p>${esc(PAYLOAD.appVersion||'9.4.0')}</p>`);
 }
 function versionDate(value){return new Date(value).toLocaleString(StageI18n.language==='en'?'en-GB':StageI18n.language==='zh-TW'?'zh-TW':'zh-CN',{year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit'});}
 function versionSnapshot(s,label,summary=''){

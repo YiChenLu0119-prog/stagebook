@@ -196,3 +196,8 @@ This local preview keeps data format v1. It adds optional production fields; it 
 - Notes sheets contain only the current song/production-wide sources matching the selected person, time range and checked export boxes. They show discussion/decision/check states explicitly. A whole-production ZIP still contains all current production notes; a sheet is not a permission boundary. The printable HTML keeps text as escaped plain text and supports long paragraphs and black-and-white output.
 
 The v9.1.0 structural loader was tested to preserve these additional JSON fields, but v9.1.0 does not display history, linked note ranges, edition markers or review status. Use this preview or a later compatible app to operate those features. Earlier applications are not claimed compatible. The portable validator checks optional metadata and archive structure; run the app's blocking checks on a restored version to inspect its geometry and timing.
+
+
+## Singing practice attribution (optional, format version 1)
+
+Preserve the user's lyric text and timing. An optional lyric field `"speakerIds": ["actor-id"]` assigns the entire line to one or more existing actor IDs; an explicit empty array leaves it unassigned. For different singers within one line, omit `speakerIds` and write `[Actor A] first part [Actor B] response` in `text`, using existing actor names, IDs or short labels. Separate joint singers with `&` or `/`. Never infer singers from movement, fabricate missing attribution, or force word-level timing. Unknown bracket labels can be selected as personal tags in Sing mode. Selecting personal roles or text sizes changes only this browser's preference, while manual singer assignment is saved with the production.

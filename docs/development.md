@@ -19,6 +19,7 @@ Open `dist/走台本.html` after building. Edit `src`, not the generated HTML. T
 - `app.js` and `human.js`: application state, stage interaction and actor editing.
 - `timeline.js` and `editing.js`: clips, shortcuts, context menus and path points.
 - `audio.js` and `lyrics.js`: media state and persistent lyric editing.
+- `practice.js` and `practice.css`: lyric-focused singing, personal roles, explicit attribution and pickup loops.
 - `rehearsal.js`: edition labels, optional production history and selected rehearsal notes sheets.
 - `io.js`: folder access, ZIPs, embedded audio and draft recovery.
 - `i18n.js` and `locales`: interface translation, preferences and localized help.

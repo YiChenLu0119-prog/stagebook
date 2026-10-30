@@ -160,6 +160,8 @@ function handleEditingKey(e){
  const run=a=>{e.preventDefault();runEditingCommand(a);};
  if(cmd&&key==='s'){e.preventDefault();if(typing)e.target.blur?.();Promise.resolve(saveWork()).catch(x=>toast(x.message));return;}
  if(modalOpen)return;
+ if(singing&&handleSingingKey(e,typing,cmd))return;
+ if(e.target.closest?.('#lyricsList')&&['ArrowUp','ArrowDown','PageUp','PageDown','Home','End'].includes(e.key))return;
  if(cmd&&key==='o'){run('open');return;}if(cmd&&key==='k'){run('search');return;}if(typing)return;
  if(cmd){
   if(key==='z'){e.preventDefault();undo(e.shiftKey);return;}if(key==='y'){e.preventDefault();undo(true);return;}

@@ -29,7 +29,7 @@ const h=createApp();
 h.api.state().lib.shows[0].songs[0].lyrics=[{id:'l1',start:0,end:10,text:'Test line',notes:''}];
 h.api.renderLyricsDock(true);
 let behavior;
-h.$('#lyricsList').lyricRows[0].scrollIntoView=options=>behavior=options.behavior;
+h.$('#lyricsList').scrollTo=options=>behavior=options.behavior;
 h.ctx.window.matchMedia=()=>({matches:true});h.api.updateLyricsFocus(true);assert.equal(behavior,'auto');
 h.ctx.window.matchMedia=()=>({matches:false});h.api.updateLyricsFocus(true);assert.equal(behavior,'smooth');
 console.log('PASS: reduced motion disables animated lyric following without disabling follow');

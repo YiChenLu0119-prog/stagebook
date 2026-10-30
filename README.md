@@ -6,9 +6,21 @@ Put actors on a stage, draw their movement, and place it against song time and l
 
 **Interface languages:** English · 简体中文 · 繁體中文. Switch languages in the top bar. Character names, lyrics and your production notes stay exactly as written.
 
-[Download](https://github.com/YiChenLu0119-prog/stagebook/releases/tag/v9.3.0) · [Quick start](docs/quick-start.md) · [Roadmap](docs/ROADMAP.md) · [Changelog](CHANGELOG.md) · [Contributing](CONTRIBUTING.md)
+[Download](https://github.com/YiChenLu0119-prog/stagebook/releases/tag/v9.4.0) · [Quick start](docs/quick-start.md) · [Roadmap](docs/ROADMAP.md) · [Changelog](CHANGELOG.md) · [Contributing](CONTRIBUTING.md)
 
 ![Stagebook editing workspace in the Hamilton palette](docs/images/workspace-hamilton.jpg)
+
+## Singing practice
+
+![Stagebook singing practice with one role highlighted and other voices visible](docs/images/singing-practice.jpg)
+
+Choose **Sing** to focus the workspace on large, synchronized lyrics. Select **Choose my roles** to highlight your own parts while keeping other singers visible, including split lines and ensemble cues. Your role and text-size choices stay in this browser. They do not change the shared production.
+
+Use **Previous own line / Next own line** to reach your entrances, **Loop this line** for one phrase, or **Loop practice** to choose a first and last line. Loops include a configurable pickup (two seconds by default). Slow playback preserves pitch in browsers that support it. Blocking pause markers are temporarily ignored in Sing mode without changing the production's settings. **Back to workspace** restores your previous working view and retains the current playhead.
+
+Singer tags such as `[Actor A]` are read from the lyric text. Unattributed words stay neutral; the app does not infer singers from blocking. Use **Assign singer** to save an explicit attribution, or tag each part of a shared line separately. All lyric text remains visible. This highlights timed lines and attributed phrases; it does not generate word-level karaoke timing, isolate vocals or score singing.
+
+Lyric following now centers the current line inside its own scroll area, including the first and last lines. Scroll manually to browse, then choose **Return to current line**. Long sidebar song titles stay inside their cards and gently scroll when selected or hovered. Reduced motion uses stationary, manually scrollable titles.
 
 ## Editing workspace and appearance
 
