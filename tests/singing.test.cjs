@@ -6,7 +6,7 @@ const assert=require('node:assert/strict'),vm=require('node:vm'),{createApp}=req
  assert(h.api.singingState().singing);assert(h.api.singingState().rehearsal);assert(h.$('#singingList').innerHTML.includes('my-words'));assert(h.$('#singingList').innerHTML.includes('Answer'));assert(h.$('#singingList').innerHTML.includes('No singer label'));
  const segments=h.api.lyricSegments(q.lyrics[0]);assert.deepEqual(Array.from(segments[0].roles),['a']);assert.deepEqual(Array.from(segments[1].roles),['b']);assert.deepEqual(Array.from(h.api.lyricSegments(q.lyrics[2])[0].roles),['a','b']);
  assert.equal(h.api.lyricSegments(q.lyrics[1])[0].roles.length,0,'Untagged lines never borrow singer identity from blocking');
- q.lyrics[1].speakerIds=['b'];assert.deepEqual(Array.from(h.api.lyricSegments(q.lyrics[1])[0].roles),['b']);delete q.lyrics[1].speakerIds;
+ q.lyrics[1].speakerIds=['b'];q.castIds=['a'];assert(h.api.singingRoleOptions().some(role=>role.id==='b'),'Explicitly attributed singers remain selectable outside the blocking cast');q.castIds=['a','b'];assert.deepEqual(Array.from(h.api.lyricSegments(q.lyrics[1])[0].roles),['b']);delete q.lyrics[1].speakerIds;
  h.api.navigateSinging(1);assert.equal(h.api.state().current,9,'Next own line includes a two-second pickup');h.api.navigateSinging(-1);assert.equal(h.api.state().current,1);
  assert(h.api.startSingingLoop('l1','l3'));assert.deepEqual(JSON.parse(JSON.stringify(h.api.singingState().loop)),{start:1,end:13});
  q.cues[0].stopAfter=true;h.api.advance(10.2);assert(h.api.state().playing,'Practice ignores blocking pause markers without changing their setting');assert(h.api.state().current>10);

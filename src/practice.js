@@ -23,6 +23,7 @@ function singingRoleOptions(){
  for(const l of song()?.lyrics||[])for(const m of String(l.text).matchAll(/\[([^\]\n]+)\]/g))for(const label of m[1].split(/\s*(?:[\/&,、，＋+]|\band\b)\s*/i)){
   if(!singerKey(label))continue;const id=resolveSinger(label);if(!options.has(id))options.set(id,{id,name:entity(id)?.name||label.trim()});
  }
+ for(const l of song()?.lyrics||[])for(const id of l.speakerIds||[]){const actor=show().actors.find(a=>a.id===id);if(actor&&!options.has(id))options.set(id,{id,name:displayName(actor)});}
  return [...options.values()];
 }
 function singingPrefsKey(){return 'stagebook.singing.'+showId;}
