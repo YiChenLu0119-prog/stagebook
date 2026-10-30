@@ -27,7 +27,7 @@ function updateLyricsFocus(forceFollow=false){
  if(!song())return;$('#lyricClock').textContent=fmt(current);const active=currentLyric(),id=active?.id||null;
  $('#lyricCurrentLabel').textContent=active?tr('当前歌词'):song().lyrics.length?tr('间奏 · 当前没有歌词'):tr('尚未导入歌词');
  for(const row of $$('[data-lyric-row]')){const on=row.dataset.lyricRow===id;row.classList.toggle('active',on);row.setAttribute('aria-current',on?'true':'false');}
- if((id!==lyricActiveId||forceFollow)&&id&&lyricDockVisible&&lyricFollow&&!lyricEditId){const row=$$('[data-lyric-row]').find(row=>row.dataset.lyricRow===id);row?.scrollIntoView?.({block:'nearest',behavior:'smooth'});}lyricActiveId=id;
+ if((id!==lyricActiveId||forceFollow)&&id&&lyricDockVisible&&lyricFollow&&!lyricEditId){const row=$$('[data-lyric-row]').find(row=>row.dataset.lyricRow===id);row?.scrollIntoView?.({block:'nearest',behavior:window.matchMedia?.('(prefers-reduced-motion: reduce)').matches?'auto':'smooth'});}lyricActiveId=id;
 }
 function seekToLyric(id){
  const l=lyricById(id);if(!l)return;pause();singleStepEnd=null;current=l.start;const event=eventAtCursor();selectedCue=event?.cue.id||null;tool='select';stagePhase='live';

@@ -26,3 +26,7 @@ When reporting a problem, prefer the generic sample. Remove private notes, perso
 A regular Save includes manually kept history, older notes and referenced historical audio. Share with cast excludes that history by default, while an exported past version contains the selected old production. Review which file you send. Deleting current text does not remove it from older snapshots.
 
 The rehearsal list references original notes. Filtering a printable sheet limits that sheet's contents; it does not restrict access to a whole production package. Discussion/decision/check labels are local records, not authenticated receipts, permissions or safety assurances. Edition markers identify local snapshots and do not establish a team-wide latest version.
+
+## Appearance preference
+
+The four palettes use a local browser preference (`stagebook-appearance`). Choosing a palette does not edit production data, actor colors or Undo history. A new browser defaults to Hamilton. There is no theme download, network font or third-party visual asset.

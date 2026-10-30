@@ -6,7 +6,26 @@ Put actors on a stage, draw their movement, and place it against song time and l
 
 **Interface languages:** English · 简体中文 · 繁體中文. Switch languages in the top bar. Character names, lyrics and your production notes stay exactly as written.
 
-[Download](https://github.com/YiChenLu0119-prog/stagebook/releases/tag/v9.2.0) · [Quick start](docs/quick-start.md) · [Roadmap](docs/ROADMAP.md) · [Changelog](CHANGELOG.md) · [Contributing](CONTRIBUTING.md)
+[Download](https://github.com/YiChenLu0119-prog/stagebook/releases/tag/v9.3.0) · [Quick start](docs/quick-start.md) · [Roadmap](docs/ROADMAP.md) · [Changelog](CHANGELOG.md) · [Contributing](CONTRIBUTING.md)
+
+![Stagebook editing workspace in the Hamilton palette](docs/images/workspace-hamilton.jpg)
+
+## Editing workspace and appearance
+
+Version 9.3 gives the timeline the full workspace width, so more actor tracks can be edited directly. Actor delay, movement duration and absolute timing sit above the movement note. Stage instructions sit outside the canvas, and entrance labels stay easier to distinguish when panels resize.
+
+Use **More → Appearance** to choose a palette. Hamilton is the initial default; later choices are remembered in this browser.
+
+| Palette | Colors |
+| --- | --- |
+| Phantom | Ink, ivory and crimson |
+| RENT | Black, white and poster red |
+| Hamilton | Ink and antique gold |
+| Dear Evan Hansen | Midnight and sky blue |
+
+These are original color interpretations inspired by the musicals, without official logos or artwork. Appearance changes the tools around your production; actor colors, blocking, Undo state and shared data remain unchanged. Short color feedback and opacity reveals respect the system's reduced-motion preference. The stage, routes, handles and timeline clips stay immediate.
+
+Medium windows keep the stage and lyrics beside each other; narrow windows use side-panel drawers. The wider timeline takes some vertical room from the stage. Use Focus stage or drag the divider when you need more stage space. Complete mobile editing is still unverified. See the [design review](DESIGN-REVIEW.md) for evidence and tradeoffs.
 
 ## Built around musical-theatre rehearsals
 
@@ -43,7 +62,7 @@ Give the assistant the saved production package and [AI-GUIDE.md](AI-GUIDE.md). 
 
 ## Get started
 
-1. Download **[Stagebook-v9.2.0-offline.zip](https://github.com/YiChenLu0119-prog/stagebook/releases/download/v9.2.0/Stagebook-v9.2.0-offline.zip)** from [Releases](https://github.com/YiChenLu0119-prog/stagebook/releases). Choose the named offline asset; source archives are for development.
+1. Download **[Stagebook-v9.3.0-offline.zip](https://github.com/YiChenLu0119-prog/stagebook/releases/download/v9.3.0/Stagebook-v9.3.0-offline.zip)** from [Releases](https://github.com/YiChenLu0119-prog/stagebook/releases). Choose the named offline asset; source archives are for development.
 2. Extract the ZIP and open **Stagebook.html** in a desktop browser. Older packages may call this file **走台本.html**.
 3. Explore the generic sample, or open the production menu at the top left and choose **New production**. Add your cast and drag their opening positions into place.
 4. Click the playback clock or timeline to choose a start time, then choose **Add step** or press `N`. Drag an actor to a destination and set their movement timing and note.
@@ -89,7 +108,7 @@ Public downloads contain generic examples only, without commercial soundtracks, 
 
 ## Ongoing development
 
-Stagebook will continue to evolve through real rehearsals and hands-on feedback. This preview adds traceable versions and rehearsal handoffs; future work will explore editing comfort, browser and file compatibility, accessibility, translation quality and useful public examples.
+Stagebook will continue to evolve through real rehearsals and hands-on feedback. This preview adds a wider editing workspace and four appearance palettes while retaining traceable versions and rehearsal handoffs; future work will explore editing comfort, browser and file compatibility, accessibility, translation quality and useful public examples.
 
 A desktop edition is also being evaluated, reusing the editor while adding native file opening, saving and installation. It is an exploration, with no release date or supported-platform promise yet. See the [roadmap](docs/ROADMAP.md) and [desktop edition plan](docs/desktop-app-plan.md).
 

@@ -22,9 +22,10 @@ Open `dist/走台本.html` after building. Edit `src`, not the generated HTML. T
 - `rehearsal.js`: edition labels, optional production history and selected rehearsal notes sheets.
 - `io.js`: folder access, ZIPs, embedded audio and draft recovery.
 - `i18n.js` and `locales`: interface translation, preferences and localized help.
-- `index.html` and `style.css`: layout, controls and language-aware wrapping.
+- `index.html` and `style.css`: base layout, controls and language-aware wrapping.
+- `design.css` and `appearance.js`: the visual system, responsive workspace and browser-only appearance preference.
 
-Application version 9.2.0 is separate from the production data format, which remains `stagebook-library` version 1.
+Application version 9.3.0 is separate from the production data format, which remains `stagebook-library` version 1.
 
 ## Localization
 
@@ -37,17 +38,17 @@ Review terminology in context. Test long labels, plural/count wording, ARIA labe
 ## Release packaging
 
 ```sh
-python3 package_show.py dist release-build Stagebook-v9.2.0-offline.zip --neat --english
+python3 package_show.py dist release-build Stagebook-v9.3.0-offline.zip --neat --english
 python3 validate.py release-build
 ```
 
 The output folder must be new or empty. Preserve the source data. English release packages contain “Stagebook.html” and “演出资料”; the latter contains editable data and technical documentation. The corresponding source archive in its technical folder includes LICENSE. The full GPL text is also embedded in the HTML and preserved by subsequent app exports.
 
-Distribute the complete corresponding source as `Stagebook-v9.2.0-source.zip` alongside the offline asset. Include source, build scripts, generic examples, documentation and license; exclude generated output and private production material.
+Distribute the complete corresponding source as `Stagebook-v9.3.0-source.zip` alongside the offline asset. Include source, build scripts, generic examples, documentation and license; exclude generated output and private production material.
 
 ## Verification limits
 
-Eighteen automated suites cover geometry, timing, media state, file round trips, lyrics, playback context, editing, deletion continuity and localization. Audio readiness is simulated; byte-preserving round trips do not replace real browser decoding or listening.
+Nineteen automated suites cover geometry, timing, media state, file round trips, lyrics, playback context, editing, deletion continuity and localization. Audio readiness is simulated; byte-preserving round trips do not replace real browser decoding or listening.
 
 For interface changes, use your own independent test browser. Exercise seek, insert, drag, notes, independent timing, language switching, deletion, Undo/Redo, export and reopen. Do not use someone else's working session. Complete mobile editing and every browser/OS combination are not yet verified.
 

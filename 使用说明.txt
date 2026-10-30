@@ -1,4 +1,4 @@
-Stagebook · Multilingual edition v9.2
+Stagebook · Multilingual edition v9.3
 
 OPEN AND SAVE
 Extract the package and open “Stagebook.html”. The “演出资料” folder contains the editable data. New productions, songs, actors and props use in-app forms; press Enter to create or Cancel to return. Import a complete ZIP or folder to continue another production.
@@ -57,3 +57,6 @@ Save your work first. Have an assistant read AI-GUIDE.md and edit the JSON in �
 
 
 更新应用：先保存当前进度，再打开新版 HTML。导入演出包只会更换演出资料，不会更新当前页面的程序。新版会自动识别包内 MP3；不用每次重新选择音乐。
+
+外观与工作区
+更多 → 外观提供剧院魅影、RENT、Hamilton 和 Dear Evan Hansen 四套配色。首次默认 Hamilton，之后记住此浏览器的选择。外观不改变角色颜色或演出资料。时间轴横跨工作区，演员时间设置放在动作备注前面。可用放大舞台或拖动分隔线调整空间；系统减少动态效果会关闭过场，歌词改为立即跟随。

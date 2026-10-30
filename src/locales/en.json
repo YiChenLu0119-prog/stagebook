@@ -823,5 +823,17 @@
   "应用筛选": "Apply filters",
   "版本已保留；部分音乐未连接，详情中已标明。": "Version kept; missing music is listed in its details.",
   "保存此版时未连接音乐：": "Music missing when this version was kept: ",
-  "内容刚有变化，请重新选择要恢复的版本。": "The work just changed. Choose the version to restore again."
+  "内容刚有变化，请重新选择要恢复的版本。": "The work just changed. Choose the version to restore again.",
+  "外观": "Appearance",
+  "剧院魅影": "The Phantom of the Opera",
+  "墨黑 · 象牙 · 绯红": "Ink · Ivory · Crimson",
+  "吉屋出租": "RENT",
+  "黑白 · 海报红": "Black & white · Poster red",
+  "汉密尔顿": "Hamilton",
+  "墨黑 · 旧金": "Ink · Antique gold",
+  "致埃文·汉森": "Dear Evan Hansen",
+  "午夜蓝 · 天蓝": "Midnight · Sky blue",
+  "为排练工作台选择配色。": "Choose a palette for your rehearsal workspace.",
+  "剧目配色为设计灵感，并非官方主题。仅保存在此浏览器，不改变演员颜色、演出内容或分享包。": "Show palettes are design interpretations, not official themes. Saved only in this browser; cast colors, production content and shared packages stay unchanged.",
+  "已选择": "Selected"
 }

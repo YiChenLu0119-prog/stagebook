@@ -102,12 +102,13 @@ function renderStage(){
  const frozen=drag?.viewBox?.split(' ').map(Number),vw=frozen?.[2]||(rotation%180?height:width)/zoom,vh=frozen?.[3]||(rotation%180?width:height)/zoom;const visualScale=Math.max(.2,Math.min(svg.clientWidth/vw,svg.clientHeight/vh));svg.setAttribute('viewBox',`${-vw/2} ${-vh/2} ${vw} ${vh}`);
  $('#rotationLabel').textContent=rotation+'°';
  let html=`<defs><marker id="routeArrow" markerWidth="5" markerHeight="5" refX="4" refY="2.5" orient="auto-start-reverse"><path d="M 0 0 L 5 2.5 L 0 5 Z" fill="context-stroke"/></marker><pattern id="grid" width="10" height="10" patternUnits="userSpaceOnUse"><path d="M 10 0 L 0 0 0 10" fill="none" stroke="#8c7a55" stroke-opacity=".16" stroke-width=".2"/></pattern><filter id="shadow"><feDropShadow dx="0" dy=".6" stdDeviation=".5" flood-opacity=".19"/></filter></defs><g id="scene" transform="rotate(${rotation})">`;
- for(const z of s.stage.backstage)html+=`<path d="${C.path(z.points,true)}" fill="#ad9c7d27" stroke="#9a8b6b" stroke-width=".35" stroke-dasharray="1 1" data-obj="backstage" data-id="${esc(z.id)}"/><text x="${z.points[0].x+3}" y="${z.points[0].y+4}" fill="#8b7854" font-size="${Math.max(2.5,8/visualScale)}" pointer-events="none">${esc(z.name)}</text>`;
+ for(const z of s.stage.backstage)html+=`<path d="${C.path(z.points,true)}" fill="#ad9c7d27" stroke="#9a8b6b" stroke-width=".35" stroke-dasharray="1 1" data-obj="backstage" data-id="${esc(z.id)}"/>`;
  html+=`<path d="${C.path(s.stage.boundary,true)}" fill="#f3ecd9" stroke="#9b855c" stroke-width=".6" data-obj="stage"/>`;
+ for(const z of s.stage.backstage)html+=`<text x="${(Math.min(...z.points.map(p=>p.x))+Math.max(...z.points.map(p=>p.x)))/2}" y="${Math.min(...z.points.map(p=>p.y))-3}" text-anchor="middle" fill="#655b49" font-size="${Math.max(2.5,9/visualScale)}" pointer-events="none">${esc(z.name)}</text>`;
  if($('#showGrid').checked)html+=`<path d="${C.path(s.stage.boundary,true)}" fill="url(#grid)" pointer-events="none"/>`;
  html+=`<path d="M -3 0 H 3 M 0 -3 V 3" stroke="#a28d61" stroke-width=".3" opacity=".5" pointer-events="none"/>`;
  for(const w of s.stage.walls)html+=`<path d="${C.path(w.points)}" fill="none" stroke="#695b43" stroke-width="1.4" data-obj="wall" data-id="${esc(w.id)}" style="cursor:pointer"/>`;
- for(const a of s.stage.anchors)if(C.point(a))html+=`<g data-obj="anchor" data-id="${esc(a.id)}" style="cursor:pointer"><path d="M ${a.x-1.2} ${a.y} h 2.4 M ${a.x} ${a.y-1.2} v 2.4" stroke="#8f7547" stroke-width=".4"/><text x="${a.x+2}" y="${a.y-2}" fill="#8c774f" font-size="${Math.max(2.5,8/visualScale)}">${esc(a.name)}</text></g>`;
+ for(const a of s.stage.anchors)if(C.point(a))html+=`<g data-obj="anchor" data-id="${esc(a.id)}" style="cursor:pointer"><path d="M ${a.x-1.2} ${a.y} h 2.4 M ${a.x} ${a.y-1.2} v 2.4" stroke="#8f7547" stroke-width=".4"/><text x="${a.x+(a.kind==='gate'&&a.x<0?-2:2)}" y="${a.y-2}" text-anchor="${a.kind==='gate'&&a.x<0?'end':'start'}" fill="#655b49" font-size="${Math.max(2.5,9/visualScale)}">${esc(a.name)}</text></g>`;
  const eventList=C.events(q),chosen=!rehearsal&&!playing&&stagePhase!=='live'&&tool!=='initial'&&eventList.find(e=>e.cue.id===selectedCue),currentEvent=eventList.filter(e=>e.start<=current).at(-1);
  if($('#showRoutes').checked){
  const routeEvents=chosen?[chosen]:eventList.filter(e=>e.cue.moves.some(m=>{const t=C.moveEvent(e,m);return current>=t.start&&current<=t.end||(rehearsal&&t.start>current&&m.entityId===focusActor);})).slice(0,2);
@@ -131,7 +132,7 @@ function renderStage(){
  }
  if(inspect.type==='stage'&&!rehearsal)s.stage.boundary.forEach((p,i)=>{html+=`<circle cx="${p.x}" cy="${p.y}" r="1.1" fill="#d9b777" stroke="#735d34" stroke-width=".4" data-boundary="${i}:point" class="object-control"/>`;for(const k of ['c1','c2'])if(p[k])html+=`<circle cx="${p[k].x}" cy="${p[k].y}" r=".9" fill="#bd7b57" data-boundary="${i}:${k}" class="object-control"/>`;});
  const audience=s.stage.audience||'south';const ax=audience==='west'?-width/2+7:audience==='east'?width/2-7:0,ay=audience==='north'?-height/2+7:audience==='south'?height/2-7:0;
- html+=ui`<g transform="translate(${ax} ${ay}) rotate(${-rotation})"><text text-anchor="middle" font-size="2.5" fill="#8b7249" letter-spacing="1.5">— 观 众 侧 —</text></g></g>`;
+ html+=ui`<g transform="translate(${ax} ${ay}) rotate(${-rotation})"><text text-anchor="middle" font-size="${Math.max(2.5,9/visualScale)}" fill="#655b49" letter-spacing=".5">— 观 众 侧 —</text></g></g>`;
  svg.innerHTML=html;$('#currentCue').textContent=tool==='initial'?tr('起始站位'):(!playing&&stagePhase!=='live'&&chosen?chosen:currentEvent)?.cue.title||tr('起始站位');
 }
 function renderInspector(){
@@ -346,6 +347,7 @@ async function action(a){
  case 'export-all':await exportPackage(lib.shows);break;
  case 'reload':await reloadFolder();break;
  case 'export':exportDialog();break;
+ case 'appearance':appearanceDialog();break;
  case 'help':helpDialog();break;
  case 'search':searchDialog();break;
  case 'undo':undo();break;

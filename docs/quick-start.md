@@ -1,6 +1,6 @@
 # Stagebook quick start
 
-Stagebook · Multilingual edition v9.2
+Stagebook · Multilingual edition v9.3
 
 OPEN AND SAVE
 Extract the package and open “Stagebook.html”. The “演出资料” folder contains the editable data. New productions, songs, actors and props use in-app forms; press Enter to create or Cancel to return. Import a complete ZIP or folder to continue another production.
@@ -59,3 +59,6 @@ In Notes, add an existing note to the rehearsal list, or write one at the curren
 
 
 Updating the app: save your current work, then open the new HTML file. Importing a production package changes its data; it does not update the program in the current tab. MP3 files in a complete package connect automatically in the updated app.
+
+Appearance and workspace
+More → Appearance offers Phantom, RENT, Hamilton and Dear Evan Hansen. Hamilton is the initial default; this browser remembers later choices. Appearance does not change actor colors or production data. The timeline spans the workspace; actor timing appears above the movement note. Use Focus stage or drag the divider to adjust space. System reduced motion disables transitions and makes lyric following immediate.

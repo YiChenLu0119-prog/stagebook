@@ -150,5 +150,18 @@ async function boot(){
  await loadAudio();updateTransport();
 }
 window.addEventListener('beforeunload',e=>{if(dirty){e.preventDefault();e.returnValue='';}});
-window.addEventListener('resize',updatePlayhead);
+// Fit labels and time coordinates to the actual editing surfaces after layout changes.
+// Observing the containers also covers panel resize and lyrics visibility, not just window resize.
+if(typeof ResizeObserver==='function'){
+ let layoutFrame=0;
+ const layoutObserver=new ResizeObserver(()=>{
+  cancelAnimationFrame(layoutFrame);
+  layoutFrame=requestAnimationFrame(()=>{
+   if(!drag)renderStage();
+   if(bottomTab==='timeline'&&!timelineDrag)renderTimeline();
+   else updatePlayhead();
+  });
+ });
+ layoutObserver.observe($('#stageWrap'));layoutObserver.observe($('#bottomContent'));
+}else window.addEventListener('resize',()=>{if(!drag)renderStage();if(bottomTab==='timeline'&&!timelineDrag)renderTimeline();else updatePlayhead();});
 boot().catch(e=>{console.error(e);toast(tr('启动失败：')+e.message);});

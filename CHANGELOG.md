@@ -1,5 +1,19 @@
 # Changelog
 
+## 9.3.0 — 2026-10-30
+
+- Give the timeline the full workspace width and combine its tabs and zoom controls.
+- Move actor delay, movement duration and absolute timing above the movement note.
+- Move the stage hint outside the canvas; place entrance labels outward and clarify backstage labels.
+- Redraw stage labels and timeline geometry when their containers resize, while preserving drag coordinates.
+- Add four musical-inspired appearance palettes under More → Appearance: Phantom, RENT, Hamilton and Dear Evan Hansen. Hamilton is the initial default; the browser remembers later choices.
+- Keep appearance separate from production content, actor colors, editing state and portable data.
+- Unify typography, controls, focus and selection; simplify repeated borders and decorative gradients.
+- Keep lyrics beside the stage in medium windows and provide drawers for side panels in narrow windows.
+- Add 120 ms control feedback and 180 ms opacity reveals. Reduced motion disables those effects and makes lyric following immediate.
+
+The design review used Impeccable guidance through manual critique and implementation, without its launcher or automated detector. Nineteen automated suites cover the existing editing workflows plus appearance persistence, Hamilton defaults and reduced-motion lyric following. See DESIGN-REVIEW.md for actual browser checks, layout tradeoffs and limits. Existing version-1 production files remain supported.
+
 ## 9.2.0 — 2026-10-30
 
 - Keep optional production versions under More, with dates, times, names and descriptions.
