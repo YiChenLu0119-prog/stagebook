@@ -155,7 +155,14 @@ function handleMenuKeys(e){
  closeContextMenu(false);return false;
 }
 function handleEditingKey(e){
- if(e.defaultPrevented||e.isComposing||e.key==='Process')return;if(handleMenuKeys(e))return;
+ if(e.defaultPrevented||e.isComposing||e.key==='Process')return;
+ if(stageFullscreenMode&&e.key==='Tab'){
+  const controls=[...$('#stageWrap').querySelectorAll('button:not(:disabled),[tabindex="0"]')].filter(node=>node.getBoundingClientRect().width>0),first=controls[0],last=controls.at(-1);
+  if(first&&((e.shiftKey&&document.activeElement===first)||(!e.shiftKey&&document.activeElement===last)||!$('#stageWrap').contains(document.activeElement))){e.preventDefault();(e.shiftKey?last:first).focus();}return;
+ }
+ if(e.key==='Escape'&&stageFullscreenMode){e.preventDefault();exitStageFullscreen();return;}
+ if(stageFullscreenMode&&e.code==='Space'&&e.target.closest?.('#stageFullscreenControls button'))return;
+ if(handleMenuKeys(e))return;
  const key=e.key.toLowerCase(),cmd=e.metaKey||e.ctrlKey,typing=isTypingTarget(e.target),modalOpen=$('#dialog').open;
  const run=a=>{e.preventDefault();runEditingCommand(a);};
  if(cmd&&key==='s'){e.preventDefault();if(typing)e.target.blur?.();Promise.resolve(saveWork()).catch(x=>toast(x.message));return;}

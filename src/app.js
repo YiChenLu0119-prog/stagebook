@@ -198,7 +198,7 @@ function updateTransport(){
  $('#currentTime').textContent=fmt(current);$('#totalTime').textContent='/ '+fmt(time());$('#playButton').textContent=playing?'Ⅱ':'▶';
  const pauses=stepPausesEnabled(),pauseButton=$('#stepPauseButton');pauseButton.textContent=pauses?tr('逐步暂停'):tr('连续播放');pauseButton.classList.toggle('selected',!pauses);pauseButton.setAttribute('aria-pressed',String(pauses));pauseButton.title=pauses?tr('点击统一关闭本场全部曲目的步骤结束暂停'):tr('点击恢复各步骤原有的暂停设置');
  renderAudioStatus();
- $('#loopButton').classList.toggle('selected',!!loop);updatePlayhead();updateLyricsFocus();updateSingingFocus();
+ updateStageFullscreenControls();$('#loopButton').classList.toggle('selected',!!loop);updatePlayhead();updateLyricsFocus();updateSingingFocus();
 }
 function setStepPauses(enabled){
  if(stepPausesEnabled()===enabled)return;
@@ -328,6 +328,7 @@ async function action(a){
  if(a==='session-unlink'){unlinkSessionAnnotation();return;}
  if(a==='play'){await play();return;}
  if(a==='seek-time'){goToTimeDialog();return;}
+ if(a==='stage-fullscreen'){await toggleStageFullscreen();return;}
  if(a==='layout-stage'){toggleStageFocus();return;}
  if(a==='layout-timeline'){toggleTimelineHeight();return;}
  if(a.startsWith('left-')){leftTab=a.slice(5);renderLeft();return;}

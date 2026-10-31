@@ -159,6 +159,54 @@ function toggleStageFocus(){
  if(enter){stageFocusPrevious=style.getPropertyValue('--bottom');style.setProperty('--bottom','160px');}else{if(stageFocusPrevious)style.setProperty('--bottom',stageFocusPrevious);else style.removeProperty('--bottom');stageFocusPrevious=null;}
  timelineHeightPrevious=null;workspace.classList.toggle('stage-focus',enter);updateLayoutControls();renderStage();if(bottomTab==='timeline')renderTimeline();
 }
+// Native fullscreen where available; the same stage fills the window otherwise.
+let stageFullscreenMode='',stageFullscreenGeneration=0,stageFullscreenFocus=null,stageFullscreenInert=[];
+function stageFullscreenElement(){return document.fullscreenElement||document.webkitFullscreenElement;}
+function updateStageFullscreenControls(){
+ const active=!!stageFullscreenMode;
+ $('#stageFullscreenButton').setAttribute('aria-pressed',String(active));
+ $('#stageFullscreenButton').textContent=tr(active?'退出全屏（Esc）':'全屏舞台');
+ $('#stageFullscreenExit').textContent=tr('退出全屏（Esc）');
+ $('#stageFullscreenPlay').textContent=playing?'Ⅱ':'▶';
+ $('#stageFullscreenClock').textContent=fmt(current)+' / '+fmt(time());
+}
+function setStageFullscreenMode(mode){
+ const wasActive=!!stageFullscreenMode,active=!!mode;stageFullscreenMode=mode;
+ if(active&&!wasActive){
+  stageFullscreenFocus=document.activeElement;stageFullscreenInert=[];
+  // Keep keyboard focus inside the stage in the window-filling fallback too.
+  for(let node=$('#stageWrap');node&&node!==document.body;node=node.parentElement){
+   for(const sibling of node.parentElement?.children||[])if(sibling!==node){stageFullscreenInert.push([sibling,sibling.inert]);sibling.inert=true;}
+  }
+ }
+ $('#stageWrap').classList.toggle('stage-fullscreen',active);updateStageFullscreenControls();
+ if(active&&!wasActive)$('#stageFullscreenExit').focus();
+ if(!active&&wasActive){for(const [node,inert] of stageFullscreenInert)node.inert=inert;stageFullscreenInert=[];stageFullscreenFocus?.focus();stageFullscreenFocus=null;}
+ renderStage();requestAnimationFrame(()=>renderStage());
+}
+async function exitStageFullscreen(){
+ closeContextMenu(false);stageFullscreenGeneration++;
+ if(stageFullscreenElement()===$('#stageWrap')){
+  const exit=document.exitFullscreen||document.webkitExitFullscreen;
+  try{if(!exit)throw Error('No fullscreen exit');await exit.call(document);}catch{toast(tr('请按 Esc 退出全屏。'));return;}
+ }
+ setStageFullscreenMode('');
+}
+async function toggleStageFullscreen(){
+ if(stageFullscreenMode){await exitStageFullscreen();return;}
+ const generation=++stageFullscreenGeneration,stage=$('#stageWrap');
+ closeContextMenu(false);setStageFullscreenMode('window');
+ const request=stage.requestFullscreen||stage.webkitRequestFullscreen;if(!request)return;
+ try{
+  await request.call(stage);
+  if(generation!==stageFullscreenGeneration){if(stageFullscreenElement()===stage){const exit=document.exitFullscreen||document.webkitExitFullscreen;await exit?.call(document);}return;}
+  if(stageFullscreenElement()===stage)setStageFullscreenMode('native');
+ }catch{/* A denied or unavailable native request retains the window-filling view. */}
+}
+for(const type of ['fullscreenchange','webkitfullscreenchange'])document.addEventListener(type,()=>{
+ if(stageFullscreenElement()===$('#stageWrap'))setStageFullscreenMode('native');
+ else if(stageFullscreenMode==='native'){stageFullscreenGeneration++;setStageFullscreenMode('');}
+});
 function toggleTimelineHeight(){
  const style=document.documentElement.style;if(timelineHeightPrevious===null){timelineHeightPrevious=style.getPropertyValue('--bottom');style.setProperty('--bottom',Math.min(420,Math.round(window.innerHeight*.48))+'px');}else{if(timelineHeightPrevious)style.setProperty('--bottom',timelineHeightPrevious);else style.removeProperty('--bottom');timelineHeightPrevious=null;}
  bottomTab='timeline';updateLayoutControls();renderStage();renderBottom();

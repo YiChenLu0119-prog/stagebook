@@ -6,7 +6,7 @@ Put actors on a stage, draw their movement, and place it against song time and l
 
 **Interface languages:** English · 简体中文 · 繁體中文. Switch languages in the top bar. Character names, lyrics and your production notes stay exactly as written.
 
-[Download](https://github.com/YiChenLu0119-prog/stagebook/releases/tag/v9.4.0) · [Quick start](docs/quick-start.md) · [Roadmap](docs/ROADMAP.md) · [Changelog](CHANGELOG.md) · [Contributing](CONTRIBUTING.md)
+[Download](https://github.com/YiChenLu0119-prog/stagebook/releases/tag/v9.4.1) · [Quick start](docs/quick-start.md) · [Roadmap](docs/ROADMAP.md) · [Changelog](CHANGELOG.md) · [Contributing](CONTRIBUTING.md)
 
 ![Stagebook editing workspace in the Hamilton palette](docs/images/workspace-hamilton.jpg)
 
@@ -23,6 +23,8 @@ Singer tags such as `[Actor A]` are read from the lyric text. Unattributed words
 Lyric following now centers the current line inside its own scroll area, including the first and last lines. Scroll manually to browse, then choose **Return to current line**. Long sidebar song titles stay inside their cards and gently scroll when selected or hovered. Reduced motion uses stationary, manually scrollable titles.
 
 ## Editing workspace and appearance
+
+Choose **Fullscreen stage** above the central stage to fill the screen. A compact overlay keeps play/pause, the clock and **Exit fullscreen (Esc)** available. Exit restores the previous workspace without seeking or stopping playback. Where native browser fullscreen is unavailable, the stage fills the application window instead.
 
 Version 9.3 gives the timeline the full workspace width, so more actor tracks can be edited directly. Actor delay, movement duration and absolute timing sit above the movement note. Stage instructions sit outside the canvas, and entrance labels stay easier to distinguish when panels resize.
 

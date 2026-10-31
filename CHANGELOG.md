@@ -1,5 +1,15 @@
 # Changelog
 
+## 9.4.1 — 2026-11-01
+
+- Add a one-click Fullscreen stage button beside the central stage controls, available in Edit and Rehearse.
+- Keep play/pause, current time and an Exit fullscreen button in a compact overlay. Escape also exits.
+- Restore the existing layout and keyboard focus without changing blocking, the playhead or playback state.
+- Use native fullscreen where available, with a window-filling fallback and bounded keyboard navigation.
+- Translate controls into English, Simplified Chinese and Traditional Chinese.
+
+Twenty-one automated suites passed, including native/WebKit transitions, denied requests, fallback, Escape and state preservation. A short independent-browser smoke check exercises the available fullscreen path; full cross-browser testing remains pending.
+
 ## 9.4.0 — 2026-10-30
 
 - Add a lyric-focused Sing workspace with multi-role highlighting and readable other voices.

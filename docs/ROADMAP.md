@@ -11,6 +11,7 @@ Stagebook is being developed gradually from real blocking and rehearsal work. Th
 - Optional timestamped production history with restore/backup and historical audio.
 - Edition labels, change summaries and selected role-specific rehearsal notes sheets.
 - A full-width timeline, responsive panels and four musical-inspired appearance palettes.
+- One-click stage fullscreen with compact playback controls and Escape to return.
 - A lyric-focused singing workspace with role highlighting, pickup loops and slower playback.
 - Centered lyric follow and contained, scrolling long song titles.
 - Reduced-motion feedback and immediate lyric following under that system preference.

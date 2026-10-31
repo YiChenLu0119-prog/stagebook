@@ -58,7 +58,16 @@ input:hover,textarea:hover,select:hover{border-color:var(--muted)}
 .sceneheading{padding:10px 12px;gap:6px;min-height:48px}
 .sceneheading h1{font-size:19px;letter-spacing:-.3px;font-weight:600}
 .sceneheading button{font-size:12px;border-color:transparent;color:var(--muted);min-height:30px;padding:5px 7px}
-#stageFocusButton{border-color:var(--line)}
+#stageFocusButton,#stageFullscreenButton{border-color:var(--line)}
+/* No layout preferences or production data are changed by fullscreen. */
+.stage-fullscreen-controls{display:none}
+#stageWrap.stage-fullscreen{position:fixed;inset:0;z-index:10000;width:100vw;height:100vh;height:100dvh;min-height:0;max-height:none;max-width:none;margin:0;border:0;border-radius:0;flex:none;box-shadow:none}
+#stageWrap.stage-fullscreen .stage-fullscreen-controls{position:absolute;top:max(12px,env(safe-area-inset-top));right:max(12px,env(safe-area-inset-right));z-index:3;display:flex;align-items:center;gap:8px;max-width:calc(100% - 24px);padding:6px 8px;background:var(--panel);color:var(--text);border:1px solid var(--line);border-radius:7px;box-shadow:0 2px 12px #0002}
+.stage-fullscreen-controls button{min-height:34px;font-size:13px}
+#stageFullscreenPlay{color:var(--gold);min-width:34px}
+#stageFullscreenClock{font:12px ui-monospace,monospace;white-space:nowrap}
+#stageWrap.stage-fullscreen #stageViewBadge{display:none}
+#stageWrap::backdrop{background:#e8e2d3}
 .edit-step-bar{background:transparent;border:0;border-bottom:1px solid var(--line);border-radius:0;margin:0 12px 10px;padding:0 0 8px}
 .step-navigation{gap:4px}
 .step-navigation select{background:var(--panel);font-size:13px;padding:5px 9px;min-height:32px}

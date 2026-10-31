@@ -69,3 +69,8 @@ More → Appearance offers Phantom, RENT, Hamilton and Dear Evan Hansen. Hamilto
 Open a song with timed lyrics, choose **Sing**, then **Choose my roles**. Other singers remain visible. Select **Loop this line** for one phrase or **Loop practice** for a passage; adjust the pickup to include the lead-in you need. **Previous own line / Next own line** include that pickup. Use the speed selector to practice more slowly and the text-size selector to improve readability.
 
 Singer labels in square brackets are recognized without changing the lyric text. For an unlabeled line, **Assign singer** saves an explicit attribution with Undo. Use `[Actor A] … [Actor B] …` for split lines. **Back to workspace** restores your editing/rehearsal view at the current playhead. The first release uses timed lines, not word-level karaoke or isolated vocal tracks.
+
+
+## Enlarge the stage for a rehearsal
+
+Choose **Fullscreen stage** above the stage. Use the small overlay for play/pause, or press Space. Choose **Exit fullscreen (Esc)** or press Escape to return to the same workspace and playhead. Native fullscreen depends on browser support; the stage fills the application window when it is unavailable.

@@ -1,4 +1,4 @@
-Stagebook · Multilingual edition v9.4
+Stagebook · Multilingual edition v9.4.1
 
 OPEN AND SAVE
 Extract the package and open “Stagebook.html”. The “演出资料” folder contains the editable data. New productions, songs, actors and props use in-app forms; press Enter to create or Cancel to return. Import a complete ZIP or folder to continue another production.
@@ -62,3 +62,5 @@ Save your work first. Have an assistant read AI-GUIDE.md and edit the JSON in �
 更多 → 外观提供剧院魅影、RENT、Hamilton 和 Dear Evan Hansen 四套配色。首次默认 Hamilton，之后记住此浏览器的选择。外观不改变角色颜色或演出资料。时间轴横跨工作区，演员时间设置放在动作备注前面。可用放大舞台或拖动分隔线调整空间；系统减少动态效果会关闭过场，歌词改为立即跟随。
 
 练歌：顶部选择「练歌」，选择自己负责的角色。自己的词会突出显示，其他人的词仍可见。支持上一句／下一句自己的词、单句或选段循环（默认提前两秒）、字号与速度。未标角色的歌词可用「指定角色」保存，支持撤销。手动滚动后点「回到当前句」恢复居中跟随。
+
+舞台全屏：点击舞台上方「全屏舞台」。右上角保留播放／暂停、时间和退出按钮，按 Esc 也可退出。返回时保留原来的布局和播放进度。

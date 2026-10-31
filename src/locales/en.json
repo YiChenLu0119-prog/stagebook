@@ -870,5 +870,9 @@
   "开始循环": "Start loop",
   "歌词角色需要字符串 ID 数组。": "Lyric speakerIds must be an array of strings.",
   "回到当前句": "Return to current line",
-  "应用": "Apply"
+  "应用": "Apply",
+  "全屏舞台": "Fullscreen stage",
+  "全屏舞台控制": "Fullscreen stage controls",
+  "退出全屏（Esc）": "Exit fullscreen (Esc)",
+  "请按 Esc 退出全屏。": "Press Esc to exit fullscreen."
 }
