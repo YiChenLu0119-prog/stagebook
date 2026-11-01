@@ -2,11 +2,17 @@
 let appRootDir=null;
 const encoder=new TextEncoder(),decoder=new TextDecoder();
 const json=value=>JSON.stringify(value,null,2)+'\n';
+function assetMimeType(path){const ext=path.split('.').at(-1).toLowerCase();return {mp3:'audio/mpeg',jpg:'image/jpeg',jpeg:'image/jpeg',png:'image/png',webp:'image/webp',mp4:'video/mp4',webm:'video/webm'}[ext]||'';}
+function songMediaReferences(s,q){
+ const refs=[];if(q.audio)refs.push({key:`shows/${s.id}/songs/${q.id}/${q.audio.file}`,label:q.title,kind:'audio'});
+ for(const cue of q.cues)for(const a of cue.attachments||[])refs.push({key:`shows/${s.id}/songs/${q.id}/${a.file}`,label:q.title+' / '+cue.title+' / '+a.name,kind:'attachment',attachment:a});return refs;
+}
+function libraryMediaReferences(shows){return productionSnapshots(shows).flatMap(s=>s.songs.flatMap(q=>songMediaReferences(s,q)));}
 function embedLibrary(data){
  const safe=json(data).replace(/</g,'\\u003c'),headEnd=appHTML.indexOf('</head>');
  if(headEnd<0)throw Error(tr('应用文件不完整，无法导出。'));
  // Search only the head: the body contains this exporter's own script literals.
- const head=(typeof StageI18n==='undefined'?appHTML.slice(0,headEnd):StageI18n.exportHTML(appHTML.slice(0,headEnd))).replace(/<script id="embedded-library"[^>]*>[\s\S]*?<\/script>/,'').replace(/<script id="embedded-audio"[^>]*>[\s\S]*?<\/script>/,'');
+ const head=(typeof StageI18n==='undefined'?appHTML.slice(0,headEnd):StageI18n.exportHTML(appHTML.slice(0,headEnd))).replace(/<script id="embedded-library"[^>]*>[\s\S]*?<\/script>/,'').replace(/<script id="embedded-audio"[^>]*>[\s\S]*?<\/script>/,'').replace(/<script id="embedded-media"[^>]*>[\s\S]*?<\/script>/,'').replace(/<script id="embedded-asset-index"[^>]*>[\s\S]*?<\/script>/,'');
  return head+`<script id="embedded-library" type="application/json">${safe}</script>`+appHTML.slice(headEnd);
 }
 function textFiles(shows){
@@ -16,13 +22,15 @@ function textFiles(shows){
  const source=$('#embedded-source');if(source?.textContent){const encoded=JSON.parse(source.textContent),name=encoded.name||'Stagebook-rehearsal-preview-source.zip';if(!/^[A-Za-z0-9][A-Za-z0-9._-]*-source\.zip$/.test(name))throw Error(tr('不安全的保存路径。'));files.set(name,new Blob([Uint8Array.from(atob(encoded.base64),c=>c.charCodeAt(0))],{type:'application/zip'}));}return files;
 }
 async function embedPackageAudio(files,assets=files){
- const data={};for(const [key,file]of assets){
-  if(!key.endsWith('.mp3')||typeof file==='string')continue;
-  const bytes=new Uint8Array(await file.arrayBuffer()),parts=[];for(let i=0;i<bytes.length;i+=32768)parts.push(String.fromCharCode(...bytes.subarray(i,i+32768)));
-  data[key]=btoa(parts.join(''));
+ const linked=[...assets].reduce((sum,[key,file])=>sum+(typeof file!=='string'&&assetMimeType(key)?file.size||0:0),0)>8*1024*1024;
+ const audio={},media={},index={};for(const [key,file]of assets){
+  if(typeof file==='string')continue;const mime=assetMimeType(key);if(!mime)continue;
+  const bytes=new Uint8Array(await file.arrayBuffer()),parts=[];for(let i=0;i<bytes.length;i+=32768)parts.push(String.fromCharCode(...bytes.subarray(i,i+32768)));const encoded=btoa(parts.join(''));
+  if(linked){const path=key+'.stagebook.js';index[key]={file:path,mimeType:mime};files.set(path,'globalThis.StagebookLocalAssets=globalThis.StagebookLocalAssets||Object.create(null);globalThis.StagebookLocalAssets['+JSON.stringify(key).replace(/</g,'\\u003c')+']='+JSON.stringify({mimeType:mime,base64:encoded}).replace(/</g,'\\u003c')+';\n');}
+  else if(mime==='audio/mpeg')audio[key]=encoded;else media[key]={type:mime,base64:encoded};
  }
- if(!Object.keys(data).length)return;
- const html=files.get('index.html'),end=html.indexOf('</head>'),entry=html.slice(0,end)+`<script id="embedded-audio" type="application/json">${JSON.stringify(data)}</script>`+html.slice(end);
+ if(!Object.keys(audio).length&&!Object.keys(media).length&&!Object.keys(index).length)return;
+ const html=files.get('index.html'),end=html.indexOf('</head>'),scripts=(Object.keys(index).length?`<script id="embedded-asset-index" type="application/json">${JSON.stringify(index).replace(/</g,'\\u003c')}</script>`:'')+(Object.keys(audio).length?`<script id="embedded-audio" type="application/json">${JSON.stringify(audio).replace(/</g,'\\u003c')}</script>`:'')+(Object.keys(media).length?`<script id="embedded-media" type="application/json">${JSON.stringify(media).replace(/</g,'\\u003c')}</script>`:''),entry=html.slice(0,end)+scripts+html.slice(end);
  files.set('index.html',entry);files.set('走台本.html',entry);
 }
 function dataPackageFiles(files){
@@ -59,7 +67,7 @@ async function openDirectory(dir){
  let dataDir=dir,parent=null;if(await diskText(dir,'manifest.json')===null){try{dataDir=await dir.getDirectoryHandle('演出资料');parent=dir;}catch{throw Error(tr('请选择包含「走台本.html」和「演出资料」的完整文件夹。'));}}
  const parsed=await parsePackage(await walkDirectory(dataDir));pause();snapshot();lib=parsed.library;restorePackageFocus(lib);rootDir=dataDir;appRootDir=parent;resources=parsed.resources;pendingAssets=new Map();diskSnapshots=parsed.snapshots;repairSelection();clean();renderAll();await loadAudio();if(lib!==parsed.library)return;renderAll();toast(tr('已打开 ')+dir.name+' · '+lib.shows.length+tr(' 场演出'));
 }
-async function importMap(map){if(dirty&&!await confirmAction(tr('导入将替换当前工作区。继续？')))return;const parsed=await parsePackage(map);pause();snapshot();lib=parsed.library;restorePackageFocus(lib);resources=parsed.resources;rootDir=null;appRootDir=null;const mediaKeys=new Set(productionSnapshots(lib.shows).flatMap(s=>s.songs.filter(q=>q.audio).map(q=>`shows/${s.id}/songs/${q.id}/${q.audio.file}`)));pendingAssets=new Map([...resources].filter(([key,file])=>mediaKeys.has(key)&&typeof file?.arrayBuffer==='function'));diskSnapshots=new Map();repairSelection();changed();renderAll();closeModal();await loadAudio();if(lib!==parsed.library)return;renderAll();toast(tr('演出已导入；可以选择文件夹保存，或导出新演出包。'));}
+async function importMap(map){if(dirty&&!await confirmAction(tr('导入将替换当前工作区。继续？')))return;const parsed=await parsePackage(map);pause();snapshot();lib=parsed.library;restorePackageFocus(lib);resources=parsed.resources;rootDir=null;appRootDir=null;const mediaKeys=new Set(libraryMediaReferences(lib.shows).map(r=>r.key));pendingAssets=new Map([...resources].filter(([key,file])=>mediaKeys.has(key)&&typeof file?.arrayBuffer==='function'));diskSnapshots=new Map();repairSelection();changed();renderAll();closeModal();await loadAudio();if(lib!==parsed.library)return;renderAll();toast(tr('演出已导入；可以选择文件夹保存，或导出新演出包。'));}
 $('#folderInput').onchange=async e=>{try{const map=new Map();for(const f of e.target.files){const path=f.webkitRelativePath.split('/').slice(1).join('/');if(C.safePath(path))map.set(path,f);}await importMap(map);}catch(error){toast(error.message);}e.target.value='';};
 async function diskText(dir,path){try{const parts=path.split('/');let d=dir;for(const n of parts.slice(0,-1))d=await d.getDirectoryHandle(n);return await(await(await d.getFileHandle(parts.at(-1))).getFile()).text();}catch(e){if(e.name==='NotFoundError')return null;throw e;}}
 async function writeDisk(dir,path,value){if(!C.safePath(path))throw Error(tr('不安全的保存路径。'));const parts=path.split('/');let d=dir;for(const n of parts.slice(0,-1))d=await d.getDirectoryHandle(n,{create:true});const handle=await d.getFileHandle(parts.at(-1),{create:true});const writer=await handle.createWritable();try{await writer.write(value);await writer.close();}catch(e){try{await writer.abort();}catch{}throw e;}}
@@ -79,9 +87,10 @@ async function saveFolder(){
   if(!same&&oldManifest&&!await confirmAction(tr('这个文件夹已有演出库。保存当前工作区将更新它的 manifest；旧数据会先备份。继续？')))return;
   if(same){for(const [path,before]of diskSnapshots){const latest=await diskText(dir,path);if(latest!==before){toast(tr('文件已被外部修改。请先“重新加载”，或导出当前版本为另一份演出包。'));return;}}}
   const canonical=textFiles(savedLibrary.shows),files=parent?dataPackageFiles(canonical):canonical,missing=[],audioFiles=new Map();
-  for(const s of productionSnapshots(savedLibrary.shows))for(const q of s.songs)if(q.audio){const key=`shows/${s.id}/songs/${q.id}/${q.audio.file}`,f=await resourceFile(key);if(f){audioFiles.set(key,f);if(!same||pendingAssets.has(key)||!resources.has(key))files.set(key,f);}else if(!same||!resources.has(key))missing.push(q.title);}
-  if(missing.length&&!await confirmAction(tr('这些曲目未连接音频文件：')+missing.join('、')+tr('。仍保存走台和歌词，保留音频引用？')))return;
+  for(const ref of libraryMediaReferences(savedLibrary.shows)){const key=ref.key,f=await resourceFile(key);if(f){audioFiles.set(key,f);if(!same||pendingAssets.has(key)||!resources.has(key))files.set(key,f);}else if(!same||!resources.has(key))missing.push(ref.label);}
+  if(missing.length&&!await confirmAction(tr('这些媒体文件未连接：')+missing.join('、')+tr('。仍保存走台和歌词，保留文件引用？')))return;
   await embedPackageAudio(canonical,audioFiles);
+  if(parent)for(const [path,value]of canonical)if(path.endsWith('.stagebook.js'))files.set(path,value);
   if(oldManifest){const stamp=new Date().toISOString().replace(/[:.]/g,'-');const existing=await walkDirectory(dir);for(const [path,h]of existing)if(path.endsWith('.json')&&!path.startsWith('backups/'))await writeDisk(dir,`backups/${stamp}/${path}`,await(await h.getFile()).text());}
   for(const [path,value]of files)if(path!=='manifest.json')await writeDisk(dir,path,value);if(parent){const entries=neatPackageFiles(canonical),html=entries.get('Stagebook.html')||entries.get('走台本.html'),name=await diskText(parent,'走台本.html')!==null?'走台本.html':entries.has('Stagebook.html')?'Stagebook.html':'走台本.html';await writeDisk(parent,name,html);}await writeDisk(dir,'manifest.json',files.get('manifest.json'));
   rootDir=dir;appRootDir=parent;diskSnapshots=new Map([...files].filter(([k,v])=>k.endsWith('.json')&&typeof v==='string'&&!k.endsWith('schema.json')));resources=await walkDirectory(dir);for(const [key,file]of savedAssets)if(pendingAssets.get(key)===file)pendingAssets.delete(key);if(!missing.length&&revision===editVersion)clean();renderAll();toast(missing.length?tr('走台已保存，但缺少音乐；连接后请重新保存。'):revision===editVersion?tr('已保存到 ')+dir.name:tr('文件已保存；保存期间的新修改仍需保存。'));
@@ -94,7 +103,7 @@ async function reloadFolder(){
 }
 function exportDialog(){
  const date=new Date(),stamp=[date.getFullYear(),String(date.getMonth()+1).padStart(2,'0'),String(date.getDate()).padStart(2,'0')].join('-');
- modal(tr('发给演员'),ui`<p>下载当前演出，包含走台、歌词和已连接的音乐。解压后直接打开 HTML。</p><details class="advanced-details"><summary>版次与改动摘要（可选）</summary><label class="field"><span>资料版名</span><input id="shareLabel" aria-label="资料版名" maxlength="120" value="${esc(tr('排练稿')+' '+stamp)}"></label><label class="field"><span>本版改动摘要</span><textarea id="shareSummary" aria-label="本版改动摘要" maxlength="6000" placeholder="例如：第二段入场改从右后口；结尾队形已调整。"></textarea></label></details><button id="exportShow" class="gold full">下载「${esc(show().title)}」</button><p class="footer-note">分享包只含当前版本。历史记录留在你的保存文件中；若需回溯，可在“更多”中打开版本记录。</p>`);
+ modal(tr('发给演员'),ui`<p>下载当前演出，包含走台、歌词和已连接的音乐。解压后直接打开 HTML。</p><details class="advanced-details"><summary>版次与改动摘要（可选）</summary><label class="field"><span>资料版名</span><input id="shareLabel" aria-label="资料版名" maxlength="120" value="${esc(tr('排练稿')+' '+stamp)}"></label><label class="field"><span>本版改动摘要</span><textarea id="shareSummary" aria-label="本版改动摘要" maxlength="6000" placeholder="例如：第二段入场改从右后口；结尾队形已调整。"></textarea></label></details><button id="exportShow" class="gold full">下载「${esc(show().title)}」</button><p class="footer-note">分享包只含当前版本。历史记录留在你的保存文件中；若需回溯，可在“更多”中打开版本记录。</p><button data-action="video-export" class="full">导出排练视频</button>`);
  $('#exportShow').onclick=()=>exportPackage([show()],{handoff:{label:$('#shareLabel').value,summary:$('#shareSummary').value},includeVersions:false});
 }
 function productionSnapshots(shows){return shows.flatMap(s=>[s,...(s.versions||[]).map(v=>v.snapshot)]);}
@@ -112,7 +121,7 @@ async function makeZip(files){
 }
 async function readZip(file){
  const bytes=new Uint8Array(await file.arrayBuffer()),v=new DataView(bytes.buffer);let end=-1;for(let i=bytes.length-22;i>=Math.max(0,bytes.length-65557);i--)if(v.getUint32(i,true)===0x06054b50){end=i;break;}if(end<0)throw Error(tr('找不到 ZIP 目录。'));const count=v.getUint16(end+10,true);if(count>10000)throw Error(tr('ZIP 文件数量过多。'));let pos=v.getUint32(end+16,true),sizeTotal=0;const map=new Map();
- for(let n=0;n<count;n++){if(v.getUint32(pos,true)!==0x02014b50)throw Error(tr('ZIP 目录损坏。'));const method=v.getUint16(pos+10,true),compressed=v.getUint32(pos+20,true),expected=v.getUint32(pos+24,true),nameLen=v.getUint16(pos+28,true),extra=v.getUint16(pos+30,true),comment=v.getUint16(pos+32,true),offset=v.getUint32(pos+42,true),path=decoder.decode(bytes.subarray(pos+46,pos+46+nameLen));pos+=46+nameLen+extra+comment;if(path.endsWith('/'))continue;if(!C.safePath(path))throw Error(tr('ZIP 包含无效路径。'));sizeTotal+=expected;if(sizeTotal>2*1024**3)throw Error(tr('ZIP 解压后超过 2GB，请使用文件夹方式。'));const start=offset+30+v.getUint16(offset+26,true)+v.getUint16(offset+28,true);let blob=new Blob([bytes.subarray(start,start+compressed)]);if(method===8){if(!globalThis.DecompressionStream)throw Error(tr('浏览器不支持此压缩包，请先手动解压，再导入文件夹。'));blob=await new Response(blob.stream().pipeThrough(new DecompressionStream('deflate-raw'))).blob();}else if(method!==0)throw Error(tr('此 ZIP 压缩方式不受支持。'));if(blob.size!==expected)throw Error(tr('ZIP 文件长度校验失败。'));map.set(path,/\.mp3$/i.test(path)?new Blob([blob],{type:'audio/mpeg'}):blob);}
+ for(let n=0;n<count;n++){if(v.getUint32(pos,true)!==0x02014b50)throw Error(tr('ZIP 目录损坏。'));const method=v.getUint16(pos+10,true),compressed=v.getUint32(pos+20,true),expected=v.getUint32(pos+24,true),nameLen=v.getUint16(pos+28,true),extra=v.getUint16(pos+30,true),comment=v.getUint16(pos+32,true),offset=v.getUint32(pos+42,true),path=decoder.decode(bytes.subarray(pos+46,pos+46+nameLen));pos+=46+nameLen+extra+comment;if(path.endsWith('/'))continue;if(!C.safePath(path))throw Error(tr('ZIP 包含无效路径。'));sizeTotal+=expected;if(sizeTotal>2*1024**3)throw Error(tr('ZIP 解压后超过 2GB，请使用文件夹方式。'));const start=offset+30+v.getUint16(offset+26,true)+v.getUint16(offset+28,true);let blob=new Blob([bytes.subarray(start,start+compressed)]);if(method===8){if(!globalThis.DecompressionStream)throw Error(tr('浏览器不支持此压缩包，请先手动解压，再导入文件夹。'));blob=await new Response(blob.stream().pipeThrough(new DecompressionStream('deflate-raw'))).blob();}else if(method!==0)throw Error(tr('此 ZIP 压缩方式不受支持。'));if(blob.size!==expected)throw Error(tr('ZIP 文件长度校验失败。'));map.set(path,assetMimeType(path)?new Blob([blob],{type:assetMimeType(path)}):blob);}
  if(!map.has('manifest.json')){const candidates=[...map.keys()].filter(p=>p.endsWith('/manifest.json'));if(candidates.length===1){const prefix=candidates[0].slice(0,-'manifest.json'.length),clean=new Map();for(const [k,val]of map)if(k.startsWith(prefix))clean.set(k.slice(prefix.length),val);return clean;}}return map;
 }
 let exporting=false;
@@ -122,8 +131,8 @@ async function exportPackage(shows,options={}){
  if(options.includeVersions===false)for(const s of snapshotShows)delete s.versions;
  if(options.handoff)for(const s of snapshotShows){const h=options.handoff;s.handoff={id:C.id('share'),label:String(h.label||tr('排练稿')).trim()||tr('排练稿'),summary:String(h.summary||''),createdAt:new Date().toISOString(),fingerprint:C.showFingerprint(s)};}
  if(options.archivedEdition)for(const s of snapshotShows){const v=options.archivedEdition;s.handoff={id:v.id,label:v.label||tr('未命名版本'),summary:v.summary,createdAt:v.createdAt,fingerprint:C.showFingerprint(s)};}
- try{const files=textFiles(snapshotShows),missing=[];for(const s of productionSnapshots(snapshotShows))for(const q of s.songs)if(q.audio){const key=`shows/${s.id}/songs/${q.id}/${q.audio.file}`,f=await resourceFile(key);if(f)files.set(key,f);else missing.push(q.title);}
-  if(missing.length&&!await confirmAction(tr('以下曲目未连接音乐：')+missing.join('、')+tr('。仍要下载不含这些音乐的走台数据包吗？')))return;
+ try{const files=textFiles(snapshotShows),missing=[];for(const ref of libraryMediaReferences(snapshotShows)){const f=await resourceFile(ref.key);if(f)files.set(ref.key,f);else missing.push(ref.label);}
+  if(missing.length&&!await confirmAction(tr('以下媒体文件缺失：')+missing.join('、')+tr('。仍要下载不含这些文件的走台数据包吗？')))return;
   toast(tr('正在打包，请稍候…'));await embedPackageAudio(files);const blob=await makeZip(neatPackageFiles(files));const label=options.handoff||options.archivedEdition?'-'+snapshotShows[0].handoff.label+'-'+snapshotShows[0].handoff.id.slice(-6):'';download(blob,((shows.length===1?shows[0].title:tr('走台演出库'))+label).replace(/[\\/:*?"<>|]/g,'-')+'.zip');closeModal();if(options.handoff){snapshot();for(const shared of snapshotShows){const live=lib.shows.find(s=>s.id===shared.id);if(live)live.handoff=C.clone(shared.handoff);}changed();renderAll();}if(complete&&!missing.length&&!rootDir&&revision===editVersion)clean();toast(missing.length?tr('已下载走台数据，但缺少音乐。连接音乐后请重新保存。'):options.handoff?tr('分享包已下载，资料版次已记录。'):revision===editVersion?tr('演出包已下载，包含走台、歌词和已连接的音乐。'):tr('演出包已下载；打包期间的新修改仍需保存。'));
  }catch(e){toast(e.message);}finally{exporting=false;}
 }
@@ -145,7 +154,7 @@ function recoverySummary(library,sid,qid,label){
 async function boot(){
  const embedded=$('#embedded-library');if(embedded)try{lib=C.checkStructure(JSON.parse(embedded.textContent));showId=lib.shows[0].id;songId=lib.shows[0].songs[0].id;restorePackageFocus(lib);}catch(e){toast(tr('嵌入数据无效，已打开示例：')+e.message);}
  focusActor=song().castIds[0]||'';prepareHumanScene();renderAll();if(embedded)$('#saveState').textContent=tr('已打开');
- try{const saved=await dbRead('draft');if(saved?.dirty){restoring=true;modal(tr('发现未保存的恢复草稿'),ui`<div class="recovery-comparison">${recoverySummary(lib,showId,songId,tr('当前文件'))}${recoverySummary(saved.library,saved.showId,saved.songId,tr('未保存草稿'))}</div><p class="footer-note">草稿时间：${esc(new Date(saved.when).toLocaleString(StageI18n.language))}。恢复草稿不会覆盖磁盘文件。</p><div class="dialogactions"><button id="discardDraft">使用当前文件</button><button id="restoreDraft" class="gold">恢复草稿</button></div>`);$('#discardDraft').onclick=()=>{restoring=false;closeModal();saveDraft();};$('#restoreDraft').onclick=async()=>{try{lib=C.checkStructure(saved.library);showId=saved.showId;songId=saved.songId;repairSelection();for(const s of productionSnapshots(lib.shows))for(const q of s.songs)if(q.audio){const key=`shows/${s.id}/songs/${q.id}/${q.audio.file}`,blob=await dbRead('audio:'+key);if(blob)pendingAssets.set(key,blob);}restoring=false;changed();closeModal();renderAll();await loadAudio();renderAll();toast(tr('草稿已恢复，请保存到新文件夹或导出演出包。'));}catch(e){toast(e.message);}};}}
+ try{const saved=await dbRead('draft');if(saved?.dirty){restoring=true;modal(tr('发现未保存的恢复草稿'),ui`<div class="recovery-comparison">${recoverySummary(lib,showId,songId,tr('当前文件'))}${recoverySummary(saved.library,saved.showId,saved.songId,tr('未保存草稿'))}</div><p class="footer-note">草稿时间：${esc(new Date(saved.when).toLocaleString(StageI18n.language))}。恢复草稿不会覆盖磁盘文件。</p><div class="dialogactions"><button id="discardDraft">使用当前文件</button><button id="restoreDraft" class="gold">恢复草稿</button></div>`);$('#discardDraft').onclick=()=>{restoring=false;closeModal();saveDraft();};$('#restoreDraft').onclick=async()=>{try{lib=C.checkStructure(saved.library);showId=saved.showId;songId=saved.songId;repairSelection();for(const ref of libraryMediaReferences(lib.shows)){const blob=await dbRead('audio:'+ref.key);if(blob)pendingAssets.set(ref.key,blob);}restoring=false;changed();closeModal();renderAll();await loadAudio();renderAll();toast(tr('草稿已恢复，请保存到新文件夹或导出演出包。'));}catch(e){toast(e.message);}};}}
  catch(e){/* Draft recovery is optional; all explicit file operations remain available. */}
  await loadAudio();updateTransport();
 }

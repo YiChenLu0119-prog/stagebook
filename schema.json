@@ -226,6 +226,121 @@
         "points"
       ]
     },
+    "attachment": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "type": {
+          "enum": [
+            "image",
+            "video"
+          ]
+        },
+        "file": {
+          "type": "string"
+        },
+        "mimeType": {
+          "enum": [
+            "image/jpeg",
+            "image/png",
+            "image/webp",
+            "video/mp4",
+            "video/webm"
+          ]
+        },
+        "width": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1280
+        },
+        "height": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1280
+        },
+        "bytes": {
+          "type": "number",
+          "minimum": 0
+        },
+        "duration": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 120
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "type",
+        "file",
+        "mimeType",
+        "width",
+        "height",
+        "bytes"
+      ],
+      "anyOf": [
+        {
+          "properties": {
+            "width": {
+              "maximum": 1280
+            },
+            "height": {
+              "maximum": 720
+            }
+          }
+        },
+        {
+          "properties": {
+            "width": {
+              "maximum": 720
+            },
+            "height": {
+              "maximum": 1280
+            }
+          }
+        }
+      ],
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "const": "video"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "duration"
+            ],
+            "properties": {
+              "mimeType": {
+                "enum": [
+                  "video/mp4",
+                  "video/webm"
+                ]
+              }
+            }
+          },
+          "else": {
+            "properties": {
+              "mimeType": {
+                "enum": [
+                  "image/jpeg",
+                  "image/png",
+                  "image/webp"
+                ]
+              }
+            }
+          }
+        }
+      ]
+    },
     "cue": {
       "type": "object",
       "properties": {
@@ -250,6 +365,12 @@
           "type": "array",
           "items": {
             "$ref": "#/$defs/move"
+          }
+        },
+        "attachments": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/attachment"
           }
         },
         "notes": {
@@ -662,6 +783,12 @@
           "$ref": "#/$defs/embeddedShow"
         },
         "missingAudio": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "missingMedia": {
           "type": "array",
           "items": {
             "type": "string"

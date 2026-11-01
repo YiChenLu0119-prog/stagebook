@@ -39,17 +39,17 @@ Review terminology in context. Test long labels, plural/count wording, ARIA labe
 ## Release packaging
 
 ```sh
-python3 package_show.py dist release-build Stagebook-v9.3.0-offline.zip --neat --english
-python3 validate.py release-build
+python3 package_show.py dist release-build Stagebook-v9.5.0-offline.zip --neat --english
+python3 validate.py release-build/演出资料
 ```
 
 The output folder must be new or empty. Preserve the source data. English release packages contain “Stagebook.html” and “演出资料”; the latter contains editable data and technical documentation. The corresponding source archive in its technical folder includes LICENSE. The full GPL text is also embedded in the HTML and preserved by subsequent app exports.
 
-Distribute the complete corresponding source as `Stagebook-v9.3.0-source.zip` alongside the offline asset. Include source, build scripts, generic examples, documentation and license; exclude generated output and private production material.
+Distribute the complete corresponding source as `Stagebook-v9.5.0-source.zip` alongside the offline asset. Include source, build scripts, generic examples, documentation and license; exclude generated output and private production material.
 
 ## Verification limits
 
-Nineteen automated suites cover geometry, timing, media state, file round trips, lyrics, playback context, editing, deletion continuity and localization. Audio readiness is simulated; byte-preserving round trips do not replace real browser decoding or listening.
+Twenty-five automated suites cover geometry, timing, media state, file round trips, lyrics, playback context, editing, deletion continuity and localization. Audio readiness is simulated; byte-preserving round trips do not replace real browser decoding or listening.
 
 For interface changes, use your own independent test browser. Exercise seek, insert, drag, notes, independent timing, language switching, deletion, Undo/Redo, export and reopen. Do not use someone else's working session. Complete mobile editing and every browser/OS combination are not yet verified.
 
@@ -63,3 +63,8 @@ The optional handoff, version and rehearsal-list metadata is defined in AI-GUIDE
 ZIP files do not preserve Blob MIME types. Mark extracted MP3s as audio/mpeg, and normalize untyped resources before creating playback URLs. The strict-MIME media test rejects an untyped Blob instead of silently accepting it. Imported media is retained in pending assets so the existing recovery-draft writer can store it. Actual browser decoding and listening remain separate checks.
 
 Release HTML embeds its corresponding source archive. Its capsule identifies the source ZIP filename; subsequent exports keep it in the technical folder. Older capsules without a name retain the legacy filename. The public release uses generic samples only.
+
+
+Media support: `media.js` handles step attachments and local processing; `video-export.js` records the SVG stage with a lyric lookahead footer. The native browser handles image/video encoding; no upload service or online media API is used. For a distributed package, pass `--source-archive PATH` to `package_show.py` to carry the matching corresponding source in both the HTML and technical files. Reference clips have a 120-second limit; rehearsal exports do not.
+
+For a large local library, pass `--linked-assets` to keep audio/video bytes out of the entry HTML. Each generated local media script is loaded on demand, including when the folder is opened directly. The original media files remain available for package import. Preserve the entire folder; the entry HTML alone is not a standalone copy in this mode. In-app saves/exports use this layout automatically above 8 MiB of media. Legacy self-contained HTML files remain readable.

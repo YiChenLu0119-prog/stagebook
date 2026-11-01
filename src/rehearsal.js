@@ -14,7 +14,7 @@ function handoffDetailsHTML(s=show()){
  return `<h3>${esc(h.label)}</h3><p class="muted">${esc(versionDate(h.createdAt))} · ${esc(h.id.slice(-6))}</p><p class="handoff-summary">${esc(h.summary||tr('未填写改动摘要'))}</p><p>${esc(handoffStatusText(s))}</p>`;
 }
 function handoffDialog(){
- modal(tr('资料版次'),handoffDetailsHTML()+ui`<p class="footer-note">版次标记用于核对这份文件；离线无法判断全团使用的是哪一版。</p><p class="footer-note">软件版本</p><p>${esc(PAYLOAD.appVersion||'9.4.1')}</p>`);
+ modal(tr('资料版次'),handoffDetailsHTML()+ui`<p class="footer-note">版次标记用于核对这份文件；离线无法判断全团使用的是哪一版。</p><p class="footer-note">软件版本</p><p>${esc(PAYLOAD.appVersion||'9.5.0-preview.1')}</p>`);
 }
 function versionDate(value){return new Date(value).toLocaleString(StageI18n.language==='en'?'en-GB':StageI18n.language==='zh-TW'?'zh-TW':'zh-CN',{year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit'});}
 function versionSnapshot(s,label,summary=''){
@@ -31,6 +31,9 @@ async function captureVersion(s,label,summary=''){
   else {let a=2166136261,b=5381;for(const n of bytes){a=Math.imul(a^n,16777619);b=Math.imul(b,33)^n;}hash=(a>>>0).toString(16)+(b>>>0).toString(16)+'-'+bytes.length;}
   q.audio.file=`assets/version-${hash}.mp3`;assets.set(`shows/${s.id}/songs/${q.id}/${q.audio.file}`,file);
  }
+ const missingMedia=[];
+ for(const q of version.snapshot.songs)for(const cue of q.cues)for(const a of cue.attachments||[]){const file=await resourceFile(`shows/${s.id}/songs/${q.id}/${a.file}`);if(!file){missingMedia.push(q.title+' / '+cue.title+' / '+a.name);continue;}const hash=await mediaContentHash(file);a.file=`assets/version-${hash}.${STEP_MEDIA_MIMES[a.mimeType]}`;assets.set(`shows/${s.id}/songs/${q.id}/${a.file}`,file);}
+ if(missingMedia.length)version.missingMedia=missingMedia;
  if(missing.length)version.missingAudio=missing;
  return {version,assets};
 }
@@ -50,7 +53,7 @@ function versionsDialog(){
 }
 function versionDetails(id){
  const v=show().versions?.find(v=>v.id===id);if(!v)return;const same=C.showFingerprint(v.snapshot)===C.showFingerprint(show());
- modal(tr('版本详情'),`<h3>${esc(v.label)}</h3><p>${esc(versionDate(v.createdAt))}</p><p class="note-text">${esc(v.summary)}</p>`+v.snapshot.songs.map(q=>`<p>${esc(q.title)} · ${esc(ui`${q.cues.length} 个步骤`)} · ${esc(ui`${q.castIds.length} 位角色`)}</p>`).join('')+(v.missingAudio?.length?`<p class="warning">${esc(tr('保存此版时未连接音乐：'))}${esc(v.missingAudio.join(' / '))}</p>`:'')+ui`<p class="footer-note">恢复前会自动保留当前内容，也可用撤销退回。</p><div class="row wrap"><button id="versionBack">返回记录</button><button id="versionExport">导出这一版</button><button id="versionRestore" class="gold" ${same?'disabled':''}>恢复这一版</button></div>`);
+ modal(tr('版本详情'),`<h3>${esc(v.label)}</h3><p>${esc(versionDate(v.createdAt))}</p><p class="note-text">${esc(v.summary)}</p>`+(v.missingMedia?.length?ui`<p class="warning">以下附件在记录版本时缺失：${esc(v.missingMedia.join(' · '))}</p>`:'')+v.snapshot.songs.map(q=>`<p>${esc(q.title)} · ${esc(ui`${q.cues.length} 个步骤`)} · ${esc(ui`${q.castIds.length} 位角色`)}</p>`).join('')+(v.missingAudio?.length?`<p class="warning">${esc(tr('保存此版时未连接音乐：'))}${esc(v.missingAudio.join(' / '))}</p>`:'')+ui`<p class="footer-note">恢复前会自动保留当前内容，也可用撤销退回。</p><div class="row wrap"><button id="versionBack">返回记录</button><button id="versionExport">导出这一版</button><button id="versionRestore" class="gold" ${same?'disabled':''}>恢复这一版</button></div>`);
  $('#versionBack').onclick=versionsDialog;$('#versionExport').onclick=()=>exportPackage([v.snapshot],{archivedEdition:v});$('#versionRestore').onclick=()=>restoreVersion(id);
 }
 async function restoreVersion(id){

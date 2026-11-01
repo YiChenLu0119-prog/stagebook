@@ -165,6 +165,7 @@ function handleEditingKey(e){
  if(handleMenuKeys(e))return;
  const key=e.key.toLowerCase(),cmd=e.metaKey||e.ctrlKey,typing=isTypingTarget(e.target),modalOpen=$('#dialog').open;
  const run=a=>{e.preventDefault();runEditingCommand(a);};
+ if((videoExporting||stepMediaBusy)&&cmd&&key==='s'){e.preventDefault();return;}
  if(cmd&&key==='s'){e.preventDefault();if(typing)e.target.blur?.();Promise.resolve(saveWork()).catch(x=>toast(x.message));return;}
  if(modalOpen)return;
  if(singing&&handleSingingKey(e,typing,cmd))return;

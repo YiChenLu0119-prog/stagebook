@@ -1,5 +1,23 @@
 # Changelog
 
+## 9.5.0 — 2026-11-01
+
+- Keep large musical libraries in a small entry page and load each song's local media data only when needed.
+- Avoid copying embedded audio/video into a second full HTML document during startup.
+- Keep subsequent exports lightweight when connected media exceeds 8 MiB; retain original files for importing and editing.
+- Keep all companion files beside the entry page when moving or sharing a lightweight package.
+
+
+- Add per-step image/video reference attachments beside existing notes, with local 720p processing and a 120-second note-video limit.
+- Preserve attachment files through save/import/share, standalone HTML, Undo, draft recovery and version history.
+- Add single/multiple-song stage-video export, optional connected music, combined or separate outputs, and current/next lyrics at the bottom.
+- Keep rehearsal-video duration independent of the note-video limit; restore the workspace after export or cancellation.
+- Use native MP4/WebM recording and pause an export while the page is hidden.
+- Add media validation, safe embedded JSON and localized controls.
+- Copy image/video references and their bytes when duplicating a song; keep them available in the duplicate's saves and shares.
+
+The production format remains version 1. Public downloads contain generic examples; user productions and recordings are not included.
+
 ## 9.4.1 — 2026-11-01
 
 - Add a one-click Fullscreen stage button beside the central stage controls, available in Edit and Rehearse.

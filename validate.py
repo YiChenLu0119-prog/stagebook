@@ -132,6 +132,20 @@ def validate(root):
                 before=positions.get(obj)
                 if before and math.hypot(before['x']-pts[0]['x'],before['y']-pts[0]['y'])>.15:add('warning',loc(mid),'Route starts away from the preceding position; playback will jump')
                 positions[obj]=pts[-1];spans.setdefault(obj,[]).append((start,end))
+            for c in q.get('cues',[]):
+                attachments=c.get('attachments',[])
+                if not isinstance(attachments,list):add('error',loc(c.get('id')),'Attachments must be an array');continue
+                for a in attachments:
+                    if not isinstance(a,dict):add('error',loc(c.get('id')),'Invalid attachment');continue
+                    if not isinstance(a.get('id'),str) or not isinstance(a.get('name'),str) or not numeric(a.get('bytes')) or a['bytes']<0:add('error',loc(c.get('id')),'Invalid attachment ID, name or byte size')
+                    dims=[a.get('width'),a.get('height')]
+                    if not all(isinstance(n,int) and not isinstance(n,bool) and n>0 for n in dims) or max(dims)>1280 or min(dims)>720:add('error',loc(a.get('id')),'Attachment exceeds 720p bounds')
+                    kind=a.get('type');mime=a.get('mimeType')
+                    if kind not in ['image','video'] or mime not in {'image':['image/jpeg','image/png','image/webp'],'video':['video/mp4','video/webm']}.get(kind,[]):add('error',loc(a.get('id')),'Invalid attachment media type')
+                    if kind=='video' and (not numeric(a.get('duration')) or not 0<a['duration']<=120):add('error',loc(a.get('id')),'Note videos must be at most 120 seconds')
+                    file=a.get('file')
+                    if not isinstance(file,str) or not safe_path(file):add('error',loc(a.get('id')),'Invalid attachment path')
+                    elif not (root/pathlib.PurePosixPath(rel).parent/file).is_file():add('warning',loc(a.get('id')),'Attachment file is missing: '+file)
             for l in q.get('lyrics',[]):
                 if 'speakerIds' in l and (not isinstance(l['speakerIds'],list) or not all(isinstance(v,str) for v in l['speakerIds'])):add('error',loc(l.get('id')),'Lyric speakerIds must be an array of strings')
                 if not numeric(l.get('start')) or not numeric(l.get('end')) or l['start']<0 or l['end']<l['start']:add('error',loc(l.get('id')),'Invalid lyric times')

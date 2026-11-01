@@ -1,0 +1,14 @@
+const assert=require('node:assert/strict'),vm=require('node:vm'),{createApp}=require('./app-harness.cjs');
+let serializations=0;
+const html='<html><head><title>Offline show</title><script id="embedded-library" type="application/json">{"shows":[]}</script><script id="embedded-audio" type="application/json">{"music":"LARGE_AUDIO_DATA"}</script><script id="embedded-media" type="application/json">{"photo":"LARGE_MEDIA_DATA"}</script><script id="embedded-source" type="application/json">{"name":"source.zip"}</script></head><body><main>Stage</main><script>window.app=true;</script></body></html>';
+const h=createApp({appHTML:html,onSerializeDocument:()=>serializations++});
+assert.equal(serializations,0,'Opening a show must not serialize all embedded music and video into a second full document');
+const template=vm.runInContext('appHTML',h.ctx);
+assert(!template.includes('LARGE_AUDIO_DATA'));
+assert(!template.includes('LARGE_MEDIA_DATA'));
+assert(!template.includes('id="embedded-library"'));
+assert(template.includes('id="embedded-source"'),'The export template retains corresponding source');
+assert(template.includes('<main>Stage</main>'));
+assert(template.includes('window.app=true;'));
+assert.equal(h.document.documentElement.outerHTML,html,'Capturing the export template must not remove assets from the live document');
+console.log('PASS: startup avoids serializing embedded assets, preserves executable shell and source, and leaves live music data intact');

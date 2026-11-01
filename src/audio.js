@@ -3,6 +3,25 @@ let audioState='none',audioError='',audioLoadGeneration=0,audioPlayGeneration=0,
 let audioClockCheckpoint=null;
 let embeddedAssetData=null;
 const embeddedAssetBlobs=new Map();
+let linkedAssetIndex=null;
+const linkedAssetLoads=new Map();
+async function linkedEmbeddedAssetFile(key){
+ if(rootDir||resources.size)return null;
+ if(linkedAssetLoads.has(key))return linkedAssetLoads.get(key);
+ try{
+  if(linkedAssetIndex===null)linkedAssetIndex=JSON.parse($('#embedded-asset-index')?.textContent||'{}');
+  const item=linkedAssetIndex[key],prefix=$('#embedded-library')?.getAttribute('data-library-root')||'';
+  if(!item||!C.safePath(item.file)||!C.safePath(prefix+item.file)||!['audio/mpeg','image/jpeg','image/png','image/webp','video/mp4','video/webm'].includes(item.mimeType))return null;
+  const operation=new Promise(resolve=>{
+   const script=document.createElement('script');let done=false;
+   const finish=()=>{if(done)return;done=true;clearTimeout(timer);script.onload=script.onerror=null;script.remove();const entry=globalThis.StagebookLocalAssets?.[key];if(entry)delete globalThis.StagebookLocalAssets[key];try{if(entry?.mimeType!==item.mimeType||typeof entry.base64!=='string')return resolve(null);const binary=atob(entry.base64),bytes=new Uint8Array(binary.length);for(let i=0;i<binary.length;i++)bytes[i]=binary.charCodeAt(i);resolve(new Blob([bytes],{type:item.mimeType}));}catch{resolve(null);}};
+   const timer=setTimeout(finish,15000);script.onload=script.onerror=finish;
+   script.src=new URL((prefix+item.file).split('/').map(encodeURIComponent).join('/'),document.baseURI).href;
+   document.head.append(script);
+  });
+  linkedAssetLoads.set(key,operation);const result=await operation;if(!result)linkedAssetLoads.delete(key);return result;
+ }catch{linkedAssetLoads.delete(key);return null;}
+}
 function embeddedAudioFile(key){
  if(rootDir||resources.size)return null;
  if(embeddedAssetBlobs.has(key))return embeddedAssetBlobs.get(key);

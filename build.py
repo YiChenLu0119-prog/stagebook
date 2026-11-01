@@ -13,7 +13,10 @@ def schema():
     defs['anchor']=obj({'id':string,'name':string,'x':num,'y':num,'kind':{'enum':['gate','mark']},**notes},['id','name','x','y'])
     defs['stage']=obj({'audience':{'enum':['north','south','east','west']},'boundary':{'type':'array','minItems':3,'items':ref('point')},'backstage':arr(ref('area')),'walls':arr(ref('area')),'anchors':arr(ref('anchor')),**notes},['boundary','backstage','walls','anchors','audience'])
     defs['move']=obj({'id':string,'entityId':string,'points':ref('path'),'gateId':string,'startOffset':nonneg,'duration':nonneg,**notes},['id','entityId','points'])
-    defs['cue']=obj({'id':string,'title':string,'at':nonneg,'duration':nonneg,'stopAfter':{'type':'boolean'},'moves':arr(ref('move')),**notes},['id','title','at','duration','moves'])
+    defs['attachment']=obj({'id':string,'name':string,'type':{'enum':['image','video']},'file':string,'mimeType':{'enum':['image/jpeg','image/png','image/webp','video/mp4','video/webm']},'width':{'type':'integer','minimum':1,'maximum':1280},'height':{'type':'integer','minimum':1,'maximum':1280},'bytes':nonneg,'duration':{'type':'number','minimum':0,'maximum':120}},['id','name','type','file','mimeType','width','height','bytes'])
+    defs['attachment']['anyOf']=[{'properties':{'width':{'maximum':1280},'height':{'maximum':720}}},{'properties':{'width':{'maximum':720},'height':{'maximum':1280}}}]
+    defs['attachment']['allOf']=[{'if':{'properties':{'type':{'const':'video'}}},'then':{'required':['duration'],'properties':{'mimeType':{'enum':['video/mp4','video/webm']}}},'else':{'properties':{'mimeType':{'enum':['image/jpeg','image/png','image/webp']}}}}]
+    defs['cue']=obj({'id':string,'title':string,'at':nonneg,'duration':nonneg,'stopAfter':{'type':'boolean'},'moves':arr(ref('move')),'attachments':arr(ref('attachment')),**notes},['id','title','at','duration','moves'])
     defs['lyric']=obj({'id':string,'start':nonneg,'end':nonneg,'text':string,'speakerIds':arr(string),**notes},['id','start','end','text'])
     nullable={'type':['number','null'],'minimum':0}
     defs['annotation']=obj({'id':string,'title':string,'start':nullable,'end':nullable,'entityIds':arr(string),**notes},['id','title','entityIds','notes'])
@@ -24,7 +27,7 @@ def schema():
     defs['show']['properties'].update({'handoff':ref('handoff'),'rehearsalList':arr(ref('rehearsalRef'))})
     defs['embeddedShow']=obj({**defs['show']['properties'],'songs':arr(ref('song'))},defs['show']['required'])
     defs['embeddedShow']['properties']['versions']=False
-    defs['showVersion']=obj({'id':string,'label':string,'createdAt':string,'summary':string,'snapshot':ref('embeddedShow'),'missingAudio':arr(string)},['id','label','createdAt','summary','snapshot'])
+    defs['showVersion']=obj({'id':string,'label':string,'createdAt':string,'summary':string,'snapshot':ref('embeddedShow'),'missingAudio':arr(string),'missingMedia':arr(string)},['id','label','createdAt','summary','snapshot'])
     defs['show']['properties']['versions']=arr(ref('showVersion'))
     defs['manifest']=obj({'format':{'const':'stagebook-library'},'version':{'const':1},'workspace':obj({'showId':string,'songId':string},['showId','songId']),'shows':arr(obj({'id':string,'path':string},['id','path']))},['format','version','shows'])
     return {'$schema':'https://json-schema.org/draft/2020-12/schema','title':'Stagebook v1 files','oneOf':[ref('manifest'),ref('show'),ref('song')],'$defs':defs}
@@ -33,7 +36,7 @@ def main():
     locales={lang:json.loads((ROOT/'src/locales'/f'{lang}.json').read_text()) for lang in ['en','zh-TW']}
     i18n=(ROOT/'src/i18n.js').read_text().replace('/*__LOCALES__*/{}',json.dumps(locales,ensure_ascii=False).replace('</','<\\/'))
     payload={'appVersion':(ROOT/'VERSION').read_text().strip(),'demo':data,'guide':(ROOT/'AI-GUIDE.md').read_text(),'entry':(ROOT/'AI-ENTRY.txt').read_text(),'schema':sc,'validator':(ROOT/'validate.py').read_text(),'readme':(ROOT/'使用说明.txt').read_text(),'readmes':{lang:(ROOT/'src/locales'/f'help.{lang}.txt').read_text() for lang in ['en','zh-TW']},'guides':{'en':(ROOT/'src/locales/ai-guide.en.md').read_text()}}
-    html=(ROOT/'src/index.html').read_text().replace('/*__CSS__*/',(ROOT/'src/style.css').read_text()+'\n'+(ROOT/'src/design.css').read_text()+'\n'+(ROOT/'src/practice.css').read_text()).replace('/*__CORE__*/',i18n+'\n'+(ROOT/'src/core.js').read_text()).replace('/*__PAYLOAD__*/','const PAYLOAD='+json.dumps(payload,ensure_ascii=False).replace('</','<\\/')+';').replace('/*__APP__*/',('\n'.join((ROOT/'src'/name).read_text() for name in ['app.js','audio.js','human.js','timeline.js','editing.js','lyrics.js','practice.js','rehearsal.js','appearance.js','io.js'])).replace('</script','<\\/script'))
+    html=(ROOT/'src/index.html').read_text().replace('/*__CSS__*/',(ROOT/'src/style.css').read_text()+'\n'+(ROOT/'src/design.css').read_text()+'\n'+(ROOT/'src/practice.css').read_text()).replace('/*__CORE__*/',i18n+'\n'+(ROOT/'src/core.js').read_text()).replace('/*__PAYLOAD__*/','const PAYLOAD='+json.dumps(payload,ensure_ascii=False).replace('</','<\\/')+';').replace('/*__APP__*/',('\n'.join((ROOT/'src'/name).read_text() for name in ['app.js','audio.js','human.js','timeline.js','editing.js','lyrics.js','practice.js','media.js','video-export.js','rehearsal.js','appearance.js','io.js'])).replace('</script','<\\/script'))
     license_text=(ROOT/'LICENSE').read_text()
     assert '-->' not in license_text
     html=html.replace('</head>','\n<!-- Stagebook — SPDX-License-Identifier: GPL-3.0-only\nCorresponding source: Stagebook-v'+payload['appVersion']+'-source.zip, distributed alongside this app.\n'+license_text+'\n-->\n</head>',1)

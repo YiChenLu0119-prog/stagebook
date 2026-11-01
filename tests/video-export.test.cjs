@@ -1,0 +1,17 @@
+const assert=require('node:assert/strict'),vm=require('node:vm'),{createApp}=require('./app-harness.cjs');
+const run=(h,code)=>vm.runInContext(code,h.ctx);
+(async()=>{
+ const h=createApp(),s=h.api.state().lib.shows[0],q=s.songs[0];
+ q.lyrics=[{id:'a',start:2,end:4,text:'First line'},{id:'b',start:4,end:8,text:'Second line'},{id:'c',start:4,end:6,text:'Other voice'},{id:'d',start:9,end:12,text:'Upcoming line'}];
+ assert.deepEqual(JSON.parse(JSON.stringify(h.api.videoLyricsAt(q,3))),{current:'First line',next:'Second line / Other voice',hasLyrics:true});assert.equal(h.api.videoLyricsAt(q,5).current,'Second line / Other voice');assert.equal(h.api.videoLyricsAt(q,5).next,'Upcoming line');assert.equal(h.api.videoLyricsAt(q,0).next,'First line');assert.equal(h.api.videoLyricsAt(q,8.5).current,'');
+ const text=h.api.wrapVideoText({measureText:t=>({width:t.length*10})},'This is a long line that needs wrapping',80,2);assert.equal(text.length,2);assert(text[1].endsWith('…'));assert.equal(h.api.wrapVideoText({measureText:t=>({width:t.length*10})},'这是没有空格的测试歌词',50,3).length,3);
+ const frames=[],encoders=[];let clock=0;
+ class Recorder{static isTypeSupported(type){return type.startsWith('video/mp4');}constructor(stream,options){this.state='inactive';this.mimeType=options.mimeType;encoders.push(this);}start(){this.state='recording';}pause(){this.state='paused';}resume(){this.state='recording';}stop(){this.state='inactive';this.ondataavailable({data:new Blob(['encoded fixture'])});this.onstop();}}
+ const track=()=>({stop(){}});h.document.createElement=type=>type==='canvas'?{width:0,height:0,captureStream:()=>({getTracks:()=>[track()],getVideoTracks:()=>[track()],addTrack(){}})}:new h.Node();
+ Object.assign(h.ctx,{MediaRecorder:Recorder,testFrames:frames,performance:{now:()=>clock+=1000}});run(h,"drawStageVideoFrame=async()=>testFrames.push({song:songId,time:current});waitVideoFrame=async()=>{};loadAudio=async()=>{audioDuration=0;};");
+ q.duration=122;q.lyrics=[];const other=h.C.clone(q);other.id='second';other.title='Second';other.duration=4;other.cues=[];s.songs.push(other);h.api.seek(6.7);const original=JSON.stringify(h.api.state());
+ await h.api.startStageVideoExport({ids:['second',q.id],withAudio:false,combined:true});assert.equal(encoders.length,1);assert(frames.some(f=>f.song===q.id&&f.time===122),'Rehearsal export is not truncated at the 120-second attachment limit');assert(frames.findIndex(f=>f.song===q.id)<frames.findIndex(f=>f.song==='second'),'Multiple songs use production order');assert.equal(frames.at(-1).time,4);assert.equal(JSON.stringify(h.api.state()),original,'Export restores editor, playhead and production data');
+ await h.api.startStageVideoExport({ids:[q.id,'second'],withAudio:false,combined:false});assert.equal(encoders.length,3,'Separate mode makes one video per selected song');assert.equal(JSON.stringify(h.api.state()),original);
+ run(h,"drawStageVideoFrame=async()=>{throw Object.assign(Error('cancel'),{name:'AbortError'});};");await h.api.startStageVideoExport({ids:[q.id],withAudio:false,combined:true});assert.equal(JSON.stringify(h.api.state()),original,'Cancelled export also restores the original workspace');
+ console.log('PASS: current and next lyrics, overlapping voices, intro/gap lookahead, bounded line wrapping, complete 122-second rendering, production-order combined/separate videos, and export/cancel state restoration');
+})().catch(error=>{console.error(error);process.exitCode=1;});

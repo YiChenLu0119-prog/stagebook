@@ -6,9 +6,19 @@ Put actors on a stage, draw their movement, and place it against song time and l
 
 **Interface languages:** English · 简体中文 · 繁體中文. Switch languages in the top bar. Character names, lyrics and your production notes stay exactly as written.
 
-[Download](https://github.com/YiChenLu0119-prog/stagebook/releases/tag/v9.4.1) · [Quick start](docs/quick-start.md) · [Roadmap](docs/ROADMAP.md) · [Changelog](CHANGELOG.md) · [Contributing](CONTRIBUTING.md)
+[Download](https://github.com/YiChenLu0119-prog/stagebook/releases/tag/v9.5.0) · [Quick start](docs/quick-start.md) · [Roadmap](docs/ROADMAP.md) · [Changelog](CHANGELOG.md) · [Contributing](CONTRIBUTING.md)
 
 ![Stagebook editing workspace in the Hamilton palette](docs/images/workspace-hamilton.jpg)
+
+## Media notes and rehearsal videos
+
+Version 9.5 adds reference photos/videos beside each step note and a rehearsal-video exporter. Large libraries use a lightweight entry page and load local media only when needed.
+
+Choose **+ Add** beside **Step photos and videos**. Images and videos are processed on this device to at most 720p, preserving their orientation without upscaling. Note videos longer than 120 seconds are rejected before encoding. Video sound is retained. Attachments travel in saved/shared production packages, including standalone HTML and optional version history; they are not account/cloud uploads. Remove supports Undo.
+
+Choose **Share with cast → Export rehearsal video** or the same item under **More**. Select songs, whether to include connected music, and whether to combine them in production order or create separate files. The video records the stage at 1280 × 720, with the current lyric and the next timed line at the bottom. It has no two-minute limit. Generation runs at normal speed; keep the page visible. Native browser support determines whether the file is MP4 or WebM. Download the completed file from the result dialog. Lyrics use your existing timing and are not automatically realigned.
+
+For large productions, keep **Stagebook.html** and the **演出资料** folder together. The app loads each song's local media when needed; moving only the HTML file will break those media links. Large in-app saves and exports use this layout automatically. Original music files remain in the package for importing and editing. No music is recompressed by this loading change.
 
 ## Singing practice
 
@@ -122,7 +132,7 @@ Public downloads contain generic examples only, without commercial soundtracks, 
 
 ## Ongoing development
 
-Stagebook will continue to evolve through real rehearsals and hands-on feedback. This preview adds a wider editing workspace and four appearance palettes while retaining traceable versions and rehearsal handoffs; future work will explore editing comfort, browser and file compatibility, accessibility, translation quality and useful public examples.
+Stagebook will continue to evolve through real rehearsals and hands-on feedback. The current release combines a wider editing workspace, four appearance palettes, traceable versions, media notes and rehearsal-video handoffs; future work will explore editing comfort, browser and file compatibility, accessibility, translation quality and useful public examples.
 
 A desktop edition is also being evaluated, reusing the editor while adding native file opening, saving and installation. It is an exploration, with no release date or supported-platform promise yet. See the [roadmap](docs/ROADMAP.md) and [desktop edition plan](docs/desktop-app-plan.md).
 

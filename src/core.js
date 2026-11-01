@@ -198,6 +198,7 @@
     for(const n of song.annotations||[]){if((n.start!=null&&(!finite(n.start)||n.start<0))||(n.end!=null&&(!finite(n.end)||n.end<0))||(n.start!=null&&n.end!=null&&n.end<n.start))add(tr('记录的时间范围无效'),'annotation',n.id);for(const id of n.entityIds||[])if(!ids.has(id))add(tr('记录引用了不存在的对象：')+id,'annotation',n.id);}
     return out;
   }
+  function checkCueAttachments(cues){for(const c of cues)if(c.attachments!==undefined){if(!Array.isArray(c.attachments))throw Error(tr('步骤附件需要数组。'));for(const a of c.attachments){if(!a||typeof a.id!=='string'||typeof a.name!=='string'||!safePath(a.file)||!['image','video'].includes(a.type)||!{'image':['image/jpeg','image/png','image/webp'],'video':['video/mp4','video/webm']}[a.type].includes(a.mimeType)||![a.width,a.height].every(n=>Number.isInteger(n)&&n>0)||Math.max(a.width,a.height)>1280||Math.min(a.width,a.height)>720||!finite(a.bytes)||a.bytes<0||a.type==='video'&&(!finite(a.duration)||a.duration<=0||a.duration>120))throw Error(tr('步骤附件的格式、尺寸或时长无效。'));}}}
   function checkStructure(lib){
     if(!lib||lib.version!==1||!Array.isArray(lib.shows))throw Error(tr('需要 version: 1 和 shows 数组。'));
     const showIds=new Set();
@@ -224,10 +225,11 @@
         for(const o of [...song.cues,...song.lyrics,...song.annotations])if(!o||typeof o.id!=='string')throw Error(tr('走台步骤、歌词和记录需要字符串 ID。'));
         for(const c of song.cues){if(!Array.isArray(c.moves))throw Error(tr('每一步都需要 moves 数组。'));for(const m of c.moves)if(!m||typeof m.id!=='string'||!Array.isArray(m.points)||!m.points.every(point)||!validControls(m.points))throw Error(tr('路线需要 ID 及有效坐标 points 数组。'));else for(const key of ['startOffset','duration'])if(m[key]!==undefined&&(!finite(m[key])||m[key]<0))throw Error(tr('演员移动时间需要非负秒数。'));}
         for(const l of song.lyrics)if(l.speakerIds!==undefined&&(!Array.isArray(l.speakerIds)||!l.speakerIds.every(id=>typeof id==='string')))throw Error(tr('歌词角色需要字符串 ID 数组。'));
+        checkCueAttachments(song.cues);
         for(const n of song.annotations)if(n.entityIds!==undefined&&(!Array.isArray(n.entityIds)||!n.entityIds.every(id=>typeof id==='string')))throw Error(tr('记录 entityIds 必须为字符串数组。'));
         if(song.audio&&!safePath(song.audio.file))throw Error(tr('音频必须是曲目文件夹内的相对路径。'));
       }
-      checkRehearsalMetadata(s);
+      checkRehearsalMetadata(s);for(const v of s.versions||[])for(const q of v.snapshot.songs)checkCueAttachments(q.cues);
     }return lib;
   }
   function safePath(path){return typeof path==='string'&&path.length>0&&!path.startsWith('/')&&!path.includes('\\')&&!path.split('/').some(p=>!p||p==='.'||p==='..')&&!/^[a-z]+:/i.test(path);}
@@ -254,7 +256,7 @@
     }
     if(show.versions!==undefined&&!Array.isArray(show.versions))throw Error(tr('版本记录必须为数组。'));
     const versionIds=new Set();for(const v of show.versions||[]){
-      if(!v||['id','label','createdAt','summary'].some(k=>typeof v[k]!=='string')||!v.id||versionIds.has(v.id)||!Number.isFinite(Date.parse(v.createdAt))||(v.missingAudio!==undefined&&(!Array.isArray(v.missingAudio)||!v.missingAudio.every(x=>typeof x==='string')))||!v.snapshot||v.snapshot.id!==show.id||v.snapshot.versions!==undefined||!Array.isArray(v.snapshot.songs)||!v.snapshot.songs.length)throw Error(tr('版本记录格式无效。'));
+      if(!v||['id','label','createdAt','summary'].some(k=>typeof v[k]!=='string')||!v.id||versionIds.has(v.id)||!Number.isFinite(Date.parse(v.createdAt))||(['missingAudio','missingMedia'].some(k=>v[k]!==undefined&&(!Array.isArray(v[k])||!v[k].every(x=>typeof x==='string'))))||!v.snapshot||v.snapshot.id!==show.id||v.snapshot.versions!==undefined||!Array.isArray(v.snapshot.songs)||!v.snapshot.songs.length)throw Error(tr('版本记录格式无效。'));
       versionIds.add(v.id);checkStructure({version:1,shows:[v.snapshot]});
     }
   }

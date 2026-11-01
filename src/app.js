@@ -3,7 +3,13 @@ const tr=StageI18n.translate, ui=StageI18n.html;
 StageI18n.applyStatic(document);
 const C=StageCore, $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 const escapeHTML=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const esc=escapeHTML, appHTML='<!doctype html>\n'+document.documentElement.outerHTML;
+function captureAppTemplate(){
+ const template=document.documentElement.cloneNode(true);
+ // Keep one live copy of large assets; exports insert their current media separately.
+ for(const node of template.querySelectorAll('#embedded-library, #embedded-audio, #embedded-media, #embedded-asset-index'))node.remove();
+ return '<!doctype html>\n'+template.outerHTML;
+}
+const esc=escapeHTML,appHTML=captureAppTemplate();
 const palette=['#376f7b','#a96c52','#8a718e','#72845a','#c19b4b','#5c7fac','#aa6078','#6e8a83'];
 let lib=C.clone(PAYLOAD.demo),showId=lib.shows[0]?.id,songId=lib.shows[0]?.songs[0]?.id;
 let current=0,playing=false,rate=1,audio=new Audio(),audioURL=null,audioDuration=0,lastClock=0,frame=0,countdownTimer=null;
@@ -149,7 +155,7 @@ function renderInspector(){
  const p=q.initial[t.id]||{x:0,y:0};html+=field(tr('角色／道具名称'),'name',t.name)+ui`<div class="two">${field(tr('舞台短标签'),'label',t.label)}${field(tr('颜色'),'color',t.color,'color')}</div><h3>本曲目起始位置</h3><div class="two">${field('X','initial.x',p.x,'number','step="0.1"')}${field('Y','initial.y',p.y,'number','step="0.1"')}</div>`+notesField(t)+ui`<button class="full" data-action="entity-records">查看本曲目全部记录</button><button class="danger full" data-action="delete-entity">从演出删除对象</button>`;
  }else if(type==='cue'){
  const ev=C.events(q).find(e=>e.cue.id===t.id);$('#inspectorTitle').textContent=tr('本步笔记');
- html=field(tr('步骤名称'),'title',t.title)+ui`<label class="field"><span>这一步的安排</span><textarea aria-label="本步安排" data-field="notes" placeholder="例如：所有人面向观众，Burr 向前两步。">${esc(t.notes||'')}</textarea></label><p class="context-tip">点击舞台上的演员，写下他在这一步的动作。</p><details class="advanced-details"><summary>时间与暂停 · ${t.duration} 秒</summary>${q.mode==='timed'?field(tr('开始秒数'),'at',t.at,'number','min="0" step="0.1"'):''}${field(tr('移动时长（秒）'),'duration',t.duration,'number','min="0" step="0.1"')}<label class="smallcheck"><input type="checkbox" data-field="stopAfter" ${t.stopAfter?'checked':''}>到达后暂停</label>${!stepPausesEnabled()?tr('<p class="footer-note">当前为连续播放，暂停标记暂不生效。</p>'):''}</details><details class="advanced-details"><summary>本步行动 · ${t.moves.length}</summary>`+t.moves.map(m=>`<button class="routeitem full" data-inspect="entity" data-id="${esc(m.entityId)}">${esc(displayName(entity(m.entityId)))}</button>`).join('')+ui`</details><details class="advanced-details"><summary>${tr(q.mode==='steps'?'复制、排序与删除':'复制与删除')}</summary><div class="row wrap">${q.mode==='steps'?tr('<button data-action="cue-up">↑ 前移</button><button data-action="cue-down">↓ 后移</button>'):''}<button data-action="duplicate-cue">复制步骤</button><button class="danger" data-action="delete-cue">删除步骤</button></div></details>`;
+ html=field(tr('步骤名称'),'title',t.title)+ui`<label class="field"><span>这一步的安排</span><textarea aria-label="本步安排" data-field="notes" placeholder="例如：所有人面向观众，Burr 向前两步。">${esc(t.notes||'')}</textarea></label>${stepMediaSection(t)}<p class="context-tip">点击舞台上的演员，写下他在这一步的动作。</p><details class="advanced-details"><summary>时间与暂停 · ${t.duration} 秒</summary>${q.mode==='timed'?field(tr('开始秒数'),'at',t.at,'number','min="0" step="0.1"'):''}${field(tr('移动时长（秒）'),'duration',t.duration,'number','min="0" step="0.1"')}<label class="smallcheck"><input type="checkbox" data-field="stopAfter" ${t.stopAfter?'checked':''}>到达后暂停</label>${!stepPausesEnabled()?tr('<p class="footer-note">当前为连续播放，暂停标记暂不生效。</p>'):''}</details><details class="advanced-details"><summary>本步行动 · ${t.moves.length}</summary>`+t.moves.map(m=>`<button class="routeitem full" data-inspect="entity" data-id="${esc(m.entityId)}">${esc(displayName(entity(m.entityId)))}</button>`).join('')+ui`</details><details class="advanced-details"><summary>${tr(q.mode==='steps'?'复制、排序与删除':'复制与删除')}</summary><div class="row wrap">${q.mode==='steps'?tr('<button data-action="cue-up">↑ 前移</button><button data-action="cue-down">↓ 后移</button>'):''}<button data-action="duplicate-cue">复制步骤</button><button class="danger" data-action="delete-cue">删除步骤</button></div></details>`;
 
  }else if(type==='move'){
  html=pathInspectorHTML(t);
@@ -163,7 +169,7 @@ function renderInspector(){
  html+=notesField(t)+ui`<button class="danger full" data-action="delete-stage-object">删除对象</button>`;
  }
  const relevant=issuesCache.filter(i=>i.type===type&&i.id===inspect.id);html+=relevant.map(i=>`<p class="warning">${esc(i.text)}</p>`).join('');
- $('#inspector').innerHTML=html;
+ $('#inspector').innerHTML=html;hydrateStepMedia();
 }
 function currentLyric(){return song().lyrics.find(l=>l.start<=current&&l.end>current);}
 function renderRehearsal(){
@@ -177,7 +183,7 @@ function renderRehearsal(){
  for(const a of q.annotations)if(annotationVisibleForActor(a,focusActor,current))html+=`<div class="notecard"><small>${esc(a.title)}</small>${esc(a.notes)}</div>`;
  const en=entity(focusActor);if(en?.notes)html+=ui`<details class="advanced-details"><summary>角色提醒</summary><div class="notecard">${esc(en.notes)}</div></details>`;
  if(q.notes)html+=ui`<details class="advanced-details"><summary>曲目说明与参考资料</summary><div class="notecard">${esc(q.notes)}</div></details>`;
- html+=ui`<button data-action="actor-records" class="full">查看我的全部记录</button><button data-action="session-actor" class="full">我的排练提示单</button>`;$('#inspector').innerHTML=html;
+ html+=stepMediaSection(eventAtCursor()?.cue);html+=ui`<button data-action="actor-records" class="full">查看我的全部记录</button><button data-action="session-actor" class="full">我的排练提示单</button>`;$('#inspector').innerHTML=html;hydrateStepMedia();
 }
 function renderBottom(){
  $('#timelineZoomBar').classList.toggle('hidden',bottomTab!=='timeline');
@@ -238,7 +244,7 @@ let singleStepEnd=null;
 const originalTick=tick;
 tick=function(now){if(singleStepEnd!==null&&playing&&current+Math.max(0,now-lastClock)/1000*rate>=singleStepEnd-.001){const end=singleStepEnd,cueId=selectedCue;singleStepEnd=null;seek(end);pause();if(!rehearsal&&cueId)chooseStep(cueId,'end',true,true);return;}originalTick(now);};
 function keyPath(){return `shows/${showId}/songs/${songId}/`;}
-async function resourceFile(key){const r=pendingAssets.get(key)||resources.get(key);return r?.getFile?await r.getFile():r||embeddedAudioFile(key);}
+async function resourceFile(key){const r=pendingAssets.get(key)||resources.get(key);return r?.getFile?await r.getFile():r||embeddedAudioFile(key)||embeddedStepMediaFile(key)||await linkedEmbeddedAssetFile(key);}
 function prepareHumanSceneAfterDelete(){const at=current;if(selectedCue){chooseStep(selectedCue,'end',false,true);}else{prepareHumanScene();positionMusicCursor(at);renderAll();}}
 function addCue(){return createStepAt(current);}
 function nextInitialPosition(q=song()){
@@ -321,6 +327,9 @@ $('#stage').addEventListener('pointercancel',()=>{drag=null;renderAll();});
 for(const [id,axis,prop,min,max,invert] of [['leftSplit','x','--left',130,420,false],['rightSplit','x','--right',230,520,true],['bottomSplit','y','--bottom',160,600,true]])$('#'+id).addEventListener('pointerdown',e=>{e.preventDefault();const start=axis==='x'?e.clientX:e.clientY,initial=parseFloat(getComputedStyle(document.documentElement).getPropertyValue(prop));const move=ev=>{const delta=(axis==='x'?ev.clientX:ev.clientY)-start;document.documentElement.style.setProperty(prop,Math.max(min,Math.min(max,initial+(invert?-delta:delta)))+'px');};const up=()=>{document.removeEventListener('pointermove',move);document.removeEventListener('pointerup',up);updatePlayhead();};document.addEventListener('pointermove',move);document.addEventListener('pointerup',up,{once:true});});
 
 async function action(a){
+ if(videoExporting||stepMediaBusy){toast(tr('正在处理素材，请完成或取消后再操作。'));return;}
+ if(a.startsWith('media-')&&await stepMediaAction(a))return;
+ if(a==='video-export'){videoExportDialog();return;}
  if(a==='versions'){versionsDialog();return;}
  if(a==='handoff-info'){handoffDialog();return;}
  if(a==='session-list'){openSessionList();return;}
@@ -380,7 +389,7 @@ async function action(a){
  case 'add-actor':addEntity(false);break;
  case 'add-prop':addEntity(true);break;
  case 'add-song':nameDialog(tr('添加曲目'),tr('曲目名称'),async name=>{const n=C.newSong(name);mutate(()=>s.songs.push(n),false);await switchSong(n.id);});break;
- case 'duplicate-song':{const n=C.clone(q);n.id=C.id('song');n.title+=tr(' · 副本');if(q.audio){const f=await resourceFile(keyPath()+q.audio.file);if(f)pendingAssets.set(`shows/${s.id}/songs/${n.id}/${n.audio.file}`,f);}mutate(()=>s.songs.splice(s.songs.indexOf(q)+1,0,n),false);await switchSong(n.id);break;}
+ case 'duplicate-song':{const n=C.clone(q);n.id=C.id('song');n.title+=tr(' · 副本');const assets=new Map(),prefix=`shows/${s.id}/songs/${q.id}/`;for(const ref of songMediaReferences(s,q)){const file=await resourceFile(ref.key);if(file)assets.set(`shows/${s.id}/songs/${n.id}/`+ref.key.slice(prefix.length),file);}mutate(()=>{for(const [key,file]of assets)pendingAssets.set(key,file);s.songs.splice(s.songs.indexOf(q)+1,0,n);},false);await switchSong(n.id);break;}
  case 'delete-song':if(s.songs.length===1){toast(tr('每场演出至少保留一个曲目。'));break;}if(await confirmAction(tr('删除此曲目及其走台？可通过撤销恢复。'))){mutate(()=>s.songs=s.songs.filter(x=>x.id!==q.id),false);await switchSong(s.songs[0].id);}break;
  case 'delete-show':if(lib.shows.length===1){toast(tr('演出库至少保留一场演出。'));break;}if(await confirmAction(tr('删除这场演出？可通过撤销恢复。'))){mutate(()=>lib.shows=lib.shows.filter(x=>x.id!==s.id),false);await switchShow(lib.shows[0].id);}break;
  case 'delete-entity':if(await confirmAction(tr('从演出名单及所有曲目删除这个对象和它的路线？可撤销。'))){mutate(()=>{s.actors=s.actors.filter(x=>x.id!==t.id);s.props=s.props.filter(x=>x.id!==t.id);for(const song of s.songs){song.castIds=song.castIds.filter(x=>x!==t.id);song.propIds=song.propIds.filter(x=>x!==t.id);delete song.initial[t.id];for(const c of song.cues)c.moves=c.moves.filter(m=>m.entityId!==t.id);for(const n of song.annotations)n.entityIds=(n.entityIds||[]).filter(id=>id!==t.id);}},false);inspect={type:'song',id:q.id};selected=[];renderAll();}break;

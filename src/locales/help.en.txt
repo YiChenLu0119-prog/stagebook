@@ -1,4 +1,4 @@
-Stagebook · Multilingual edition v9.4.1
+Stagebook · Multilingual edition v9.5.0-preview.1
 
 OPEN AND SAVE
 Extract the package and open “Stagebook.html”. The “演出资料” folder contains the editable data. New productions, songs, actors and props use in-app forms; press Enter to create or Cancel to return. Import a complete ZIP or folder to continue another production.
@@ -64,3 +64,6 @@ More → Appearance offers Phantom, RENT, Hamilton and Dear Evan Hansen. Hamilto
 Singing practice: choose Sing, then Choose my roles. Other singers remain visible. Jump between your lines, loop one phrase or a passage with a two-second pickup, and adjust text size and speed. Assign singer saves an unattributed line with Undo. Scroll to browse; Return to current line resumes centered following.
 
 Stage fullscreen: choose Fullscreen stage above the stage. Play/pause, time and Exit fullscreen remain available. Escape exits and restores the previous layout and playhead.
+
+Step media: choose + Add beside the step note. Images and note videos are processed locally to at most 720p. Note videos must be at most two minutes. Save/share the production package to include the files.
+Rehearsal video: use Share with cast or More → Export rehearsal video. Choose songs, music and combined/separate output. Current and next lyrics appear at the bottom. There is no two-minute export limit. Recording runs at normal speed; keep this page visible, then download the completed file.

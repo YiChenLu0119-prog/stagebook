@@ -1,6 +1,6 @@
 # Stagebook quick start
 
-Stagebook · Multilingual edition v9.3
+Stagebook · Multilingual edition v9.5
 
 OPEN AND SAVE
 Extract the package and open “Stagebook.html”. The “演出资料” folder contains the editable data. New productions, songs, actors and props use in-app forms; press Enter to create or Cancel to return. Import a complete ZIP or folder to continue another production.
@@ -74,3 +74,12 @@ Singer labels in square brackets are recognized without changing the lyric text.
 ## Enlarge the stage for a rehearsal
 
 Choose **Fullscreen stage** above the stage. Use the small overlay for play/pause, or press Space. Choose **Exit fullscreen (Esc)** or press Escape to return to the same workspace and playhead. Native fullscreen depends on browser support; the stage fills the application window when it is unavailable.
+
+
+## Media notes and stage-video handoffs
+
+Use **+ Add** under **Step photos and videos** to attach a reference image or clip. Processing stays on this device, fits within 720p and rejects note clips longer than two minutes. Notes travel with saved and shared production packages.
+
+Use **Share with cast → Export rehearsal video** to select one or more songs. Include connected music if needed, then combine songs in production order or create separate videos. Current and upcoming lyrics appear at the bottom. Generation takes normal playback time; keep the page visible and download the result. MP4/WebM support depends on the browser. Full rehearsal exports have no two-minute limit.
+
+Large libraries keep media outside the small entry page and load it by song. Keep the entire extracted folder together when moving or sharing it.
