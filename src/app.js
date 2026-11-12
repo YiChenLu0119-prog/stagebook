@@ -20,6 +20,7 @@ const show=()=>lib.shows.find(s=>s.id===showId), song=()=>show()?.songs.find(s=>
 const activeEntities=()=>[...(song()?.castIds||[]),...(song()?.propIds||[])].map(entity).filter(Boolean);
 const fmt=(v,dec=1)=>{v=Math.max(0,Number(v)||0);return `${String(Math.floor(v/60)).padStart(2,'0')}:${(v%60).toFixed(dec).padStart(dec?4:2,'0')}`;};
 const time=()=>C.total(song()||{cues:[],lyrics:[]},audioDuration);
+const playbackEnd=()=>reminderOpen?reminderPlaybackEnd():time();
 const stepPausesEnabled=()=>show()?.pauseAtSteps!==false;
 const displayName=e=>e?.name||e?.label||e?.id||tr('未知对象');
 const field=(label,key,value,type='text',extra='')=>`<label class="field"><span>${esc(label)}</span><input data-field="${esc(key)}" type="${type}" value="${esc(value??'')}" ${extra}></label>`;
@@ -84,11 +85,11 @@ function renderAll(){
  $$('[data-action=undo]').forEach(b=>b.disabled=!history.length);$$('[data-action=redo]').forEach(b=>b.disabled=!future.length);
  $('#castSummary').textContent=ui`${song().castIds.length} 位角色 · ${song().propIds.length} 件道具`;
  $('#selectedSummary').textContent=selected.length?ui`已选 ${selected.length} 个对象`:tr('自由单位 · 俯视图');
- $('#editMode').classList.toggle('selected',!rehearsal&&!singing&&!songVideoOpen);$('#rehearseMode').classList.toggle('selected',rehearsal&&!singing&&!songVideoOpen);
+ $('#editMode').classList.toggle('selected',!rehearsal&&!singing&&!songVideoOpen&&!reminderOpen);$('#rehearseMode').classList.toggle('selected',rehearsal&&!singing&&!songVideoOpen&&!reminderOpen);
  $('#toolInitial').classList.toggle('selected',tool==='initial');$('#toolSelect').classList.toggle('selected',tool==='select');
  $('#stageHint').textContent=inspect.type==='move'&&!rehearsal?tr('点选经过点后按 Delete 删除 · 右键添加节点'):rehearsal?tr('选择你的角色，跟着音乐排练'):tool==='initial'?tr('拖动演员，摆好开场位置'):stagePhase==='start'?tr('正在查看起点 · 切到「落点」继续编排'):selected.length?tr('拖演员改位置 · 拖路线圆点改弯度'):tr('拖动演员摆位 · Shift 多选');
  issuesCache=C.issues(show(),song());$('#issuesButton').textContent=issuesCache.length?ui`${issuesCache.length} 处待检查`:tr('检查走台');$('#issuesButton').classList.toggle('warning',issuesCache.some(i=>i.level==='error'));
- renderLeft();renderStage();renderInspector();renderBottom();updateTransport();renderEditorBar();renderLyricsDock();renderHandoff();renderSinging();renderSongVideo();
+ renderLeft();renderStage();renderInspector();renderBottom();updateTransport();renderEditorBar();renderLyricsDock();renderHandoff();renderSinging();renderSongVideo();renderReminder();
 }
 function renderLeft(){
  $('#leftTabs').innerHTML=[['songs',tr('曲目')],['actors',tr('角色')],['props',tr('道具')]].map(([k,v])=>`<button data-action="left-${k}" class="${leftTab===k?'selected':''}">${v}</button>`).join('');
@@ -106,20 +107,33 @@ function renderLeft(){
  requestAnimationFrame(updateSongTitleOverflow);
 }
 function safeColor(s){return /^#[0-9a-f]{3,8}$/i.test(s||'')?s:'#7b8367';}
+function stageViewBounds(stage){
+ const bounds=[...C.flatten(stage.boundary),...stage.backstage.flatMap(z=>z.points)];
+ const width=Math.max(180,...bounds.map(p=>Math.abs(p.x)*2+28)),height=Math.max(115,...bounds.map(p=>Math.abs(p.y)*2+35));
+ return {width,height};
+}
+function stageBackdrop(stage,visualScale,grid=false){
+ let html='';
+ for(const z of stage.backstage)html+=`<path d="${C.path(z.points,true)}" fill="#ad9c7d27" stroke="#9a8b6b" stroke-width=".35" stroke-dasharray="1 1" data-obj="backstage" data-id="${esc(z.id)}"/>`;
+ html+=`<path d="${C.path(stage.boundary,true)}" fill="#f3ecd9" stroke="#9b855c" stroke-width=".6" data-obj="stage"/>`;
+ for(const z of stage.backstage)html+=`<text x="${(Math.min(...z.points.map(p=>p.x))+Math.max(...z.points.map(p=>p.x)))/2}" y="${Math.min(...z.points.map(p=>p.y))-3}" text-anchor="middle" fill="#655b49" font-size="${Math.max(2.5,9/visualScale)}" pointer-events="none">${esc(z.name)}</text>`;
+ if(grid)html+=`<path d="${C.path(stage.boundary,true)}" fill="url(#grid)" pointer-events="none"/>`;
+ html+=`<path d="M -3 0 H 3 M 0 -3 V 3" stroke="#a28d61" stroke-width=".3" opacity=".5" pointer-events="none"/>`;
+ for(const w of stage.walls)html+=`<path d="${C.path(w.points)}" fill="none" stroke="#695b43" stroke-width="1.4" data-obj="wall" data-id="${esc(w.id)}" style="cursor:pointer"/>`;
+ for(const a of stage.anchors)if(C.point(a))html+=`<g data-obj="anchor" data-id="${esc(a.id)}" style="cursor:pointer"><path d="M ${a.x-1.2} ${a.y} h 2.4 M ${a.x} ${a.y-1.2} v 2.4" stroke="#8f7547" stroke-width=".4"/><text x="${a.x+(a.kind==='gate'&&a.x<0?-2:2)}" y="${a.y-2}" text-anchor="${a.kind==='gate'&&a.x<0?'end':'start'}" fill="#655b49" font-size="${Math.max(2.5,9/visualScale)}">${esc(a.name)}</text></g>`;
+ return html;
+}
+function stageAudience(stage,width,height,visualScale){
+ const audience=stage.audience||'south';const ax=audience==='west'?-width/2+7:audience==='east'?width/2-7:0,ay=audience==='north'?-height/2+7:audience==='south'?height/2-7:0;
+ return ui`<g transform="translate(${ax} ${ay}) rotate(${-rotation})"><text text-anchor="middle" font-size="${Math.max(2.5,9/visualScale)}" fill="#655b49" letter-spacing=".5">— 观 众 侧 —</text></g>`;
+}
 function renderStage(){
  const s=show(),q=song();if(!q)return;
- const svg=$('#stage'),bounds=[...C.flatten(s.stage.boundary),...s.stage.backstage.flatMap(z=>z.points)];
- const width=Math.max(180,...bounds.map(p=>Math.abs(p.x)*2+28)),height=Math.max(115,...bounds.map(p=>Math.abs(p.y)*2+35));
+ const svg=$('#stage'),{width,height}=stageViewBounds(s.stage);
  const frozen=drag?.viewBox?.split(' ').map(Number),vw=frozen?.[2]||(rotation%180?height:width)/zoom,vh=frozen?.[3]||(rotation%180?width:height)/zoom;const visualScale=Math.max(.2,Math.min(svg.clientWidth/vw,svg.clientHeight/vh));svg.setAttribute('viewBox',`${-vw/2} ${-vh/2} ${vw} ${vh}`);
  $('#rotationLabel').textContent=rotation+'°';
  let html=`<defs><marker id="routeArrow" markerWidth="5" markerHeight="5" refX="4" refY="2.5" orient="auto-start-reverse"><path d="M 0 0 L 5 2.5 L 0 5 Z" fill="context-stroke"/></marker><pattern id="grid" width="10" height="10" patternUnits="userSpaceOnUse"><path d="M 10 0 L 0 0 0 10" fill="none" stroke="#8c7a55" stroke-opacity=".16" stroke-width=".2"/></pattern><filter id="shadow"><feDropShadow dx="0" dy=".6" stdDeviation=".5" flood-opacity=".19"/></filter></defs><g id="scene" transform="rotate(${rotation})">`;
- for(const z of s.stage.backstage)html+=`<path d="${C.path(z.points,true)}" fill="#ad9c7d27" stroke="#9a8b6b" stroke-width=".35" stroke-dasharray="1 1" data-obj="backstage" data-id="${esc(z.id)}"/>`;
- html+=`<path d="${C.path(s.stage.boundary,true)}" fill="#f3ecd9" stroke="#9b855c" stroke-width=".6" data-obj="stage"/>`;
- for(const z of s.stage.backstage)html+=`<text x="${(Math.min(...z.points.map(p=>p.x))+Math.max(...z.points.map(p=>p.x)))/2}" y="${Math.min(...z.points.map(p=>p.y))-3}" text-anchor="middle" fill="#655b49" font-size="${Math.max(2.5,9/visualScale)}" pointer-events="none">${esc(z.name)}</text>`;
- if($('#showGrid').checked)html+=`<path d="${C.path(s.stage.boundary,true)}" fill="url(#grid)" pointer-events="none"/>`;
- html+=`<path d="M -3 0 H 3 M 0 -3 V 3" stroke="#a28d61" stroke-width=".3" opacity=".5" pointer-events="none"/>`;
- for(const w of s.stage.walls)html+=`<path d="${C.path(w.points)}" fill="none" stroke="#695b43" stroke-width="1.4" data-obj="wall" data-id="${esc(w.id)}" style="cursor:pointer"/>`;
- for(const a of s.stage.anchors)if(C.point(a))html+=`<g data-obj="anchor" data-id="${esc(a.id)}" style="cursor:pointer"><path d="M ${a.x-1.2} ${a.y} h 2.4 M ${a.x} ${a.y-1.2} v 2.4" stroke="#8f7547" stroke-width=".4"/><text x="${a.x+(a.kind==='gate'&&a.x<0?-2:2)}" y="${a.y-2}" text-anchor="${a.kind==='gate'&&a.x<0?'end':'start'}" fill="#655b49" font-size="${Math.max(2.5,9/visualScale)}">${esc(a.name)}</text></g>`;
+ html+=stageBackdrop(s.stage,visualScale,$('#showGrid').checked);
  const eventList=C.events(q),chosen=!rehearsal&&!playing&&stagePhase!=='live'&&tool!=='initial'&&eventList.find(e=>e.cue.id===selectedCue),currentEvent=eventList.filter(e=>e.start<=current).at(-1);
  if($('#showRoutes').checked){
  const routeEvents=chosen?[chosen]:eventList.filter(e=>e.cue.moves.some(m=>{const t=C.moveEvent(e,m);return current>=t.start&&current<=t.end||(rehearsal&&t.start>current&&m.entityId===focusActor);})).slice(0,2);
@@ -142,8 +156,7 @@ function renderStage(){
   const object=target(),radius=Math.max(1.4,6/visualScale);if(object){html+=`<path d="${C.path(object.points,inspect.type==='backstage')}" fill="none" stroke="#bb7c2d" stroke-width=".8" data-obj="${inspect.type}" data-id="${esc(object.id)}" style="cursor:move"/>`;object.points.forEach((p,i)=>{html+=ui`<g data-stage-point="${i}" role="button" tabindex="0" aria-label="拖动${esc(object.name)}的第 ${i+1} 个点" class="object-control"><circle cx="${p.x}" cy="${p.y}" r="${radius*1.8}" fill="transparent"/><rect x="${p.x-radius}" y="${p.y-radius}" width="${radius*2}" height="${radius*2}" fill="#fff4d3" stroke="#9b651f" stroke-width=".6"/></g>`;});}
  }
  if(inspect.type==='stage'&&!rehearsal)s.stage.boundary.forEach((p,i)=>{html+=`<circle cx="${p.x}" cy="${p.y}" r="1.1" fill="#d9b777" stroke="#735d34" stroke-width=".4" data-boundary="${i}:point" class="object-control"/>`;for(const k of ['c1','c2'])if(p[k])html+=`<circle cx="${p[k].x}" cy="${p[k].y}" r=".9" fill="#bd7b57" data-boundary="${i}:${k}" class="object-control"/>`;});
- const audience=s.stage.audience||'south';const ax=audience==='west'?-width/2+7:audience==='east'?width/2-7:0,ay=audience==='north'?-height/2+7:audience==='south'?height/2-7:0;
- html+=ui`<g transform="translate(${ax} ${ay}) rotate(${-rotation})"><text text-anchor="middle" font-size="${Math.max(2.5,9/visualScale)}" fill="#655b49" letter-spacing=".5">— 观 众 侧 —</text></g></g>`;
+ html+=stageAudience(s.stage,width,height,visualScale)+'</g>';
  svg.innerHTML=html;$('#currentCue').textContent=tool==='initial'?tr('起始站位'):(!playing&&stagePhase!=='live'&&chosen?chosen:currentEvent)?.cue.title||tr('起始站位');
 }
 function renderInspector(){
@@ -215,25 +228,26 @@ function updateTransport(){
  $('#currentTime').textContent=fmt(current);$('#totalTime').textContent='/ '+fmt(time());$('#playButton').textContent=playing?'Ⅱ':'▶';
  const pauses=stepPausesEnabled(),pauseButton=$('#stepPauseButton');pauseButton.textContent=pauses?tr('逐步暂停'):tr('连续播放');pauseButton.classList.toggle('selected',!pauses);pauseButton.setAttribute('aria-pressed',String(pauses));pauseButton.title=pauses?tr('点击统一关闭本场全部曲目的步骤结束暂停'):tr('点击恢复各步骤原有的暂停设置');
  renderAudioStatus();
- updateStageFullscreenControls();$('#loopButton').classList.toggle('selected',!!loop);updatePlayhead();updateLyricsFocus();updateSingingFocus();
+ updateStageFullscreenControls();$('#loopButton').classList.toggle('selected',!!loop);updatePlayhead();updateLyricsFocus();updateSingingFocus();updateReminder();
 }
 function setStepPauses(enabled){
  if(stepPausesEnabled()===enabled)return;
  mutate(()=>show().pauseAtSteps=enabled,false);updateTransport();renderInspector();toast(enabled?tr('已恢复各步骤原有的暂停设置。'):tr('本场全部曲目已切为连续播放；预览本步仍会在结束时停止。'));
 }
 function pause(){audioPlayGeneration++;playing=false;audio.pause();cancelAnimationFrame(frame);clearInterval(countdownTimer);countdownTimer=null;$('#countdownOverlay').classList.add('hidden');updateTransport();if(song())renderEditorBar();}
-function positionMusicCursor(t){const value=Number.isFinite(t)?t:0;current=Math.max(0,Math.min(rehearsal||playing?time():86400,value));if(!rehearsal&&!playing)ensureTimelineRange(current);if(audioPlayable()&&!audioSilentMode)try{audio.currentTime=Math.min(current,audioDuration||current);if(playing&&audio.paused&&current<audioDuration)audio.play().catch(()=>{if(playing){pause();toast(tr('音乐未能继续播放，请重新点播放。'));}});}catch{}lastClock=performance.now();}
+function positionMusicCursor(t){const value=Number.isFinite(t)?t:0;current=Math.max(0,Math.min(rehearsal||playing||reminderOpen?playbackEnd():86400,value));if(!rehearsal&&!playing&&!reminderOpen)ensureTimelineRange(current);if(audioPlayable()&&!audioSilentMode)try{audio.currentTime=Math.min(current,audioDuration||current);if(playing&&audio.paused&&current<audioDuration)audio.play().catch(()=>{if(playing){pause();toast(tr('音乐未能继续播放，请重新点播放。'));}});}catch{}lastClock=performance.now();}
 function seek(t,{preview=false}={}){
  if(!rehearsal&&tool==='initial'&&t>0){tool='select';selected=[];inspect={type:'song',id:songId};}
  stagePhase='live';positionMusicCursor(t);syncPlaybackContext();
  if(!preview){renderInspector();renderBottom();}
- renderStage();updateTransport();
+ if(!reminderOpen)renderStage();
+ updateTransport();
  if(!preview){renderEditorBar();if(rehearsal)renderRehearsal();}
 }
 async function play(immediate=false,silent=false){
  if(playing||countdownTimer){pause();return;}const request=++audioPlayGeneration,identity=song();
  if(identity.audio&&!silent){if(audioState==='loading')await audioReady;if(request!==audioPlayGeneration||identity!==song())return;if(!audioPlayable()){toast(tr('音乐未连接，请连接音乐或点「静音走台」。'));return;}}
- stagePhase='live';tool='select';audioSilentMode=silent;if(syncPlaybackContext()){renderInspector();renderBottom();}renderEditorBar();if(current>=time()-.01)seek(loop?.start||0);
+ stagePhase='live';tool='select';audioSilentMode=silent;if(syncPlaybackContext()){renderInspector();renderBottom();}renderEditorBar();if(current>=playbackEnd()-.01)seek(loop?.start||0);
  const count=+$('#leadIn').value;if(count&&!immediate){let n=count;$('#countdownOverlay').textContent=n;$('#countdownOverlay').classList.remove('hidden');countdownTimer=setInterval(()=>{n--;if(n<=0){clearInterval(countdownTimer);countdownTimer=null;$('#countdownOverlay').classList.add('hidden');play(true,silent);}else $('#countdownOverlay').textContent=n;},1000);return;}
  playing=true;lastClock=performance.now();if(audioPlayable()&&!silent&&current<audioDuration){const player=audio;player.currentTime=current;player.playbackRate=rate;player.preservesPitch=true;try{await startAudioPlayback(player);if(request!==audioPlayGeneration||player!==audio||!playing){player.pause();return;}beginAudioProgress(player);}catch(e){if(request!==audioPlayGeneration)return;playing=false;if(e.name==='TimeoutError'){player.pause();audioState='error';audioError=tr('音乐启动超时，请重新连接 MP3。');}updateTransport();toast(e.name==='NotAllowedError'?tr('浏览器尚未允许播放音乐，请再点一次播放。'):tr('音乐播放失败，请重新连接音乐。'));return;}}
  if(request!==audioPlayGeneration)return;lastClock=performance.now();updateTransport();renderEditorBar();frame=requestAnimationFrame(tick);
@@ -241,11 +255,11 @@ async function play(immediate=false,silent=false){
 
 function tick(now){
  if(!playing)return;if(!checkAudioProgress(now))return;const before=current;current+=(Math.max(0,now-lastClock)/1000)*rate;lastClock=Math.max(lastClock,now);if(audioPlayable()&&!audioSilentMode&&!audio.paused&&audio.currentTime<audioDuration-.05)current=audio.currentTime;
- let stop=singleStepEnd===null&&!singing&&stepPausesEnabled()?C.events(song()).map(e=>({...e,end:C.cuePlaybackEnd(e)})).sort((a,b)=>a.end-b.end).find(e=>e.cue.stopAfter&&e.end>before+.001&&e.end<=current):null;
+ let stop=singleStepEnd===null&&!singing&&!reminderOpen&&stepPausesEnabled()?C.events(song()).map(e=>({...e,end:C.cuePlaybackEnd(e)})).sort((a,b)=>a.end-b.end).find(e=>e.cue.stopAfter&&e.end>before+.001&&e.end<=current):null;
  if(stop){seek(stop.end);pause();if(!rehearsal)chooseStep(stop.cue.id,'end',true,true);return;}
- if(loop&&current>=loop.end){seek(loop.start);if(audioPlayable()&&!audioSilentMode&&current<audioDuration)audio.play().catch(()=>{if(playing){pause();toast(tr('音乐未能继续播放，请重新点播放。'));}});}else if(current>=time()){seek(time());pause();return;}
+ if(loop&&current>=loop.end){seek(loop.start);if(audioPlayable()&&!audioSilentMode&&current<audioDuration)audio.play().catch(()=>{if(playing){pause();toast(tr('音乐未能继续播放，请重新点播放。'));}});}else if(current>=playbackEnd()){seek(playbackEnd());pause();return;}
  if(syncPlaybackContext()){renderInspector();renderEditorBar();renderBottom();}
- if(!tick.lastRender||now-tick.lastRender>33){renderStage();updateTransport();tick.lastRender=now;}
+ if(!tick.lastRender||now-tick.lastRender>33){if(!reminderOpen)renderStage();updateTransport();tick.lastRender=now;}
  const key=C.moveEvents(song()).filter(e=>e.start<=current&&e.end>=current).map(e=>e.move.id).join('|')+'|'+currentLyric()?.id;
  if(rehearsal&&key!==lastNoteKey){renderRehearsal();lastNoteKey=key;}else if(rehearsal){const next=C.moveEvents(song()).find(e=>e.start>current+.02&&e.move.entityId===focusActor);if($('#nextCountdown'))$('#nextCountdown').textContent=next?(next.start-current).toFixed(1)+tr(' 秒'):'—';}
  if(bottomTab==='lyrics'&&key!==tick.lyricKey){renderBottom();tick.lyricKey=key;}
@@ -367,6 +381,9 @@ async function deleteProductionEntity(s,en){
 
 async function action(a){
  if(videoExporting||stepMediaBusy){toast(tr('正在处理素材，请完成或取消后再操作。'));return;}
+ if(a==='mode-reminder'){openReminder();return;}
+ if(a.startsWith('reminder-')){await reminderAction(a);return;}
+ if(reminderOpen&&['mode-edit','mode-rehearse','mode-sing','mode-song-video'].includes(a))leaveReminder();
  if(a==='mode-song-video'){openSongVideo();return;}
  if(a.startsWith('song-video-')){await songVideoAction(a);return;}
  if(songVideoOpen&&['mode-edit','mode-rehearse','mode-sing'].includes(a))leaveSongVideo();

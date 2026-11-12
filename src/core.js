@@ -207,6 +207,20 @@
        !Number.isSafeInteger(video.bytes)||video.bytes<=0||!finite(video.duration)||video.duration<=0)
       throw Error(tr('曲目排练视频的路径、格式、尺寸或时长无效。'));
   }
+  function checkLightingReminders(song){
+    const strokes=song.lightingSketches;
+    if(strokes!==undefined&&(!Array.isArray(strokes)||!strokes.every(stroke=>stroke&&typeof stroke.color==='string'&&/^#[0-9a-f]{6}$/i.test(stroke.color)&&Array.isArray(stroke.points)&&stroke.points.length&&stroke.points.every(point))))
+      throw Error(tr('舞台涂鸦的颜色或坐标无效。'));
+    const cues=song.lightingCues,ids=new Set();
+    if(cues===undefined)return;
+    if(!Array.isArray(cues))throw Error(tr('灯光提醒格式无效。'));
+    for(const cue of cues){
+      if(!cue||typeof cue.id!=='string'||!cue.id||ids.has(cue.id)||!finite(cue.at)||cue.at<0||cue.at>86400||
+         typeof cue.text!=='string'||!cue.text.trim()||cue.lyricId!==undefined&&(typeof cue.lyricId!=='string'||!cue.lyricId))
+        throw Error(tr('灯光提醒格式无效。'));
+      ids.add(cue.id);
+    }
+  }
   function checkStructure(lib){
     if(!lib||lib.version!==1||!Array.isArray(lib.shows))throw Error(tr('需要 version: 1 和 shows 数组。'));
     const showIds=new Set();
@@ -233,12 +247,12 @@
         for(const o of [...song.cues,...song.lyrics,...song.annotations])if(!o||typeof o.id!=='string')throw Error(tr('走台步骤、歌词和记录需要字符串 ID。'));
         for(const c of song.cues){if(!Array.isArray(c.moves))throw Error(tr('每一步都需要 moves 数组。'));for(const m of c.moves)if(!m||typeof m.id!=='string'||!Array.isArray(m.points)||!m.points.every(point)||!validControls(m.points))throw Error(tr('路线需要 ID 及有效坐标 points 数组。'));else for(const key of ['startOffset','duration'])if(m[key]!==undefined&&(!finite(m[key])||m[key]<0))throw Error(tr('演员移动时间需要非负秒数。'));}
         for(const l of song.lyrics)if(l.speakerIds!==undefined&&(!Array.isArray(l.speakerIds)||!l.speakerIds.every(id=>typeof id==='string')))throw Error(tr('歌词角色需要字符串 ID 数组。'));
-        checkCueAttachments(song.cues);
+        checkCueAttachments(song.cues);checkLightingReminders(song);
         if(song.rehearsalVideo!==undefined)checkRehearsalVideo(song.rehearsalVideo);
         for(const n of song.annotations)if(n.entityIds!==undefined&&(!Array.isArray(n.entityIds)||!n.entityIds.every(id=>typeof id==='string')))throw Error(tr('记录 entityIds 必须为字符串数组。'));
         if(song.audio&&!safePath(song.audio.file))throw Error(tr('音频必须是曲目文件夹内的相对路径。'));
       }
-      checkRehearsalMetadata(s);for(const v of s.versions||[])for(const q of v.snapshot.songs)checkCueAttachments(q.cues);
+      checkRehearsalMetadata(s);for(const v of s.versions||[])for(const q of v.snapshot.songs){checkCueAttachments(q.cues);checkLightingReminders(q);}
     }return lib;
   }
   function safePath(path){return typeof path==='string'&&path.length>0&&!path.startsWith('/')&&!path.includes('\\')&&!path.split('/').some(p=>!p||p==='.'||p==='..')&&!/^[a-z]+:/i.test(path);}

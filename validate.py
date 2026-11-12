@@ -34,6 +34,7 @@ def validate_rehearsal_metadata(show, add, loc):
         for q in snapshot['songs']:
             if not isinstance(q,dict) or q.get('mode') not in ['steps','timed'] or not all(isinstance(q.get(k),list) for k in ['castIds','propIds','cues','lyrics','annotations']) or not isinstance(q.get('initial'),dict):fail('Invalid version song structure');continue
             if q.get('audio') and not safe_path(q['audio'].get('file')):fail('Invalid version audio path')
+            validate_lighting_reminders(q, add, loc+'#'+v['id'])
             for cue in q['cues']:
                 if not isinstance(cue,dict) or not isinstance(cue.get('id'),str) or not isinstance(cue.get('moves'),list):fail('Invalid version step');continue
                 for move in cue['moves']:
@@ -42,6 +43,29 @@ def validate_rehearsal_metadata(show, add, loc):
 
 def point(p):
     return isinstance(p, dict) and all(isinstance(p.get(k), (int,float)) and not isinstance(p.get(k),bool) and math.isfinite(p[k]) for k in ('x','y'))
+def validate_lighting_reminders(song, add, loc):
+    strokes = song.get('lightingSketches', [])
+    def valid_stroke(stroke):
+        return (isinstance(stroke, dict) and isinstance(stroke.get('color'), str)
+                and re.fullmatch(r'#[0-9a-fA-F]{6}', stroke['color'])
+                and isinstance(stroke.get('points'), list) and bool(stroke['points'])
+                and all(point(p) for p in stroke['points']))
+    if not isinstance(strokes, list) or not all(valid_stroke(s) for s in strokes):
+        add('error', loc, 'Invalid lighting sketch color or coordinates')
+    cues = song.get('lightingCues', [])
+    ids = set()
+    if not isinstance(cues, list):
+        add('error', loc, 'Lighting cues must be an array')
+        return
+    for cue in cues:
+        if (not isinstance(cue, dict) or not isinstance(cue.get('id'), str) or not cue['id'] or cue['id'] in ids
+                or not numeric(cue.get('at')) or not 0 <= cue['at'] <= 86400
+                or not isinstance(cue.get('text'), str) or not cue['text'].strip()
+                or ('lyricId' in cue and (not isinstance(cue['lyricId'], str) or not cue['lyricId']))):
+            add('error', loc, 'Invalid lighting cue')
+        else:
+            ids.add(cue['id'])
+
 def flatten(points, close=False):
     if not points or not all(point(p) for p in points): return []
     out=[points[0]]
@@ -99,6 +123,7 @@ def validate(root):
             if q['id'] in song_ids:add('error',rel,'Duplicate song ID')
             song_ids.add(q['id']);cast=q.get('castIds',[])+q.get('propIds',[]);initial=q.get('initial',{})
             if q.get('mode') not in ('steps','timed'):add('error',rel,'Mode must be steps or timed')
+            validate_lighting_reminders(q, add, rel)
             for obj in cast:
                 if obj not in ids:add('error',loc(obj),'Unknown actor / prop')
                 if not point(initial.get(obj)):add('error',loc(obj),'Missing or invalid initial position')

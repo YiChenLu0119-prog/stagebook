@@ -210,3 +210,7 @@ A cue may have an `attachments` array. Each entry needs `id`, `name`, `type` (`i
 ## Full-song rehearsal video (optional, format version 1)
 
 A song may include one `rehearsalVideo` object with `name`, `file`, `mimeType`, `width`, `height`, `bytes` and `duration` in seconds. Include the actual video at its safe path relative to the song directory. Supported MIME types are `video/mp4`, `video/webm` and `video/quicktime`. The stored dimensions must fit within 1920 × 1080 in landscape or 1080 × 1920 in portrait. Duration is positive and has no fixed maximum. When editing an existing package, preserve the video metadata and the file it references.
+
+## Lighting cue prompter (optional, format version 1)
+
+A song may have a `lightingCues` array. Each cue has a unique `id`, `at` in seconds (0 to 86400), and nonempty `text`. An optional `lyricId` follows the start of that lyric in the same song. Keep `at` as the fallback time if the lyric is removed. Cue times are independent of blocking steps. Preserve these cues and the song's optional `lightingSketches` when editing other song data. A sketch is an array entry with a six-digit hex `color` and at least one `{x, y}` point in the existing stage coordinates.

@@ -16,8 +16,64 @@
   <button data-action="video-export"><span data-i18n="导出排练视频">导出排练视频</span></button><button data-action="appearance"><span data-i18n="外观">外观</span></button><button data-action="versions"><span data-i18n="版本记录">版本记录</span></button><button data-action="view"><span data-i18n="调整面板布局">调整面板布局</span></button><button data-action="human-tour"><span data-i18n="编排操作指南">编排操作指南</span></button><button data-action="edit-shortcuts"><span data-i18n="快捷键与右键菜单　?">快捷键与右键菜单　?</span></button><button data-action="help"><span data-i18n="使用说明 / AI 编辑">使用说明 / AI 编辑</span></button>
  </div></details>
 </header>
-<nav class="workspacebar"><button class="pane-toggle left-toggle" data-action="human-left"><span data-i18n="曲目 / 角色">曲目 / 角色</span></button><div class="mode-tabs"><button id="editMode" class="selected" data-action="mode-edit"><span data-i18n="编排">编排</span></button><button id="rehearseMode" data-action="mode-rehearse"><span data-i18n="排练">排练</span></button><button id="singMode" data-action="mode-sing"><span data-i18n="练歌">练歌</span></button><button id="songVideoMode" data-action="mode-song-video" aria-pressed="false"><span data-i18n="排练视频">排练视频</span></button></div><span class="spacer"></span><button id="lyricsToggle" data-action="lyrics-toggle" aria-pressed="true"><span data-i18n="歌词">歌词</span></button><button data-action="edit-shortcuts" class="shortcuts-button" title="快捷键与右键菜单（?）" data-i18n-title="快捷键与右键菜单（?）"><span data-i18n="快捷键 ?">快捷键 ?</span></button><button data-action="search" title="搜索曲目、演员和备注 · ⌘K" data-i18n-title="搜索曲目、演员和备注 · ⌘K"><span data-i18n="搜索">搜索</span> <kbd>⌘ K</kbd></button><button data-action="undo" title="撤销 ⌘Z" aria-label="撤销" data-i18n-title="撤销 ⌘Z" data-i18n-aria-label="撤销">↶</button><button data-action="redo" title="重做 ⇧⌘Z" aria-label="重做" data-i18n-title="重做 ⇧⌘Z" data-i18n-aria-label="重做">↷</button><button id="issuesButton" data-action="issues"><span data-i18n="检查走台">检查走台</span></button><button class="pane-toggle right-toggle" data-action="human-right"><span data-i18n="动作 / 笔记">动作 / 笔记</span></button></nav>
+<nav class="workspacebar"><button class="pane-toggle left-toggle" data-action="human-left"><span data-i18n="曲目 / 角色">曲目 / 角色</span></button><div class="mode-tabs"><button id="editMode" class="selected" data-action="mode-edit"><span data-i18n="编排">编排</span></button><button id="rehearseMode" data-action="mode-rehearse"><span data-i18n="排练">排练</span></button><button id="singMode" data-action="mode-sing"><span data-i18n="练歌">练歌</span></button><button id="songVideoMode" data-action="mode-song-video" aria-pressed="false"><span data-i18n="排练视频">排练视频</span></button><button id="reminderMode" data-action="mode-reminder" aria-pressed="false"><span data-i18n="文字提醒器">文字提醒器</span></button></div><span class="spacer"></span><button id="lyricsToggle" data-action="lyrics-toggle" aria-pressed="true"><span data-i18n="歌词">歌词</span></button><button data-action="edit-shortcuts" class="shortcuts-button" title="快捷键与右键菜单（?）" data-i18n-title="快捷键与右键菜单（?）"><span data-i18n="快捷键 ?">快捷键 ?</span></button><button data-action="search" title="搜索曲目、演员和备注 · ⌘K" data-i18n-title="搜索曲目、演员和备注 · ⌘K"><span data-i18n="搜索">搜索</span> <kbd>⌘ K</kbd></button><button data-action="undo" title="撤销 ⌘Z" aria-label="撤销" data-i18n-title="撤销 ⌘Z" data-i18n-aria-label="撤销">↶</button><button data-action="redo" title="重做 ⇧⌘Z" aria-label="重做" data-i18n-title="重做 ⇧⌘Z" data-i18n-aria-label="重做">↷</button><button id="issuesButton" data-action="issues"><span data-i18n="检查走台">检查走台</span></button><button class="pane-toggle right-toggle" data-action="human-right"><span data-i18n="动作 / 笔记">动作 / 笔记</span></button></nav>
 <main class="workspace" id="workspace">
+ <section id="reminderPanel" class="reminder-panel hidden" aria-label="文字提醒器" data-i18n-aria-label="文字提醒器">
+  <div class="reminder-tools">
+   <select id="reminderSong" aria-label="曲目" data-i18n-aria-label="曲目"></select>
+   <button id="reminderFullscreen" data-action="reminder-fullscreen" data-i18n="全屏">全屏</button>
+   <button data-action="reminder-exit" data-i18n="返回工作区">返回工作区</button>
+  </div>
+  <div class="reminder-hero">
+   <div class="reminder-counter">
+    <span data-i18n="下一条提醒倒计时">下一条提醒倒计时</span>
+    <div><strong id="reminderCountdown">—</strong> <span id="reminderSeconds" data-i18n="秒">秒</span></div>
+   </div>
+   <div class="reminder-cues">
+    <strong id="reminderNext"></strong>
+    <div id="reminderNow" class="reminder-now"><span data-i18n="当前提醒">当前提醒</span> <span id="reminderCurrent"></span></div>
+   </div>
+  </div>
+  <div class="reminder-content">
+   <section class="reminder-stage-pane">
+    <div class="reminder-pane-head">
+     <h2 data-i18n="舞台">舞台</h2>
+     <label class="reminder-onion"><input id="reminderOnion" type="checkbox" checked> <span data-i18n="下一步站位">下一步站位</span></label>
+     <label class="reminder-color"><input id="reminderColor" type="color" value="#c32c50" aria-label="画笔颜色" data-i18n-aria-label="画笔颜色"></label>
+     <button id="reminderUndo" data-action="reminder-undo" data-i18n="撤销一笔">撤销一笔</button>
+     <button id="reminderClear" data-action="reminder-clear" data-i18n="清空涂鸦">清空涂鸦</button>
+    </div>
+    <svg id="reminderStage" aria-label="舞台涂鸦区" data-i18n-aria-label="舞台涂鸦区">
+     <g id="reminderWorld"><g id="reminderBackdrop"></g><g id="reminderActors"></g><g id="reminderSketches"></g><g id="reminderDraft"></g></g>
+    </svg>
+   </section>
+   <section class="reminder-lyric-pane">
+    <div class="reminder-pane-head"><h2 data-i18n="歌词">歌词</h2><button id="reminderFollow" data-action="reminder-follow" aria-pressed="true" data-i18n="跟随播放">跟随播放</button></div>
+    <div id="reminderLyrics" class="reminder-lyrics" tabindex="0" aria-label="歌词" data-i18n-aria-label="歌词"></div>
+   </section>
+  </div>
+  <div class="reminder-timing">
+   <div class="reminder-transport">
+    <button id="reminderPlay" class="gold" data-action="reminder-play" aria-label="播放" data-i18n-aria-label="播放">▶</button>
+    <output id="reminderClock"></output>
+    <button id="reminderEdit" class="outline" data-action="reminder-add" data-i18n="＋ 添加提醒">＋ 添加提醒</button>
+    <div class="reminder-zoom">
+     <button data-action="reminder-zoom-out" aria-label="缩小时间轴" data-i18n-aria-label="缩小时间轴">−</button>
+     <button data-action="reminder-zoom-in" aria-label="放大时间轴" data-i18n-aria-label="放大时间轴">＋</button>
+     <button data-action="reminder-fit" data-i18n="适配整曲">适配整曲</button>
+    </div>
+    <button id="reminderAudio" data-action="reminder-audio" class="hidden" data-i18n="连接音乐">连接音乐</button>
+    <span id="reminderSilent" class="muted hidden" data-i18n="静音计时">静音计时</span>
+   </div>
+   <div id="reminderRail" class="reminder-rail" role="group" aria-label="提醒时间轴" data-i18n-aria-label="提醒时间轴">
+    <div id="reminderTrack" class="clip-timeline">
+     <div id="reminderRuler" class="ruler"></div>
+     <div id="reminderClips" class="lanetrack"></div>
+     <div id="reminderPlayhead" class="playhead"><button type="button" id="reminderSeek" class="playhead-handle" role="slider" aria-label="拖动播放指针" data-i18n-aria-label="拖动播放指针" aria-valuemin="0"></button></div>
+    </div>
+   </div>
+  </div>
+ </section>
  <section id="songVideoPanel" class="song-video-panel hidden" aria-label="排练视频" data-i18n-aria-label="排练视频">
   <div class="song-video-header">
    <label><span data-i18n="视频曲目">视频曲目</span><select id="songVideoSong" aria-label="视频曲目" data-i18n-aria-label="视频曲目"></select></label>

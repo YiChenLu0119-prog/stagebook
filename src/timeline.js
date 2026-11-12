@@ -14,11 +14,16 @@ function timelineMetrics(){
  const viewport=$('#bottomContent'),range=timelineRange(),total=Math.max(range.end,time(),current),width=Math.max(240,viewport.clientWidth-TIMELINE_LABEL);
  return{total,pixelsPerSecond:timelineDrag?.pixelsPerSecond||width/range.span*timelineZoom};
 }
+function timelineRulerTicks(total,pixelsPerSecond,inset=0){
+ const step=Math.max(total/2000,[.1,.2,.5,1,2,5,10,15,30,60,120,300,600,1800].find(n=>n*pixelsPerSecond>=65)||10**Math.ceil(Math.log10(65/pixelsPerSecond)));
+ let html='';
+ for(let t=0;t<=total;t+=step)html+=`<span class="tick" style="left:${inset+t*pixelsPerSecond}px">${fmt(t,step<1?1:0)}</span>`;
+ return html;
+}
 function renderTimeline(){
  const viewport=$('#bottomContent'),scrollLeft=viewport.scrollLeft,scrollTop=viewport.scrollTop,{total,pixelsPerSecond}=timelineMetrics(),q=song();
- const width=TIMELINE_LABEL+total*pixelsPerSecond,step=Math.max(total/2000,[.1,.2,.5,1,2,5,10,15,30,60,120,300,600,1800].find(n=>n*pixelsPerSecond>=65)||10**Math.ceil(Math.log10(65/pixelsPerSecond)));
- let html=`<div class="timeline clip-timeline" style="width:${width}px"><div class="ruler" data-seek="true">`;
- for(let t=0;t<=total;t+=step)html+=`<span class="tick" style="left:${t*pixelsPerSecond}px">${fmt(t,step<1?1:0)}</span>`;
+ const width=TIMELINE_LABEL+total*pixelsPerSecond;
+ let html=`<div class="timeline clip-timeline" style="width:${width}px"><div class="ruler" data-seek="true">${timelineRulerTicks(total,pixelsPerSecond)}`;
  html+='</div>';const events=C.events(q);
  const clip=(e,m,color)=>{const span=m?C.moveEvent(e,m):e,active=selectedCue===e.cue.id&&(!m||selected.includes(m.entityId)),name=m?displayName(entity(m.entityId)):e.cue.title;
   return ui`<div class="cuebar ${m?'actor-clip':'step-clip'} ${active?'active':''}" data-timeline-bar="${m?'move':'cue'}" data-cue="${esc(e.cue.id)}" ${m?`data-move="${esc(m.id)}"`:''} role="button" tabindex="0" aria-label="${esc(name)}，${fmt(span.start)}开始，持续${span.duration}秒" title="${esc(name)} · ${fmt(span.start)}–${fmt(span.end)} · 拖动移动，拖两端调整时长" style="left:${span.start*pixelsPerSecond}px;width:${Math.max(14,span.duration*pixelsPerSecond)}px;background:${color}">${m||q.mode==='timed'?tr('<span class="clip-edge left-edge" data-timeline-edge="left" title="拖动调整开始时间"></span>'):''}<span class="clip-caption">${esc(m?m.notes||e.cue.title:e.cue.title)}</span><span class="clip-edge right-edge" data-timeline-edge="right" title="拖动调整结束时间"></span></div>`;

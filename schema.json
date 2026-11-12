@@ -526,6 +526,53 @@
         "notes"
       ]
     },
+    "lightingCue": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "at": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 86400
+        },
+        "text": {
+          "type": "string",
+          "minLength": 1
+        },
+        "lyricId": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "required": [
+        "id",
+        "at",
+        "text"
+      ]
+    },
+    "lightingStroke": {
+      "type": "object",
+      "properties": {
+        "color": {
+          "type": "string",
+          "pattern": "^#[0-9a-fA-F]{6}$"
+        },
+        "points": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/xy"
+          },
+          "minItems": 1
+        }
+      },
+      "required": [
+        "color",
+        "points"
+      ]
+    },
     "song": {
       "type": "object",
       "properties": {
@@ -564,6 +611,18 @@
         },
         "rehearsalVideo": {
           "$ref": "#/$defs/rehearsalVideo"
+        },
+        "lightingCues": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/lightingCue"
+          }
+        },
+        "lightingSketches": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/lightingStroke"
+          }
         },
         "duration": {
           "type": [

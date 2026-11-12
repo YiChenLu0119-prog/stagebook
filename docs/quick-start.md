@@ -1,6 +1,6 @@
 # Stagebook quick start
 
-Stagebook · Multilingual edition v9.6
+Stagebook · Multilingual edition v9.7
 
 OPEN AND SAVE
 Extract the package and open “Stagebook.html”. The “演出资料” folder contains the editable data. New productions, songs, actors and props use in-app forms; press Enter to create or Cancel to return. Import a complete ZIP or folder to continue another production.
@@ -22,6 +22,9 @@ Editing destinations, notes and movement duration does not move the playhead. Sh
 TIMELINE AND LAYOUT
 Pinch with two fingers over the timeline to zoom around the pointer; a two-finger horizontal swipe pans the timeline. Use the zoom slider or + / − to zoom around the playhead. ⌘ / Ctrl + wheel zooms around the mouse. 0 fits the song. Click the clock to enter minutes:seconds or seconds, even beyond the existing steps. A blank timeline starts with a one-minute editing range; +30 s of timeline extends the view without changing the playback duration. Timeline clip edges change an actor's timing, not other actors or the whole step.
 Focus stage keeps the lyrics and inspector visible. Expand timeline or drag the divider to resize panels. Longer labels wrap rather than changing your production.
+
+CUE PROMPTER FOR LIGHTING
+Open Cue prompter. Drag the playhead to the right moment and select Add cue. Drag a cue marker to change its time, or click to edit the text and choose Snap to lyrics. The stage, next positions and centered lyrics stay visible during the countdown. Draw on the stage to mark an area. Save keeps the cues and sketches with that song.
 
 DELETE AND UNDO
 Select a step and choose Delete step or press Delete / Backspace. With an actor selected, Delete removes only that actor's movement in the step; it keeps the character.

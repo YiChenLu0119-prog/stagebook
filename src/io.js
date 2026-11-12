@@ -238,10 +238,11 @@ if(typeof ResizeObserver==='function'){
   layoutFrame=requestAnimationFrame(()=>{
    if(!drag&&!singing)renderStage();
    updateSongTitleOverflow();updateLyricsFocus(true);updateSingingFocus(true);
+   if(reminderOpen)updateReminderRail(reminderPlaybackEnd());
    if(bottomTab==='timeline'&&!timelineDrag)renderTimeline();
    else updatePlayhead();
   });
  });
- layoutObserver.observe($('#stageWrap'));layoutObserver.observe($('#bottomContent'));layoutObserver.observe($('#leftContent'));layoutObserver.observe($('#lyricsList'));layoutObserver.observe($('#singingList'));
-}else window.addEventListener('resize',()=>{if(!drag)renderStage();if(bottomTab==='timeline'&&!timelineDrag)renderTimeline();else updatePlayhead();});
+ layoutObserver.observe($('#stageWrap'));layoutObserver.observe($('#bottomContent'));layoutObserver.observe($('#leftContent'));layoutObserver.observe($('#lyricsList'));layoutObserver.observe($('#singingList'));layoutObserver.observe(reminderRail);
+}else window.addEventListener('resize',()=>{if(reminderOpen)updateReminderRail(reminderPlaybackEnd());if(!drag)renderStage();if(bottomTab==='timeline'&&!timelineDrag)renderTimeline();else updatePlayhead();});
 boot().catch(e=>{console.error(e);toast(tr('启动失败：')+e.message);});

@@ -13,6 +13,7 @@ Stagebook is being developed gradually from real blocking and rehearsal work. Th
 - A full-width timeline, responsive panels and four musical-inspired appearance palettes.
 - One-click stage fullscreen with compact playback controls and Escape to return.
 - A lyric-focused singing workspace with role highlighting, pickup loops and slower playback.
+- A lighting cue prompter with an independent timeline, lyric-linked cues, a stage preview and stage sketches.
 - Centered lyric follow and contained, scrolling long song titles.
 - Reduced-motion feedback and immediate lyric following under that system preference.
 
@@ -27,7 +28,7 @@ We are evaluating a desktop edition that reuses the offline editor with native p
 - Expand regression coverage, browser checks and file compatibility testing.
 - Improve translation wording and accessibility, and evaluate additional languages with contributors.
 - Grow the documentation and add generic examples that are suitable for public sharing.
-- Validate version handoffs and note sheets in real rehearsals.
+- Validate version handoffs, note sheets and cue readability at the lighting desk in real rehearsals.
 - Explore named rehearsal passages and lightweight call sheets when they avoid duplicate entry.
 
 The order and scope will be shaped by usage and feedback. No delivery dates are committed.

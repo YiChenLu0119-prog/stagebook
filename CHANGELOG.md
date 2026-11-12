@@ -1,5 +1,13 @@
 # Changelog
 
+## 9.7.0 — 2026-11-12
+
+- Add a fullscreen Cue prompter for lighting operators, with a large countdown, cue text and a highlight when a cue fires.
+- Place lighting cues on a zoomable timeline by dragging the playhead, then drag cue markers to adjust their time.
+- Snap cues to the start of timed lyrics and keep them attached when the lyrics are retimed.
+- Show the live stage, optional next positions and centered lyrics together. Draw stage annotations with undo and clear controls.
+- Save cue text, timing and drawings per song in the existing version-1 production format.
+
 ## 9.6.0 — 2026-11-12
 
 - Add a full-song rehearsal video workspace with a seek bar, fullscreen controls, and one recording per song.
