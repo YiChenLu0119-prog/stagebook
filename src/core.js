@@ -199,6 +199,14 @@
     return out;
   }
   function checkCueAttachments(cues){for(const c of cues)if(c.attachments!==undefined){if(!Array.isArray(c.attachments))throw Error(tr('步骤附件需要数组。'));for(const a of c.attachments){if(!a||typeof a.id!=='string'||typeof a.name!=='string'||!safePath(a.file)||!['image','video'].includes(a.type)||!{'image':['image/jpeg','image/png','image/webp'],'video':['video/mp4','video/webm']}[a.type].includes(a.mimeType)||![a.width,a.height].every(n=>Number.isInteger(n)&&n>0)||Math.max(a.width,a.height)>1280||Math.min(a.width,a.height)>720||!finite(a.bytes)||a.bytes<0||a.type==='video'&&(!finite(a.duration)||a.duration<=0||a.duration>120))throw Error(tr('步骤附件的格式、尺寸或时长无效。'));}}}
+  const rehearsalVideoMimes=Object.freeze({'video/mp4':'mp4','video/webm':'webm','video/quicktime':'mov'});
+  function checkRehearsalVideo(video){
+    if(!video||typeof video.name!=='string'||!safePath(video.file)||!Object.hasOwn(rehearsalVideoMimes,video.mimeType)||
+       ![video.width,video.height].every(n=>Number.isInteger(n)&&n>0)||
+       Math.max(video.width,video.height)>1920||Math.min(video.width,video.height)>1080||
+       !Number.isSafeInteger(video.bytes)||video.bytes<=0||!finite(video.duration)||video.duration<=0)
+      throw Error(tr('曲目排练视频的路径、格式、尺寸或时长无效。'));
+  }
   function checkStructure(lib){
     if(!lib||lib.version!==1||!Array.isArray(lib.shows))throw Error(tr('需要 version: 1 和 shows 数组。'));
     const showIds=new Set();
@@ -226,6 +234,7 @@
         for(const c of song.cues){if(!Array.isArray(c.moves))throw Error(tr('每一步都需要 moves 数组。'));for(const m of c.moves)if(!m||typeof m.id!=='string'||!Array.isArray(m.points)||!m.points.every(point)||!validControls(m.points))throw Error(tr('路线需要 ID 及有效坐标 points 数组。'));else for(const key of ['startOffset','duration'])if(m[key]!==undefined&&(!finite(m[key])||m[key]<0))throw Error(tr('演员移动时间需要非负秒数。'));}
         for(const l of song.lyrics)if(l.speakerIds!==undefined&&(!Array.isArray(l.speakerIds)||!l.speakerIds.every(id=>typeof id==='string')))throw Error(tr('歌词角色需要字符串 ID 数组。'));
         checkCueAttachments(song.cues);
+        if(song.rehearsalVideo!==undefined)checkRehearsalVideo(song.rehearsalVideo);
         for(const n of song.annotations)if(n.entityIds!==undefined&&(!Array.isArray(n.entityIds)||!n.entityIds.every(id=>typeof id==='string')))throw Error(tr('记录 entityIds 必须为字符串数组。'));
         if(song.audio&&!safePath(song.audio.file))throw Error(tr('音频必须是曲目文件夹内的相对路径。'));
       }
@@ -286,6 +295,6 @@
     if(!ref)return {start:annotation.start,end:annotation.end,missing:false};
     const source=noteSource(show,ref);return {start:source.start,end:source.end,missing:source.missing};
   }
-  const api={clone,id,finite,point,segment,bendSegment,insertRoutePoint,removeRoutePoint,flatten,along,path,inside,crosses,allowed,events,moveEvent,moveEvents,cuePlaybackEnd,position,beforeCue,cuePosition,setDestinations,setInitialPositions,removeActions,total,issues,checkStructure,safePath,newSong,newShow,dataFingerprint,showFingerprint,handoffState,checkRehearsalMetadata,noteSource,annotationRange};
+  const api={rehearsalVideoMimes,clone,id,finite,point,segment,bendSegment,insertRoutePoint,removeRoutePoint,flatten,along,path,inside,crosses,allowed,events,moveEvent,moveEvents,cuePlaybackEnd,position,beforeCue,cuePosition,setDestinations,setInitialPositions,removeActions,total,issues,checkStructure,safePath,newSong,newShow,dataFingerprint,showFingerprint,handoffState,checkRehearsalMetadata,noteSource,annotationRange};
   root.StageCore=api;if(typeof module!=='undefined')module.exports=api;
 })(globalThis);

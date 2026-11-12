@@ -1,5 +1,15 @@
 # Changelog
 
+## 9.6.0 — 2026-11-12
+
+- Add a full-song rehearsal video workspace with a seek bar, fullscreen controls, and one recording per song.
+- Keep recordings within 1080p bounds, retain the original file when it already fits, and allow any recording duration.
+- Practice a marked segment with playback that pauses at its end and returns to its start.
+- Carry rehearsal videos through production saves, cast handoffs, song duplication, and version history.
+- Read and write ZIP media in sections to reduce memory use with large recordings.
+- Show interpolated blocking as the timeline playhead is dragged.
+- Add an undoable **Delete** action to each row in the production cast.
+
 ## 9.5.0 — 2026-11-01
 
 - Keep large musical libraries in a small entry page and load each song's local media data only when needed.

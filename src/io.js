@@ -2,9 +2,10 @@
 let appRootDir=null;
 const encoder=new TextEncoder(),decoder=new TextDecoder();
 const json=value=>JSON.stringify(value,null,2)+'\n';
-function assetMimeType(path){const ext=path.split('.').at(-1).toLowerCase();return {mp3:'audio/mpeg',jpg:'image/jpeg',jpeg:'image/jpeg',png:'image/png',webp:'image/webp',mp4:'video/mp4',webm:'video/webm'}[ext]||'';}
+function assetMimeType(path){const ext=path.split('.').at(-1).toLowerCase();return {mp3:'audio/mpeg',jpg:'image/jpeg',jpeg:'image/jpeg',png:'image/png',webp:'image/webp',mp4:'video/mp4',webm:'video/webm',mov:'video/quicktime'}[ext]||'';}
 function songMediaReferences(s,q){
  const refs=[];if(q.audio)refs.push({key:`shows/${s.id}/songs/${q.id}/${q.audio.file}`,label:q.title,kind:'audio'});
+ if(q.rehearsalVideo)refs.push({key:`shows/${s.id}/songs/${q.id}/${q.rehearsalVideo.file}`,label:q.title+' / '+q.rehearsalVideo.name,kind:'rehearsal-video',mimeType:q.rehearsalVideo.mimeType});
  for(const cue of q.cues)for(const a of cue.attachments||[])refs.push({key:`shows/${s.id}/songs/${q.id}/${a.file}`,label:q.title+' / '+cue.title+' / '+a.name,kind:'attachment',attachment:a});return refs;
 }
 function libraryMediaReferences(shows){return productionSnapshots(shows).flatMap(s=>s.songs.flatMap(q=>songMediaReferences(s,q)));}
@@ -21,12 +22,31 @@ function textFiles(shows){
  files.set('index.html',embedLibrary({version:1,shows,workspace}));files.set('走台本.html',files.get('index.html'));files.set('AI-GUIDE.md',PAYLOAD.guide);files.set('AGENTS.md',PAYLOAD.entry||'Read AI-GUIDE.md before editing.');files.set('schema.json',json(PAYLOAD.schema));files.set('validate.py',PAYLOAD.validator);files.set('使用说明.txt',PAYLOAD.readme);
  const source=$('#embedded-source');if(source?.textContent){const encoded=JSON.parse(source.textContent),name=encoded.name||'Stagebook-rehearsal-preview-source.zip';if(!/^[A-Za-z0-9][A-Za-z0-9._-]*-source\.zip$/.test(name))throw Error(tr('不安全的保存路径。'));files.set(name,new Blob([Uint8Array.from(atob(encoded.base64),c=>c.charCodeAt(0))],{type:'application/zip'}));}return files;
 }
-async function embedPackageAudio(files,assets=files){
+async function mediaBase64(file){
+ const bytes=new Uint8Array(await file.arrayBuffer()),parts=[];
+ for(let i=0;i<bytes.length;i+=32768)parts.push(String.fromCharCode(...bytes.subarray(i,i+32768)));
+ return btoa(parts.join(''));
+}
+function mediaSidecar(key,mimeType,base64){
+ return 'globalThis.StagebookLocalAssets=globalThis.StagebookLocalAssets||Object.create(null);globalThis.StagebookLocalAssets['+
+  JSON.stringify(key).replace(/</g,'\\u003c')+']='+JSON.stringify({mimeType,base64})+';\n';
+}
+async function embedPackageAudio(files,assets=files,refs=[]){
  const linked=[...assets].reduce((sum,[key,file])=>sum+(typeof file!=='string'&&assetMimeType(key)?file.size||0:0),0)>8*1024*1024;
+ const songVideos=new Map(refs.filter(ref=>ref.kind==='rehearsal-video').map(ref=>[ref.key,ref.mimeType]));
  const audio={},media={},index={};for(const [key,file]of assets){
-  if(typeof file==='string')continue;const mime=assetMimeType(key);if(!mime)continue;
-  const bytes=new Uint8Array(await file.arrayBuffer()),parts=[];for(let i=0;i<bytes.length;i+=32768)parts.push(String.fromCharCode(...bytes.subarray(i,i+32768)));const encoded=btoa(parts.join(''));
-  if(linked){const path=key+'.stagebook.js';index[key]={file:path,mimeType:mime};files.set(path,'globalThis.StagebookLocalAssets=globalThis.StagebookLocalAssets||Object.create(null);globalThis.StagebookLocalAssets['+JSON.stringify(key).replace(/</g,'\\u003c')+']='+JSON.stringify({mimeType:mime,base64:encoded}).replace(/</g,'\\u003c')+';\n');}
+  if(typeof file==='string')continue;const mime=songVideos.get(key)||assetMimeType(key);if(!mime)continue;
+  if(songVideos.has(key)){
+   const parts=[],chunkSize=4*1024*1024;
+   for(let start=0;start<file.size;start+=chunkSize){
+    const path=key+'.part-'+parts.length+'.stagebook.js';
+    files.set(path,new Blob([mediaSidecar(key,mime,await mediaBase64(file.slice(start,start+chunkSize)))],{type:'text/javascript'}));
+    parts.push(path);
+   }
+   index[key]={parts,mimeType:mime};continue;
+  }
+  const encoded=await mediaBase64(file);
+  if(linked){const path=key+'.stagebook.js';index[key]={file:path,mimeType:mime};files.set(path,mediaSidecar(key,mime,encoded));}
   else if(mime==='audio/mpeg')audio[key]=encoded;else media[key]={type:mime,base64:encoded};
  }
  if(!Object.keys(audio).length&&!Object.keys(media).length&&!Object.keys(index).length)return;
@@ -87,13 +107,15 @@ async function saveFolder(){
   if(!same&&oldManifest&&!await confirmAction(tr('这个文件夹已有演出库。保存当前工作区将更新它的 manifest；旧数据会先备份。继续？')))return;
   if(same){for(const [path,before]of diskSnapshots){const latest=await diskText(dir,path);if(latest!==before){toast(tr('文件已被外部修改。请先“重新加载”，或导出当前版本为另一份演出包。'));return;}}}
   const canonical=textFiles(savedLibrary.shows),files=parent?dataPackageFiles(canonical):canonical,missing=[],audioFiles=new Map();
-  for(const ref of libraryMediaReferences(savedLibrary.shows)){const key=ref.key,f=await resourceFile(key);if(f){audioFiles.set(key,f);if(!same||pendingAssets.has(key)||!resources.has(key))files.set(key,f);}else if(!same||!resources.has(key))missing.push(ref.label);}
+  const mediaRefs=libraryMediaReferences(savedLibrary.shows);
+  for(const ref of mediaRefs){const key=ref.key,f=await resourceFile(key);if(f){audioFiles.set(key,f);if(!same||pendingAssets.has(key)||!resources.has(key))files.set(key,f);}else if(!same||!resources.has(key))missing.push(ref.label);}
   if(missing.length&&!await confirmAction(tr('这些媒体文件未连接：')+missing.join('、')+tr('。仍保存走台和歌词，保留文件引用？')))return;
-  await embedPackageAudio(canonical,audioFiles);
+  await embedPackageAudio(canonical,audioFiles,mediaRefs);
   if(parent)for(const [path,value]of canonical)if(path.endsWith('.stagebook.js'))files.set(path,value);
   if(oldManifest){const stamp=new Date().toISOString().replace(/[:.]/g,'-');const existing=await walkDirectory(dir);for(const [path,h]of existing)if(path.endsWith('.json')&&!path.startsWith('backups/'))await writeDisk(dir,`backups/${stamp}/${path}`,await(await h.getFile()).text());}
-  for(const [path,value]of files)if(path!=='manifest.json')await writeDisk(dir,path,value);if(parent){const entries=neatPackageFiles(canonical),html=entries.get('Stagebook.html')||entries.get('走台本.html'),name=await diskText(parent,'走台本.html')!==null?'走台本.html':entries.has('Stagebook.html')?'Stagebook.html':'走台本.html';await writeDisk(parent,name,html);}await writeDisk(dir,'manifest.json',files.get('manifest.json'));
-  rootDir=dir;appRootDir=parent;diskSnapshots=new Map([...files].filter(([k,v])=>k.endsWith('.json')&&typeof v==='string'&&!k.endsWith('schema.json')));resources=await walkDirectory(dir);for(const [key,file]of savedAssets)if(pendingAssets.get(key)===file)pendingAssets.delete(key);if(!missing.length&&revision===editVersion)clean();renderAll();toast(missing.length?tr('走台已保存，但缺少音乐；连接后请重新保存。'):revision===editVersion?tr('已保存到 ')+dir.name:tr('文件已保存；保存期间的新修改仍需保存。'));
+  for(const [path,value]of files)if(typeof value!=='string')await writeDisk(dir,path,value);
+  for(const [path,value]of files)if(typeof value==='string'&&path!=='manifest.json')await writeDisk(dir,path,value);if(parent){const entries=neatPackageFiles(canonical),html=entries.get('Stagebook.html')||entries.get('走台本.html'),name=await diskText(parent,'走台本.html')!==null?'走台本.html':entries.has('Stagebook.html')?'Stagebook.html':'走台本.html';await writeDisk(parent,name,html);}await writeDisk(dir,'manifest.json',files.get('manifest.json'));
+  rootDir=dir;appRootDir=parent;diskSnapshots=new Map([...files].filter(([k,v])=>k.endsWith('.json')&&typeof v==='string'&&!k.endsWith('schema.json')));resources=await walkDirectory(dir);for(const [key,file]of savedAssets)if(pendingAssets.get(key)===file)pendingAssets.delete(key);if(!missing.length&&revision===editVersion)clean();renderAll();toast(missing.length?tr('走台已保存，但缺少媒体文件。补齐后请重新保存。'):revision===editVersion?tr('已保存到 ')+dir.name:tr('文件已保存；保存期间的新修改仍需保存。'));
  }catch(e){if(e.name==='AbortError')toast(tr('未选择文件夹；仍可下载演出包保存。'));else throw e;}finally{folderSaving=false;}
 }
 async function reloadFolder(){
@@ -110,18 +132,66 @@ function productionSnapshots(shows){return shows.flatMap(s=>[s,...(s.versions||[
 
 function download(blob,name){const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=name;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),30000);}
 const crcTable=(()=>{const table=new Uint32Array(256);for(let i=0;i<256;i++){let c=i;for(let j=0;j<8;j++)c=c&1?0xedb88320^(c>>>1):c>>>1;table[i]=c>>>0;}return table;})();
-function crc32(data){let c=0xffffffff;for(const byte of data)c=crcTable[(c^byte)&255]^(c>>>8);return(c^0xffffffff)>>>0;}
+async function zipCrc32(blob){
+ let crc=0xffffffff;
+ const reader=blob.stream().getReader();
+ for(let part=await reader.read();!part.done;part=await reader.read()){
+  for(const byte of part.value)crc=crcTable[(crc^byte)&255]^(crc>>>8);
+ }
+ return (crc^0xffffffff)>>>0;
+}
 async function makeZip(files){
- const chunks=[],central=[];let offset=0;
- for(const [path,value]of files){const name=encoder.encode(path),bytes=typeof value==='string'?encoder.encode(value):new Uint8Array(await value.arrayBuffer()),crc=crc32(bytes),header=new Uint8Array(30),v=new DataView(header.buffer);v.setUint32(0,0x04034b50,true);v.setUint16(4,20,true);v.setUint16(6,0x800,true);v.setUint32(14,crc,true);v.setUint32(18,bytes.length,true);v.setUint32(22,bytes.length,true);v.setUint16(26,name.length,true);chunks.push(header,name,bytes);
-  const dir=new Uint8Array(46),d=new DataView(dir.buffer);d.setUint32(0,0x02014b50,true);d.setUint16(4,20,true);d.setUint16(6,20,true);d.setUint16(8,0x800,true);d.setUint32(16,crc,true);d.setUint32(20,bytes.length,true);d.setUint32(24,bytes.length,true);d.setUint16(28,name.length,true);d.setUint32(42,offset,true);central.push(dir,name);offset+=header.length+name.length+bytes.length;
-  if(offset>0xffffffff)throw Error(tr('ZIP 超过 4GB，请分演出导出或使用文件夹保存。'));
+ const chunks=[],central=[];let offset=0,sizeTotal=0;
+ if(files.size>10000)throw Error(tr('ZIP 文件数量过多。'));
+ for(const [path,value] of files){
+  const name=encoder.encode(path),blob=typeof value==='string'?new Blob([encoder.encode(value)]):value;
+  sizeTotal+=blob.size;
+  if(sizeTotal>2*1024**3)throw Error(tr('ZIP 解压后超过 2GB，请使用文件夹方式。'));
+  const crc=await zipCrc32(blob),header=new Uint8Array(30),v=new DataView(header.buffer);
+  v.setUint32(0,0x04034b50,true);v.setUint16(4,20,true);v.setUint16(6,0x800,true);
+  v.setUint32(14,crc,true);v.setUint32(18,blob.size,true);v.setUint32(22,blob.size,true);v.setUint16(26,name.length,true);
+  chunks.push(header,name,blob);
+  const dir=new Uint8Array(46),d=new DataView(dir.buffer);
+  d.setUint32(0,0x02014b50,true);d.setUint16(4,20,true);d.setUint16(6,20,true);d.setUint16(8,0x800,true);
+  d.setUint32(16,crc,true);d.setUint32(20,blob.size,true);d.setUint32(24,blob.size,true);d.setUint16(28,name.length,true);d.setUint32(42,offset,true);
+  central.push(dir,name);offset+=header.length+name.length+blob.size;
  }
  const size=central.reduce((n,b)=>n+b.length,0),end=new Uint8Array(22),e=new DataView(end.buffer);e.setUint32(0,0x06054b50,true);e.setUint16(8,files.size,true);e.setUint16(10,files.size,true);e.setUint32(12,size,true);e.setUint32(16,offset,true);return new Blob([...chunks,...central,end],{type:'application/zip'});
 }
 async function readZip(file){
- const bytes=new Uint8Array(await file.arrayBuffer()),v=new DataView(bytes.buffer);let end=-1;for(let i=bytes.length-22;i>=Math.max(0,bytes.length-65557);i--)if(v.getUint32(i,true)===0x06054b50){end=i;break;}if(end<0)throw Error(tr('找不到 ZIP 目录。'));const count=v.getUint16(end+10,true);if(count>10000)throw Error(tr('ZIP 文件数量过多。'));let pos=v.getUint32(end+16,true),sizeTotal=0;const map=new Map();
- for(let n=0;n<count;n++){if(v.getUint32(pos,true)!==0x02014b50)throw Error(tr('ZIP 目录损坏。'));const method=v.getUint16(pos+10,true),compressed=v.getUint32(pos+20,true),expected=v.getUint32(pos+24,true),nameLen=v.getUint16(pos+28,true),extra=v.getUint16(pos+30,true),comment=v.getUint16(pos+32,true),offset=v.getUint32(pos+42,true),path=decoder.decode(bytes.subarray(pos+46,pos+46+nameLen));pos+=46+nameLen+extra+comment;if(path.endsWith('/'))continue;if(!C.safePath(path))throw Error(tr('ZIP 包含无效路径。'));sizeTotal+=expected;if(sizeTotal>2*1024**3)throw Error(tr('ZIP 解压后超过 2GB，请使用文件夹方式。'));const start=offset+30+v.getUint16(offset+26,true)+v.getUint16(offset+28,true);let blob=new Blob([bytes.subarray(start,start+compressed)]);if(method===8){if(!globalThis.DecompressionStream)throw Error(tr('浏览器不支持此压缩包，请先手动解压，再导入文件夹。'));blob=await new Response(blob.stream().pipeThrough(new DecompressionStream('deflate-raw'))).blob();}else if(method!==0)throw Error(tr('此 ZIP 压缩方式不受支持。'));if(blob.size!==expected)throw Error(tr('ZIP 文件长度校验失败。'));map.set(path,assetMimeType(path)?new Blob([blob],{type:assetMimeType(path)}):blob);}
+ const tailOffset=Math.max(0,file.size-65557),tail=new DataView(await file.slice(tailOffset).arrayBuffer());
+ let end=tail.byteLength-22;
+ while(end>=0&&(tail.getUint32(end,true)!==0x06054b50||end+22+tail.getUint16(end+20,true)!==tail.byteLength))end--;
+ if(end<0)throw Error(tr('找不到 ZIP 目录。'));
+ const count=tail.getUint16(end+10,true),directorySize=tail.getUint32(end+12,true),directoryStart=tail.getUint32(end+16,true);
+ if(count>10000)throw Error(tr('ZIP 文件数量过多。'));
+ if(directoryStart+directorySize>tailOffset+end)throw Error(tr('ZIP 目录损坏。'));
+ const bytes=new Uint8Array(await file.slice(directoryStart,directoryStart+directorySize).arrayBuffer()),v=new DataView(bytes.buffer);
+ let pos=0,sizeTotal=0;const map=new Map();
+ for(let n=0;n<count;n++){
+  if(pos+46>bytes.length||v.getUint32(pos,true)!==0x02014b50)throw Error(tr('ZIP 目录损坏。'));
+  const method=v.getUint16(pos+10,true),compressed=v.getUint32(pos+20,true),expected=v.getUint32(pos+24,true);
+  const nameLen=v.getUint16(pos+28,true),extra=v.getUint16(pos+30,true),comment=v.getUint16(pos+32,true),offset=v.getUint32(pos+42,true);
+  const nameStart=pos+46;pos=nameStart+nameLen+extra+comment;
+  if(pos>bytes.length)throw Error(tr('ZIP 目录损坏。'));
+  const path=decoder.decode(bytes.subarray(nameStart,nameStart+nameLen));
+  if(path.endsWith('/'))continue;
+  if(!C.safePath(path))throw Error(tr('ZIP 包含无效路径。'));
+  sizeTotal+=expected;if(sizeTotal>2*1024**3)throw Error(tr('ZIP 解压后超过 2GB，请使用文件夹方式。'));
+  if(offset+30>directoryStart)throw Error(tr('ZIP 目录损坏。'));
+  const header=new DataView(await file.slice(offset,offset+30).arrayBuffer());
+  if(header.getUint32(0,true)!==0x04034b50)throw Error(tr('ZIP 目录损坏。'));
+  const start=offset+30+header.getUint16(26,true)+header.getUint16(28,true);
+  if(start+compressed>directoryStart)throw Error(tr('ZIP 目录损坏。'));
+  let blob=file.slice(start,start+compressed,assetMimeType(path));
+  if(method===8){
+   if(!globalThis.DecompressionStream)throw Error(tr('浏览器不支持此压缩包，请先手动解压，再导入文件夹。'));
+   blob=await new Response(blob.stream().pipeThrough(new DecompressionStream('deflate-raw'))).blob();
+   if(assetMimeType(path))blob=new Blob([blob],{type:assetMimeType(path)});
+  }else if(method!==0)throw Error(tr('此 ZIP 压缩方式不受支持。'));
+  if(blob.size!==expected)throw Error(tr('ZIP 文件长度校验失败。'));
+  map.set(path,blob);
+ }
  if(!map.has('manifest.json')){const candidates=[...map.keys()].filter(p=>p.endsWith('/manifest.json'));if(candidates.length===1){const prefix=candidates[0].slice(0,-'manifest.json'.length),clean=new Map();for(const [k,val]of map)if(k.startsWith(prefix))clean.set(k.slice(prefix.length),val);return clean;}}return map;
 }
 let exporting=false;
@@ -131,9 +201,9 @@ async function exportPackage(shows,options={}){
  if(options.includeVersions===false)for(const s of snapshotShows)delete s.versions;
  if(options.handoff)for(const s of snapshotShows){const h=options.handoff;s.handoff={id:C.id('share'),label:String(h.label||tr('排练稿')).trim()||tr('排练稿'),summary:String(h.summary||''),createdAt:new Date().toISOString(),fingerprint:C.showFingerprint(s)};}
  if(options.archivedEdition)for(const s of snapshotShows){const v=options.archivedEdition;s.handoff={id:v.id,label:v.label||tr('未命名版本'),summary:v.summary,createdAt:v.createdAt,fingerprint:C.showFingerprint(s)};}
- try{const files=textFiles(snapshotShows),missing=[];for(const ref of libraryMediaReferences(snapshotShows)){const f=await resourceFile(ref.key);if(f)files.set(ref.key,f);else missing.push(ref.label);}
+ try{const files=textFiles(snapshotShows),missing=[],mediaRefs=libraryMediaReferences(snapshotShows);for(const ref of mediaRefs){const f=await resourceFile(ref.key);if(f)files.set(ref.key,f);else missing.push(ref.label);}
   if(missing.length&&!await confirmAction(tr('以下媒体文件缺失：')+missing.join('、')+tr('。仍要下载不含这些文件的走台数据包吗？')))return;
-  toast(tr('正在打包，请稍候…'));await embedPackageAudio(files);const blob=await makeZip(neatPackageFiles(files));const label=options.handoff||options.archivedEdition?'-'+snapshotShows[0].handoff.label+'-'+snapshotShows[0].handoff.id.slice(-6):'';download(blob,((shows.length===1?shows[0].title:tr('走台演出库'))+label).replace(/[\\/:*?"<>|]/g,'-')+'.zip');closeModal();if(options.handoff){snapshot();for(const shared of snapshotShows){const live=lib.shows.find(s=>s.id===shared.id);if(live)live.handoff=C.clone(shared.handoff);}changed();renderAll();}if(complete&&!missing.length&&!rootDir&&revision===editVersion)clean();toast(missing.length?tr('已下载走台数据，但缺少音乐。连接音乐后请重新保存。'):options.handoff?tr('分享包已下载，资料版次已记录。'):revision===editVersion?tr('演出包已下载，包含走台、歌词和已连接的音乐。'):tr('演出包已下载；打包期间的新修改仍需保存。'));
+  toast(tr('正在打包，请稍候…'));await embedPackageAudio(files,files,mediaRefs);const blob=await makeZip(neatPackageFiles(files));const label=options.handoff||options.archivedEdition?'-'+snapshotShows[0].handoff.label+'-'+snapshotShows[0].handoff.id.slice(-6):'';download(blob,((shows.length===1?shows[0].title:tr('走台演出库'))+label).replace(/[\\/:*?"<>|]/g,'-')+'.zip');closeModal();if(options.handoff){snapshot();for(const shared of snapshotShows){const live=lib.shows.find(s=>s.id===shared.id);if(live)live.handoff=C.clone(shared.handoff);}changed();renderAll();}if(complete&&!missing.length&&!rootDir&&revision===editVersion)clean();toast(missing.length?tr('已下载走台数据，但缺少媒体文件。补齐后请重新保存。'):options.handoff?tr('分享包已下载，资料版次已记录。'):revision===editVersion?tr('演出包已下载，包含走台、歌词和已连接的音乐。'):tr('演出包已下载；打包期间的新修改仍需保存。'));
  }catch(e){toast(e.message);}finally{exporting=false;}
 }
 $('#zipInput').onchange=async e=>{try{if(e.target.files[0])await importMap(await readZip(e.target.files[0]));}catch(error){toast(error.message);}e.target.value='';};

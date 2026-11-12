@@ -84,11 +84,11 @@ function renderAll(){
  $$('[data-action=undo]').forEach(b=>b.disabled=!history.length);$$('[data-action=redo]').forEach(b=>b.disabled=!future.length);
  $('#castSummary').textContent=ui`${song().castIds.length} 位角色 · ${song().propIds.length} 件道具`;
  $('#selectedSummary').textContent=selected.length?ui`已选 ${selected.length} 个对象`:tr('自由单位 · 俯视图');
- $('#editMode').classList.toggle('selected',!rehearsal&&!singing);$('#rehearseMode').classList.toggle('selected',rehearsal&&!singing);
+ $('#editMode').classList.toggle('selected',!rehearsal&&!singing&&!songVideoOpen);$('#rehearseMode').classList.toggle('selected',rehearsal&&!singing&&!songVideoOpen);
  $('#toolInitial').classList.toggle('selected',tool==='initial');$('#toolSelect').classList.toggle('selected',tool==='select');
  $('#stageHint').textContent=inspect.type==='move'&&!rehearsal?tr('点选经过点后按 Delete 删除 · 右键添加节点'):rehearsal?tr('选择你的角色，跟着音乐排练'):tool==='initial'?tr('拖动演员，摆好开场位置'):stagePhase==='start'?tr('正在查看起点 · 切到「落点」继续编排'):selected.length?tr('拖演员改位置 · 拖路线圆点改弯度'):tr('拖动演员摆位 · Shift 多选');
  issuesCache=C.issues(show(),song());$('#issuesButton').textContent=issuesCache.length?ui`${issuesCache.length} 处待检查`:tr('检查走台');$('#issuesButton').classList.toggle('warning',issuesCache.some(i=>i.level==='error'));
- renderLeft();renderStage();renderInspector();renderBottom();updateTransport();renderEditorBar();renderLyricsDock();renderHandoff();renderSinging();
+ renderLeft();renderStage();renderInspector();renderBottom();updateTransport();renderEditorBar();renderLyricsDock();renderHandoff();renderSinging();renderSongVideo();
 }
 function renderLeft(){
  $('#leftTabs').innerHTML=[['songs',tr('曲目')],['actors',tr('角色')],['props',tr('道具')]].map(([k,v])=>`<button data-action="left-${k}" class="${leftTab===k?'selected':''}">${v}</button>`).join('');
@@ -97,7 +97,11 @@ function renderLeft(){
 
  else {
  const isActor=leftTab==='actors',list=isActor?s.actors:s.props,ids=isActor?q.castIds:q.propIds;
- $('#leftContent').innerHTML=ui`<div class="sectionlabel">${isActor?tr('全场角色名单'):tr('全场道具')} / ${list.length}<button class="tiny" data-action="add-${isActor?'actor':'prop'}">＋ 添加</button></div><p class="muted" style="font-size:10px">勾选本曲目使用的对象；未勾选者只保留在名单。</p>`+list.map(e=>ui`<div class="listitem ${selected.includes(e.id)?'active':''}" data-entity="${esc(e.id)}"><input type="checkbox" data-participation="${esc(e.id)}" ${ids.includes(e.id)?'checked':''} aria-label="${esc(e.name)}参与本曲目"><span class="entitydot ${isActor?'':'prop'}" style="background:${safeColor(e.color)}">${esc(e.label)}</span><div class="label"><b>${esc(e.name)}</b><small>${ids.includes(e.id)?tr('本曲目参演'):tr('未参与本曲目')}</small></div></div>`).join('');
+ $('#leftContent').innerHTML=ui`<div class="sectionlabel">${isActor?tr('全场角色名单'):tr('全场道具')} / ${list.length}<button class="tiny" data-action="add-${isActor?'actor':'prop'}">＋ 添加</button></div><p class="muted" style="font-size:10px">勾选本曲目使用的对象；未勾选者只保留在名单。</p>`+list.map(e=>{
+  const deleteLabel=esc(ui`从演出删除 ${e.name}`);
+  const remove=isActor&&!rehearsal?`<button class="tiny cast-delete" data-action="delete-actor:${esc(e.id)}" aria-label="${deleteLabel}" title="${deleteLabel}">${tr('删除')}</button>`:'';
+  return ui`<div class="listitem ${selected.includes(e.id)?'active':''}" data-entity="${esc(e.id)}"><input type="checkbox" data-participation="${esc(e.id)}" ${ids.includes(e.id)?'checked':''} aria-label="${esc(e.name)}参与本曲目"><span class="entitydot ${isActor?'':'prop'}" style="background:${safeColor(e.color)}">${esc(e.label)}</span><div class="label"><b>${esc(e.name)}</b><small>${ids.includes(e.id)?tr('本曲目参演'):tr('未参与本曲目')}</small></div>${remove}</div>`;
+ }).join('');
  }
  requestAnimationFrame(updateSongTitleOverflow);
 }
@@ -199,7 +203,14 @@ function records(){
 }
 function recordHTML(r){return `<div class="searchresult" data-record='${esc(JSON.stringify({showId:r.showId,songId:r.songId,type:r.type,id:r.id,time:r.time}))}'><small>${esc(r.label)}${r.time!=null?' · '+fmt(r.time):''}</small><p>${esc(r.notes)}</p><button class="tiny" data-session-source='${esc(JSON.stringify(sessionSourceRef(r)))}'>${tr('加入排练清单')}</button></div>`;}
 
-function updatePlayhead(){const head=$('#playhead');if(head&&bottomTab==='timeline')head.style.left=(TIMELINE_LABEL+current*timelineMetrics().pixelsPerSecond)+'px';}
+function updatePlayhead(){
+ const head=$('#playhead');if(!head||bottomTab!=='timeline')return;
+ const metrics=timelineMetrics(),handle=$('#playhead [data-scrub-handle]');
+ head.style.left=(TIMELINE_LABEL+current*metrics.pixelsPerSecond)+'px';
+ handle?.setAttribute('aria-valuemax',String(rehearsal?time():metrics.total));
+ handle?.setAttribute('aria-valuenow',String(+current.toFixed(2)));
+ handle?.setAttribute('aria-valuetext',fmt(current));
+}
 function updateTransport(){
  $('#currentTime').textContent=fmt(current);$('#totalTime').textContent='/ '+fmt(time());$('#playButton').textContent=playing?'Ⅱ':'▶';
  const pauses=stepPausesEnabled(),pauseButton=$('#stepPauseButton');pauseButton.textContent=pauses?tr('逐步暂停'):tr('连续播放');pauseButton.classList.toggle('selected',!pauses);pauseButton.setAttribute('aria-pressed',String(pauses));pauseButton.title=pauses?tr('点击统一关闭本场全部曲目的步骤结束暂停'):tr('点击恢复各步骤原有的暂停设置');
@@ -212,7 +223,13 @@ function setStepPauses(enabled){
 }
 function pause(){audioPlayGeneration++;playing=false;audio.pause();cancelAnimationFrame(frame);clearInterval(countdownTimer);countdownTimer=null;$('#countdownOverlay').classList.add('hidden');updateTransport();if(song())renderEditorBar();}
 function positionMusicCursor(t){const value=Number.isFinite(t)?t:0;current=Math.max(0,Math.min(rehearsal||playing?time():86400,value));if(!rehearsal&&!playing)ensureTimelineRange(current);if(audioPlayable()&&!audioSilentMode)try{audio.currentTime=Math.min(current,audioDuration||current);if(playing&&audio.paused&&current<audioDuration)audio.play().catch(()=>{if(playing){pause();toast(tr('音乐未能继续播放，请重新点播放。'));}});}catch{}lastClock=performance.now();}
-function seek(t){if(!rehearsal&&tool==='initial'&&t>0){tool='select';selected=[];inspect={type:'song',id:songId};}stagePhase='live';positionMusicCursor(t);syncPlaybackContext();renderInspector();renderBottom();renderStage();updateTransport();renderEditorBar();if(rehearsal)renderRehearsal();}
+function seek(t,{preview=false}={}){
+ if(!rehearsal&&tool==='initial'&&t>0){tool='select';selected=[];inspect={type:'song',id:songId};}
+ stagePhase='live';positionMusicCursor(t);syncPlaybackContext();
+ if(!preview){renderInspector();renderBottom();}
+ renderStage();updateTransport();
+ if(!preview){renderEditorBar();if(rehearsal)renderRehearsal();}
+}
 async function play(immediate=false,silent=false){
  if(playing||countdownTimer){pause();return;}const request=++audioPlayGeneration,identity=song();
  if(identity.audio&&!silent){if(audioState==='loading')await audioReady;if(request!==audioPlayGeneration||identity!==song())return;if(!audioPlayable()){toast(tr('音乐未连接，请连接音乐或点「静音走台」。'));return;}}
@@ -326,9 +343,38 @@ $('#stage').addEventListener('pointerup',()=>{if(!drag)return;const moved=drag.s
 $('#stage').addEventListener('pointercancel',()=>{drag=null;renderAll();});
 for(const [id,axis,prop,min,max,invert] of [['leftSplit','x','--left',130,420,false],['rightSplit','x','--right',230,520,true],['bottomSplit','y','--bottom',160,600,true]])$('#'+id).addEventListener('pointerdown',e=>{e.preventDefault();const start=axis==='x'?e.clientX:e.clientY,initial=parseFloat(getComputedStyle(document.documentElement).getPropertyValue(prop));const move=ev=>{const delta=(axis==='x'?ev.clientX:ev.clientY)-start;document.documentElement.style.setProperty(prop,Math.max(min,Math.min(max,initial+(invert?-delta:delta)))+'px');};const up=()=>{document.removeEventListener('pointermove',move);document.removeEventListener('pointerup',up);updatePlayhead();};document.addEventListener('pointermove',move);document.addEventListener('pointerup',up,{once:true});});
 
+async function deleteProductionEntity(s,en){
+ if(!en||!canEdit())return;
+ const id=en.id;
+ if(!await confirmAction(ui`从整场演出删除「${en.name}」及其在各曲目的走位？可以撤销。`))return;
+ mutate(()=>{
+  s.actors=s.actors.filter(actor=>actor.id!==id);
+  s.props=s.props.filter(prop=>prop.id!==id);
+  for(const q of s.songs){
+   q.castIds=q.castIds.filter(actorId=>actorId!==id);
+   q.propIds=q.propIds.filter(propId=>propId!==id);
+   delete q.initial[id];
+   for(const cue of q.cues)cue.moves=cue.moves.filter(move=>move.entityId!==id);
+   for(const note of q.annotations)note.entityIds=(note.entityIds||[]).filter(entityId=>entityId!==id);
+   for(const lyric of q.lyrics)if(lyric.speakerIds)lyric.speakerIds=lyric.speakerIds.filter(speakerId=>speakerId!==id);
+  }
+ },false);
+ selected=[];selectedRouteNode=null;
+ if(focusActor===id)focusActor=song().castIds[0]||'';
+ inspect={type:'song',id:songId};
+ renderAll();toast(ui`已删除「${en.name}」，可以撤销。`);
+}
+
 async function action(a){
  if(videoExporting||stepMediaBusy){toast(tr('正在处理素材，请完成或取消后再操作。'));return;}
+ if(a==='mode-song-video'){openSongVideo();return;}
+ if(a.startsWith('song-video-')){await songVideoAction(a);return;}
+ if(songVideoOpen&&['mode-edit','mode-rehearse','mode-sing'].includes(a))leaveSongVideo();
  if(a.startsWith('media-')&&await stepMediaAction(a))return;
+ if(a.startsWith('delete-actor:')){
+  const s=show(),id=a.slice('delete-actor:'.length);
+  await deleteProductionEntity(s,s.actors.find(actor=>actor.id===id));return;
+ }
  if(a==='video-export'){videoExportDialog();return;}
  if(a==='versions'){versionsDialog();return;}
  if(a==='handoff-info'){handoffDialog();return;}
@@ -392,7 +438,7 @@ async function action(a){
  case 'duplicate-song':{const n=C.clone(q);n.id=C.id('song');n.title+=tr(' · 副本');const assets=new Map(),prefix=`shows/${s.id}/songs/${q.id}/`;for(const ref of songMediaReferences(s,q)){const file=await resourceFile(ref.key);if(file)assets.set(`shows/${s.id}/songs/${n.id}/`+ref.key.slice(prefix.length),file);}mutate(()=>{for(const [key,file]of assets)pendingAssets.set(key,file);s.songs.splice(s.songs.indexOf(q)+1,0,n);},false);await switchSong(n.id);break;}
  case 'delete-song':if(s.songs.length===1){toast(tr('每场演出至少保留一个曲目。'));break;}if(await confirmAction(tr('删除此曲目及其走台？可通过撤销恢复。'))){mutate(()=>s.songs=s.songs.filter(x=>x.id!==q.id),false);await switchSong(s.songs[0].id);}break;
  case 'delete-show':if(lib.shows.length===1){toast(tr('演出库至少保留一场演出。'));break;}if(await confirmAction(tr('删除这场演出？可通过撤销恢复。'))){mutate(()=>lib.shows=lib.shows.filter(x=>x.id!==s.id),false);await switchShow(lib.shows[0].id);}break;
- case 'delete-entity':if(await confirmAction(tr('从演出名单及所有曲目删除这个对象和它的路线？可撤销。'))){mutate(()=>{s.actors=s.actors.filter(x=>x.id!==t.id);s.props=s.props.filter(x=>x.id!==t.id);for(const song of s.songs){song.castIds=song.castIds.filter(x=>x!==t.id);song.propIds=song.propIds.filter(x=>x!==t.id);delete song.initial[t.id];for(const c of song.cues)c.moves=c.moves.filter(m=>m.entityId!==t.id);for(const n of song.annotations)n.entityIds=(n.entityIds||[]).filter(id=>id!==t.id);}},false);inspect={type:'song',id:q.id};selected=[];renderAll();}break;
+ case 'delete-entity':await deleteProductionEntity(s,t);break;
  case 'delete-cue':deleteCurrentStep();break;
  case 'duplicate-cue':duplicateCurrentStep();break;
  case 'cue-up':case 'cue-down':reorderCurrentStep(a==='cue-up'?-1:1);break;

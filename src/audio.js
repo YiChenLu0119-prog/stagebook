@@ -5,21 +5,58 @@ let embeddedAssetData=null;
 const embeddedAssetBlobs=new Map();
 let linkedAssetIndex=null;
 const linkedAssetLoads=new Map();
+function linkedAssetInfo(key){
+ if(linkedAssetIndex===null)linkedAssetIndex=JSON.parse($('#embedded-asset-index')?.textContent||'{}');
+ return linkedAssetIndex[key];
+}
+function localPackageAssetURL(path){
+ const prefix=$('#embedded-library')?.getAttribute('data-library-root')||'';
+ if(!C.safePath(path)||!C.safePath(prefix+path))return null;
+ return new URL((prefix+path).split('/').map(encodeURIComponent).join('/'),document.baseURI).href;
+}
+function packagedSongVideoURL(key){
+ if(rootDir||resources.size||pendingAssets.has(key))return null;
+ try{return linkedAssetInfo(key)?localPackageAssetURL(key):null;}catch{return null;}
+}
+function readLinkedAssetPart(key,url,mimeType){
+ return new Promise(resolve=>{
+  const script=document.createElement('script');
+  const finish=()=>{
+   clearTimeout(timer);script.onload=script.onerror=null;script.remove();
+   const entry=globalThis.StagebookLocalAssets?.[key];
+   if(entry)delete globalThis.StagebookLocalAssets[key];
+   try{
+    if(entry?.mimeType!==mimeType||typeof entry.base64!=='string'){resolve(null);return;}
+    const binary=atob(entry.base64),bytes=new Uint8Array(binary.length);
+    for(let i=0;i<binary.length;i++)bytes[i]=binary.charCodeAt(i);
+    resolve(new Blob([bytes],{type:mimeType}));
+   }catch{resolve(null);}
+  };
+  const timer=setTimeout(finish,15000);script.onload=script.onerror=finish;
+  script.src=url;document.head.append(script);
+ });
+}
 async function linkedEmbeddedAssetFile(key){
  if(rootDir||resources.size)return null;
  if(linkedAssetLoads.has(key))return linkedAssetLoads.get(key);
  try{
-  if(linkedAssetIndex===null)linkedAssetIndex=JSON.parse($('#embedded-asset-index')?.textContent||'{}');
-  const item=linkedAssetIndex[key],prefix=$('#embedded-library')?.getAttribute('data-library-root')||'';
-  if(!item||!C.safePath(item.file)||!C.safePath(prefix+item.file)||!['audio/mpeg','image/jpeg','image/png','image/webp','video/mp4','video/webm'].includes(item.mimeType))return null;
-  const operation=new Promise(resolve=>{
-   const script=document.createElement('script');let done=false;
-   const finish=()=>{if(done)return;done=true;clearTimeout(timer);script.onload=script.onerror=null;script.remove();const entry=globalThis.StagebookLocalAssets?.[key];if(entry)delete globalThis.StagebookLocalAssets[key];try{if(entry?.mimeType!==item.mimeType||typeof entry.base64!=='string')return resolve(null);const binary=atob(entry.base64),bytes=new Uint8Array(binary.length);for(let i=0;i<binary.length;i++)bytes[i]=binary.charCodeAt(i);resolve(new Blob([bytes],{type:item.mimeType}));}catch{resolve(null);}};
-   const timer=setTimeout(finish,15000);script.onload=script.onerror=finish;
-   script.src=new URL((prefix+item.file).split('/').map(encodeURIComponent).join('/'),document.baseURI).href;
-   document.head.append(script);
-  });
-  linkedAssetLoads.set(key,operation);const result=await operation;if(!result)linkedAssetLoads.delete(key);return result;
+  const item=linkedAssetInfo(key);
+  if(!item||!['audio/mpeg','image/jpeg','image/png','image/webp',...Object.keys(C.rehearsalVideoMimes)].includes(item.mimeType))return null;
+  const urls=(Array.isArray(item.parts)?item.parts:[item.file]).map(localPackageAssetURL);
+  if(!urls.length||urls.includes(null))return null;
+  const operation=(async()=>{
+   const chunks=[];
+   for(const url of urls){
+    const part=await readLinkedAssetPart(key,url,item.mimeType);
+    if(!part)return null;
+    chunks.push(part);
+   }
+   return chunks.length===1?chunks[0]:new Blob(chunks,{type:item.mimeType});
+  })();
+  linkedAssetLoads.set(key,operation);
+  const result=await operation;
+  if(!result||Array.isArray(item.parts))linkedAssetLoads.delete(key);
+  return result;
  }catch{linkedAssetLoads.delete(key);return null;}
 }
 function embeddedAudioFile(key){

@@ -143,7 +143,12 @@ input:hover,textarea:hover,select:hover{border-color:var(--muted)}
 .tick{font-size:11px;color:var(--muted)}
 .clip-timeline .cuebar.active{outline:2px solid var(--gold);outline-offset:1px;box-shadow:none}
 .playhead{background:var(--gold);transition:none}
-.playhead:before{border-top-color:var(--gold)}
+.clip-timeline .playhead:before{content:none}
+.clip-timeline .ruler{touch-action:none;user-select:none}
+.clip-timeline .lanetrack{touch-action:pan-y}
+.clip-timeline .playhead-handle{position:absolute;left:50%;top:0;transform:translateX(-50%);width:28px;height:28px;min-height:0;padding:0;pointer-events:auto;touch-action:none;cursor:ew-resize}
+.playhead-handle::before{content:"";position:absolute;top:2px;left:50%;width:14px;height:17px;transform:translateX(-50%);background:var(--gold);clip-path:polygon(0 0,100% 0,100% 60%,50% 100%,0 60%)}
+.listitem .cast-delete{flex:none;color:var(--danger)}
 .stepcard,.initial-card{background:var(--panel);border-color:var(--line)}
 .stepcard.active{background:var(--accent-soft);border-color:var(--gold)}
 .app-menu .menu-popover,.stage-tools-popover,.context-menu,dialog,.dialoghead{background:var(--panel);border-color:var(--line);color:var(--text)}

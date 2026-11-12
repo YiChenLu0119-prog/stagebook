@@ -52,3 +52,29 @@
 
 .workspace.singing .transport #audioButton{display:block}
 .workspace.singing .transport #audioStatus{display:block;max-width:180px;overflow:hidden;text-overflow:ellipsis}
+
+.workspace.song-video-mode{grid-template: minmax(0,1fr) / minmax(0,1fr)}
+.workspace.song-video-mode > :not(#songVideoPanel){display:none}
+.song-video-active .workspacebar > button:not([data-action="undo"]):not([data-action="redo"]){display:none}
+.song-video-panel{display:flex;flex-direction:column;min-width:0;min-height:0;padding:clamp(8px,2vw,24px);gap:8px;overflow:auto}
+.song-video-header,.song-video-transport,.song-video-range{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.song-video-header label,.song-video-range label{display:flex;align-items:center;gap:6px;min-width:0}
+.song-video-header label{flex:1 1 230px}
+.song-video-header label select{min-width:0;width:100%;max-width:500px}
+.song-video-header button,.song-video-transport button,.song-video-range button{min-height:36px}
+.song-video-info{display:flex;flex-wrap:wrap;gap:6px 16px;color:var(--muted);font-size:12px;overflow-wrap:anywhere}
+.song-video-screen{display:grid;grid-template-rows:minmax(120px,1fr) auto;min-height:0;flex:1;border-radius:8px;overflow:hidden;background:#090909}
+.song-video-screen video{width:100%;height:100%;min-height:0;object-fit:contain;cursor:pointer}
+.song-video-controls{display:grid;gap:6px;background:var(--panel);padding:8px 12px}
+.song-video-transport input{flex:1 1 120px;min-width:60px;height:34px;cursor:ew-resize;accent-color:var(--gold)}
+.song-video-transport output,.song-video-range input{font-variant-numeric:tabular-nums}
+.song-video-transport output,.song-video-range{font-size:12px}
+.song-video-range input{width:7em;max-width:25vw}
+#songVideoRangeNote{color:var(--muted)}
+.song-video-screen:fullscreen,.song-video-screen.video-viewport{width:100%;height:100%;border-radius:0}
+.song-video-screen.video-viewport{position:fixed;inset:0;z-index:120}
+.song-video-screen:fullscreen{color:var(--text)}
+@media(max-width:560px){
+ .song-video-transport input{order:3;flex-basis:100%}
+ .song-video-range{gap:5px}
+}

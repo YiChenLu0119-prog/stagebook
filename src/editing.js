@@ -168,6 +168,7 @@ function handleEditingKey(e){
  if((videoExporting||stepMediaBusy)&&cmd&&key==='s'){e.preventDefault();return;}
  if(cmd&&key==='s'){e.preventDefault();if(typing)e.target.blur?.();Promise.resolve(saveWork()).catch(x=>toast(x.message));return;}
  if(modalOpen)return;
+ if(songVideoOpen&&handleSongVideoKey(e,typing,cmd))return;
  if(singing&&handleSingingKey(e,typing,cmd))return;
  if(e.target.closest?.('#lyricsList')&&['ArrowUp','ArrowDown','PageUp','PageDown','Home','End'].includes(e.key))return;
  if(cmd&&key==='o'){run('open');return;}if(cmd&&key==='k'){run('search');return;}if(typing)return;

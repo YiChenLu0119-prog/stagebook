@@ -3,10 +3,11 @@ const STEP_MEDIA_MIMES={'image/jpeg':'jpg','image/png':'png','image/webp':'webp'
 let stepMediaBusy=false,stepMediaTarget=null;
 const stepMediaURLs=new Map();
 let embeddedStepMedia=null;
-function fit720(width,height){
- const landscape=width>=height,scale=Math.min(1,(landscape?1280:720)/width,(landscape?720:1280)/height);
+function fitMediaDimensions(width,height,longEdge,shortEdge){
+ const landscape=width>=height,scale=Math.min(1,(landscape?longEdge:shortEdge)/width,(landscape?shortEdge:longEdge)/height);
  return {width:Math.max(1,Math.floor(width*scale)),height:Math.max(1,Math.floor(height*scale))};
 }
+function fit720(width,height){return fitMediaDimensions(width,height,1280,720);}
 function embeddedStepMediaFile(key){
  if(rootDir||resources.size)return null;try{if(embeddedStepMedia===null)embeddedStepMedia=JSON.parse($('#embedded-media')?.textContent||'{}');const item=embeddedStepMedia[key];if(!item||!STEP_MEDIA_MIMES[item.type])return null;const bytes=Uint8Array.from(atob(item.base64),c=>c.charCodeAt(0));return new Blob([bytes],{type:item.type});}catch{return null;}
 }
@@ -29,13 +30,14 @@ async function previewStepMedia(cueId,id){
  pause();const url=URL.createObjectURL(new Blob([file],{type:a.mimeType}));modal(a.name,`<div class="media-preview">${a.type==='video'?`<video src="${esc(url)}" controls playsinline preload="metadata"></video>`:`<img src="${esc(url)}" alt="${esc(a.name)}">`}</div>`);
  const closed=()=>{URL.revokeObjectURL(url);$('#dialog').removeEventListener('close',closed);};$('#dialog').addEventListener('close',closed);
 }
-function mediaCodec(){
+function mediaCodec(highResolution=false){
  if(typeof MediaRecorder==='undefined')return null;
- return ['video/mp4;codecs=avc1.42E01E,mp4a.40.2','video/mp4','video/webm;codecs=vp8,opus','video/webm'].find(type=>MediaRecorder.isTypeSupported(type))||null;
+ const mp4=highResolution?['video/mp4','video/mp4;codecs=avc1.420028,mp4a.40.2']:['video/mp4;codecs=avc1.42E01E,mp4a.40.2','video/mp4'];
+ return [...mp4,'video/webm;codecs=vp8,opus','video/webm'].find(type=>MediaRecorder.isTypeSupported(type))||null;
 }
 function canvasBlob(canvas,type='image/jpeg',quality=.82){return new Promise((resolve,reject)=>canvas.toBlob(blob=>blob?resolve(blob):reject(Error(tr('图片处理失败。'))),type,quality));}
-function loadMediaElement(element,file,job){
- const url=URL.createObjectURL(file);element.preload='auto';
+function loadMediaElement(element,file,job,preload='auto'){
+ const url=URL.createObjectURL(file);element.preload=preload;
  const ready=new Promise((resolve,reject)=>{let timer=setTimeout(()=>finish(Error(tr('媒体读取超时，请换一个文件。'))),20000);function finish(error){clearTimeout(timer);element.removeEventListener('error',failed);element.removeEventListener('loadedmetadata',loaded);element.removeEventListener('load',loaded);job?.cancelHooks.delete(cancel);error?reject(error):resolve();}const failed=()=>finish(Error(tr('无法读取这个图片或视频格式。'))),loaded=()=>finish(),cancel=()=>finish(Object.assign(Error(tr('已取消处理。')),{name:'AbortError'}));job?.cancelHooks.add(cancel);element.addEventListener('error',failed,{once:true});element.addEventListener(element.tagName==='IMG'?'load':'loadedmetadata',loaded,{once:true});element.src=url;});
  return {ready,url};
 }
@@ -71,27 +73,84 @@ async function compressStepImage(file,job){
   const blob=await canvasBlob(canvas);job.check();return {blob,...size,type:'image',mimeType:'image/jpeg'};
  }finally{URL.revokeObjectURL(loaded.url);}
 }
-function createCanvasRecorder(canvas,audioTrack=null){
- const mimeType=mediaCodec();if(!mimeType||!canvas.captureStream)throw Error(tr('此浏览器暂不支持视频生成，请使用新版 Chrome、Edge 或 Safari。'));
- const stream=canvas.captureStream(30);if(audioTrack)stream.addTrack(audioTrack);const recorder=new MediaRecorder(stream,{mimeType,videoBitsPerSecond:2200000,audioBitsPerSecond:128000}),chunks=[];
+function createCanvasRecorder(canvas,audioTrack=null,videoBitsPerSecond=2200000){
+ const mimeType=mediaCodec(Math.max(canvas.width,canvas.height)>1280);if(!mimeType||!canvas.captureStream)throw Error(tr('此浏览器暂不支持视频生成，请使用新版 Chrome、Edge 或 Safari。'));
+ const stream=canvas.captureStream(30);if(audioTrack)stream.addTrack(audioTrack);const recorder=new MediaRecorder(stream,{mimeType,videoBitsPerSecond,audioBitsPerSecond:128000}),chunks=[];
  const done=new Promise((resolve,reject)=>{recorder.ondataavailable=e=>{if(e.data.size)chunks.push(e.data);};recorder.onerror=e=>reject(e.error||Error(tr('视频生成失败。')));recorder.onstop=()=>resolve(new Blob(chunks,{type:recorder.mimeType||mimeType}));});
  done.catch(()=>{});return {recorder,done,stream,mimeType,stop(){if(recorder.state!=='inactive')recorder.stop();},dispose(){stream.getTracks().forEach(t=>t.stop());}};
 }
-async function compressStepVideo(file,job){
- const video=document.createElement('video');video.playsInline=true;const loaded=loadMediaElement(video,file,job);let context,recording;
+async function prepareVideo(file,job,{songMime=null}={}){
+ const video=document.createElement('video');video.playsInline=true;const loaded=loadMediaElement(video,file,job,'metadata');let context,recording;
  try{
   await loaded.ready;job.check();const duration=await probeVideoDuration(video);
   if(!Number.isFinite(duration)||duration<=0)throw Error(tr('无法确认视频时长，请换一个文件。'));
-  if(duration>120)throw Error(tr('备注视频不能超过 2 分钟，请先剪短后再添加。'));
-  const fitted=fit720(video.videoWidth,video.videoHeight),size={width:Math.max(2,fitted.width-fitted.width%2),height:Math.max(2,fitted.height-fitted.height%2)},canvas=document.createElement('canvas');canvas.width=size.width;canvas.height=size.height;const ctx=canvas.getContext('2d');
+  if(!songMime&&duration>120)throw Error(tr('备注视频不能超过 2 分钟，请先剪短后再添加。'));
+  const width=video.videoWidth,height=video.videoHeight;
+  if(!width||!height)throw Error(tr('无法读取这个图片或视频格式。'));
+  const fitted=songMime?fitMediaDimensions(width,height,1920,1080):fit720(width,height);
+  if(songMime&&fitted.width===width&&fitted.height===height)return {blob:file,width,height,duration,mimeType:songMime};
+  const size={width:Math.max(2,fitted.width-fitted.width%2),height:Math.max(2,fitted.height-fitted.height%2)};
+  const canvas=document.createElement('canvas');canvas.width=size.width;canvas.height=size.height;const ctx=canvas.getContext('2d');
   let audioTrack;const AudioContext=window.AudioContext||window.webkitAudioContext;
   if(AudioContext){context=new AudioContext();const destination=context.createMediaStreamDestination();context.createMediaElementSource(video).connect(destination);await resumeMediaContext(context,job);audioTrack=destination.stream.getAudioTracks()[0];}
   else throw Error(tr('此浏览器无法处理视频声音，请换用新版浏览器。'));
-  recording=createCanvasRecorder(canvas,audioTrack);await playMediaForProcessing(video,job);ctx.drawImage(video,0,0,size.width,size.height);recording.recorder.start(1000);
-  await new Promise((resolve,reject)=>{let frame=0,start=performance.now();const draw=()=>{try{job.check();if(video.error)throw Error(tr('视频解码中断。'));ctx.drawImage(video,0,0,size.width,size.height);job.report(video.currentTime/duration,ui`正在压缩视频：${fmt(video.currentTime)} / ${fmt(duration)}`);if(video.ended||video.currentTime>=duration-.015){resolve();return;}if(performance.now()-start>(duration+30)*1000)throw Error(tr('视频处理停滞，请保持页面可见后重试。'));frame=requestAnimationFrame(draw);}catch(error){cancelAnimationFrame(frame);reject(error);}};draw();});
+  recording=createCanvasRecorder(canvas,audioTrack,songMime?5000000:2200000);
+  await playMediaForProcessing(video,job);ctx.drawImage(video,0,0,size.width,size.height);recording.recorder.start(1000);
+  await new Promise((resolve,reject)=>{
+   let frame=0,start=performance.now(),hiddenAt=null,visibilityVersion=0,finished=false;
+   const finish=error=>{
+    if(finished)return;
+    finished=true;cancelAnimationFrame(frame);job.cancelHooks.delete(cancel);
+    document.removeEventListener('visibilitychange',onVisibility);
+    error?reject(error):resolve();
+   };
+   const cancel=()=>{try{job.check();}catch(error){finish(error);}};
+   job.cancelHooks.add(cancel);
+   recording.done.catch(finish);
+   const draw=()=>{
+    try{
+     job.check();
+     if(document.hidden){onVisibility();return;}
+     if(video.error)throw Error(tr('视频解码中断。'));
+     ctx.drawImage(video,0,0,size.width,size.height);
+     job.report(video.currentTime/duration,ui`正在压缩视频：${fmt(video.currentTime)} / ${fmt(duration)}`);
+     if(video.ended||video.currentTime>=duration-.015){finish();return;}
+     if(performance.now()-start>(duration+30)*1000)throw Error(tr('视频处理停滞，请保持页面可见后重试。'));
+     frame=requestAnimationFrame(draw);
+    }catch(error){finish(error);}
+   };
+   const onVisibility=async()=>{
+    if(finished)return;
+    const version=++visibilityVersion;
+    if(document.hidden){
+     hiddenAt??=performance.now();
+     cancelAnimationFrame(frame);
+     video.pause();
+     if(recording.recorder.state==='recording')recording.recorder.pause();
+     job.report(video.currentTime/duration,tr('页面暂时不可见，生成已暂停；返回此页后继续。'));
+     return;
+    }
+    if(hiddenAt===null)return;
+    try{
+     if(!video.ended){
+      if(context.state==='suspended')await resumeMediaContext(context,job);
+      if(finished||version!==visibilityVersion)return;
+      await playMediaForProcessing(video,job);
+      if(finished||document.hidden){video.pause();return;}
+      if(version!==visibilityVersion)return;
+     }
+     start+=performance.now()-hiddenAt;hiddenAt=null;
+     if(recording.recorder.state==='paused')recording.recorder.resume();
+     draw();
+    }catch(error){finish(error);}
+   };
+   document.addEventListener('visibilitychange',onVisibility);
+   draw();
+  });
   video.pause();recording.stop();const blob=await recording.done;job.check();if(!blob.size)throw Error(tr('视频生成失败。'));return {blob,...size,type:'video',duration,mimeType:blob.type.split(';')[0]};
  }finally{video.pause();video.removeAttribute('src');video.load();recording?.stop();recording?.dispose();await context?.close();URL.revokeObjectURL(loaded.url);}
 }
+function compressStepVideo(file,job){return prepareVideo(file,job);}
 async function importStepMedia(file,target){
  if(stepMediaBusy||!file||!target)return;const s=show(),q=song(),cue=q.cues.find(c=>c.id===target);if(!cue)return;
  stepMediaBusy=true;const job=mediaProgress(tr('添加本步素材'));

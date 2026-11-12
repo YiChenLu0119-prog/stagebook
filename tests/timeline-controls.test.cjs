@@ -2,6 +2,38 @@ const assert=require('node:assert/strict');const {api,$,document,Node,C}=require
 assert($('#bottomContent').innerHTML.includes('data-move="m1"'));assert($('#inspector').innerHTML.includes('data-move-time="duration"'));
 const timeUnder=x=>(($('#bottomContent').scrollLeft+x-120)/api.timelineMetrics().pixelsPerSecond),before=timeUnder(400);api.setTimelineZoom(4,400);assert(Math.abs(timeUnder(400)-before)<1e-8);assert.equal(api.state().zoom,4);assert($('#bottomContent').innerHTML.includes('width:3320px'));
 api.setTimelineZoom(1);$('#bottomContent').scrollLeft=0;
+const viewport=$('#bottomContent'),ruler=new Node('ruler');
+ruler.closest=selector=>selector.includes('[data-seek]')?ruler:null;
+const timelineEvent=(type,at,id=7,target=ruler)=>{
+ const clientX=120+at*api.timelineMetrics().pixelsPerSecond-viewport.scrollLeft;
+ for(const fn of viewport.listeners[type]||[])fn({type,target,button:0,pointerId:id,clientX,preventDefault(){}});
+};
+const beforeScrub=JSON.stringify(api.state().lib);
+timelineEvent('pointerdown',2);
+timelineEvent('pointermove',3.5,8);
+assert.equal(api.state().current,2,'A second pointer must not move the playhead');
+timelineEvent('pointermove',3.5);
+assert.equal(api.state().current,3.5,'Dragging the ruler must update time before release');
+assert.match($('#stage').innerHTML,/data-entity="a"[^>]*transform="translate\(5 0\)"/,'The actor moves to the halfway point during the drag');
+timelineEvent('pointermove',1);
+assert.equal(api.state().current,1,'Scrubbing also works backwards');
+timelineEvent('pointerup',4);
+assert.equal(api.state().current,4);
+assert.equal(api.state().playing,false);
+timelineEvent('pointermove',7);
+assert.equal(api.state().current,4,'Releasing ends scrubbing');
+api.setTimelineZoom(2);viewport.scrollLeft=120;
+const handle=new Node('handle');handle.closest=selector=>selector==='[data-scrub-handle]'?handle:null;
+timelineEvent('pointerdown',4.05,7,handle);
+assert.equal(api.state().current,4,'Grabbing the edge of the handle does not jump');
+timelineEvent('pointermove',5.05);
+assert(Math.abs(api.state().current-5)<1e-8,'Dragging the handle includes the scrolled timeline offset');
+timelineEvent('pointercancel',10);
+assert(Math.abs(api.state().current-5)<1e-8,'Cancelling keeps the last previewed position');
+api.setTimelineZoom(1);viewport.scrollLeft=0;
+assert.equal(JSON.stringify(api.state().lib),beforeScrub);
+assert.equal(api.state().history,0);
+api.select();
 function bar(type='move',edge){const b=new Node('bar');b.dataset={timelineBar:type,cue:'c1',...(type==='move'?{move:'m1'}:{})};const target=new Node('target');target.closest=selector=>selector==='[data-timeline-bar]'?b:selector==='[data-timeline-edge]'&&edge?{dataset:{timelineEdge:edge}}:null;return target;}
 function pointer(type,delta,edge){const target=bar(type,edge),pps=api.timelineMetrics().pixelsPerSecond;$('#bottomContent').listeners.pointerdown[0]({button:0,target,clientX:400,preventDefault(){}});for(const f of [...document.listeners.pointermove||[]])f({clientX:400+delta*pps});for(const f of [...document.listeners.pointerup||[]])f({});}
 pointer('move',2);let q=api.state().lib.shows[0].songs[0];assert.equal(q.cues[0].moves[0].startOffset,4);assert.equal(q.cues[0].moves[0].duration,3);assert.equal(q.cues[0].duration,10);assert.equal(q.cues[0].moves[1].duration,undefined);assert.equal(api.state().history,1);api.undo();q=api.state().lib.shows[0].songs[0];assert.equal(q.cues[0].moves[0].startOffset,2);

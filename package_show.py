@@ -18,7 +18,7 @@ def package(source,output,zip_path,neat=False,english=False,source_archive=None,
     snapshot=json.dumps(library,ensure_ascii=False).replace('<','\\u003c')
     data_root=' data-library-root="演出资料/"' if neat else ''
     html=html.replace('</head>','<script id="embedded-library"'+data_root+' type="application/json">'+snapshot+'</script></head>',1)
-    audio={};media={}
+    audio={};media={};song_videos={};chunk_size=4*1024*1024
     for show in library['shows']:
         for song in [q for production in [show]+[v['snapshot'] for v in show.get('versions',[])] for q in production['songs']]:
             if song.get('audio'):
@@ -27,21 +27,28 @@ def package(source,output,zip_path,neat=False,english=False,source_archive=None,
     for show in library['shows']:
         for production in [show]+[v['snapshot'] for v in show.get('versions',[])]:
             for song in production['songs']:
+                if song.get('rehearsalVideo'):
+                    video=song['rehearsalVideo']
+                    key=f"shows/{show['id']}/songs/{song['id']}/{video['file']}"
+                    path=source/key
+                    if path.is_file() and path.stat().st_size:
+                        name=hashlib.sha256(key.encode()).hexdigest()[:24]
+                        parts=[f'技术资料/local-media/{name}-{i}.js' for i,_ in enumerate(range(0,path.stat().st_size,chunk_size))]
+                        song_videos[key]={'parts':parts,'mimeType':video['mimeType']}
                 for cue in song['cues']:
                     for a in cue.get('attachments',[]):
                         key=f"shows/{show['id']}/songs/{song['id']}/{a['file']}"
                         if (source/key).is_file():media[key]={'type':a['mimeType'],'base64':base64.b64encode((source/key).read_bytes()).decode('ascii')}
-    linked_files={}
+    linked_files={};asset_index=dict(song_videos)
     if linked_assets:
-        asset_index={}
         for key,item in {**{k:{'mimeType':'audio/mpeg','base64':v} for k,v in audio.items()},**{k:{'mimeType':v['type'],'base64':v['base64']} for k,v in media.items()}}.items():
             relative='技术资料/local-media/'+hashlib.sha256(key.encode()).hexdigest()[:24]+'.js'
             asset_index[key]={'file':relative,'mimeType':item['mimeType']}
             linked_files[relative]='globalThis.StagebookLocalAssets=globalThis.StagebookLocalAssets||Object.create(null);globalThis.StagebookLocalAssets['+json.dumps(key)+']='+json.dumps(item).replace('<','\\u003c')+';\n'
-        if asset_index:html=html.replace('</head>','<script id="embedded-asset-index" type="application/json">'+json.dumps(asset_index).replace('<','\\u003c')+'</script></head>',1)
     else:
         if media:html=html.replace('</head>','<script id="embedded-media" type="application/json">'+json.dumps(media).replace('<','\\u003c')+'</script></head>',1)
         if audio:html=html.replace('</head>','<script id="embedded-audio" type="application/json">'+json.dumps(audio).replace('<','\\u003c')+'</script></head>',1)
+    if asset_index:html=html.replace('</head>','<script id="embedded-asset-index" type="application/json">'+json.dumps(asset_index).replace('<','\\u003c')+'</script></head>',1)
     if source_archive:
         source_archive=pathlib.Path(source_archive)
         if not re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9._-]*-source\.zip',source_archive.name):raise ValueError('Invalid corresponding source archive name.')
@@ -67,6 +74,13 @@ def package(source,output,zip_path,neat=False,english=False,source_archive=None,
     for relative,script in linked_files.items():
         target=(output/'演出资料' if neat else output)/relative
         target.parent.mkdir(parents=True,exist_ok=True);target.write_text(script)
+    for key,record in song_videos.items():
+        with (source/key).open('rb') as media_file:
+            for relative in record['parts']:
+                target=(output/'演出资料' if neat else output)/relative
+                target.parent.mkdir(parents=True,exist_ok=True)
+                item={'mimeType':record['mimeType'],'base64':base64.b64encode(media_file.read(chunk_size)).decode('ascii')}
+                target.write_text('globalThis.StagebookLocalAssets=globalThis.StagebookLocalAssets||Object.create(null);globalThis.StagebookLocalAssets['+json.dumps(key)+']='+json.dumps(item)+';\n')
     with zipfile.ZipFile(zip_path,'w',zipfile.ZIP_DEFLATED)as archive:
         for path in output.rglob('*'):
             if path.is_file():archive.write(path,path.relative_to(output))

@@ -1,6 +1,6 @@
 /* Timeline view state does not change the saved show unless a clip is edited. */
 const TIMELINE_LABEL=120;
-let timelineZoom=1,timelineDrag=null;
+let timelineZoom=1,timelineDrag=null,timelineScrub=null;
 const timelineRanges=new Map();
 let timelineGesture=null;
 const timeRound=n=>Math.round(n*10)/10;
@@ -25,7 +25,9 @@ function renderTimeline(){
  };
  html+=tr('<div class="lane"><div class="lanename">走台步骤</div><div class="lanetrack" data-seek="true">')+events.map(e=>clip(e,null,'#8b7046')).join('')+'</div></div>';
  for(const en of activeEntities())html+=`<div class="lane"><div class="lanename" data-entity="${esc(en.id)}" title="${esc(en.name)}">${esc(en.label)} · ${esc(en.name)}</div><div class="lanetrack" data-seek="true">`+events.flatMap(e=>e.cue.moves.filter(m=>m.entityId===en.id).map(m=>clip(e,m,safeColor(en.color)))).join('')+'</div></div>';
- html+='<div class="playhead" id="playhead"></div></div>';viewport.innerHTML=html;viewport.scrollLeft=scrollLeft;viewport.scrollTop=scrollTop;
+ const scrubLabel=esc(tr('拖动播放指针'));
+ html+=`<div class="playhead" id="playhead"><button type="button" class="playhead-handle" data-scrub-handle role="slider" aria-label="${scrubLabel}" title="${scrubLabel}" aria-valuemin="0"></button></div></div>`;
+ viewport.innerHTML=html;viewport.scrollLeft=scrollLeft;viewport.scrollTop=scrollTop;
  $('#timelineZoom').value=Math.log2(timelineZoom);$('#timelineZoomLabel').textContent=(Math.round(timelineZoom*10)/10)+'×';updatePlayhead();
 }
 function setTimelineZoom(value,anchor){
@@ -75,10 +77,32 @@ $('#bottomPanel').addEventListener('wheel',e=>{
 $('#bottomPanel').addEventListener('gesturestart',e=>{if(bottomTab!=='timeline')return;e.preventDefault();const rect=$('#bottomContent').getBoundingClientRect();timelineGesture={zoom:timelineZoom,x:Number.isFinite(e.clientX)?Math.max(TIMELINE_LABEL,Math.min(rect.width,e.clientX-rect.left)):rect.width/2};},{passive:false});
 $('#bottomPanel').addEventListener('gesturechange',e=>{if(!timelineGesture)return;e.preventDefault();if(Number.isFinite(e.scale)&&e.scale>0)setTimelineZoom(timelineGesture.zoom*e.scale,timelineGesture.x);},{passive:false});
 $('#bottomPanel').addEventListener('gestureend',e=>{if(timelineGesture)e.preventDefault();timelineGesture=null;},{passive:false});
+function timelineScrubTime(clientX,offset=0){
+ const viewport=$('#bottomContent'),rect=viewport.getBoundingClientRect(),metrics=timelineMetrics();
+ const x=Math.min(rect.right,Math.max(rect.left,clientX));
+ return Math.max(0,Math.min(rehearsal?time():metrics.total,(x-rect.left+viewport.scrollLeft-TIMELINE_LABEL)/metrics.pixelsPerSecond+offset));
+}
+function finishTimelineScrub(ev){
+ if(!timelineScrub||ev.pointerId!==timelineScrub.pointerId)return;
+ const scrub=timelineScrub;
+ timelineScrub=null;
+ if(song()!==scrub.song||bottomTab!=='timeline')return;
+ seek(ev.type==='pointerup'?timelineScrubTime(ev.clientX,scrub.offset):current);
+ if(scrub.handle)$('#playhead [data-scrub-handle]')?.focus({preventScroll:true});
+}
 $('#bottomContent').addEventListener('pointerdown',ev=>{
- if(bottomTab!=='timeline'||ev.button!==0)return;
+ if(bottomTab!=='timeline'||ev.button!==0||timelineScrub||timelineDrag)return;
  const bar=ev.target.closest('[data-timeline-bar]');
- if(!bar){const lane=ev.target.closest('[data-seek]');if(lane){pause();const rect=lane.getBoundingClientRect();seek((ev.clientX-rect.left)/timelineMetrics().pixelsPerSecond);}return;}
+ if(!bar){
+  const handle=ev.target.closest('[data-scrub-handle]');
+  if(!handle&&!ev.target.closest('[data-seek]'))return;
+  ev.preventDefault();pause();singleStepEnd=null;
+  const at=timelineScrubTime(ev.clientX);
+  timelineScrub={pointerId:ev.pointerId,song:song(),handle:!!handle,offset:handle?current-at:0};
+  $('#bottomContent').setPointerCapture(ev.pointerId);
+  seek(handle?current:at,{preview:true});
+  return;
+ }
  const found=findTimelineSelection(bar);if(!found)return;ev.preventDefault();const {e,move}=found;if(rehearsal){pause();selectedCue=e.cue.id;if(move&&song().castIds.includes(move.entityId))focusActor=move.entityId;seek(move?C.moveEvent(e,move).start:e.start);renderAll();return;}pause();selectedCue=e.cue.id;tool='select';stagePhase='end';
  selected=move?[move.entityId]:[];inspect={type:move?'entity':'cue',id:move?.entityId||e.cue.id};
  const viewport=$('#bottomContent'),metrics=timelineMetrics(),base=move?C.moveEvent(e,move):e;
@@ -95,7 +119,20 @@ $('#bottomContent').addEventListener('pointerdown',ev=>{
  const finish=()=>{document.removeEventListener('pointermove',onMove);document.removeEventListener('pointerup',finish);document.removeEventListener('pointercancel',finish);timelineDrag=null;if(started)renderAll();focusTimelineBar(e.cue.id,move?.id);};
  document.addEventListener('pointermove',onMove);document.addEventListener('pointerup',finish,{once:true});document.addEventListener('pointercancel',finish,{once:true});
 });
+$('#bottomContent').addEventListener('pointermove',ev=>{
+ if(!timelineScrub||timelineScrub.pointerId!==ev.pointerId||song()!==timelineScrub.song||bottomTab!=='timeline')return;
+ seek(timelineScrubTime(ev.clientX,timelineScrub.offset),{preview:true});
+});
+for(const event of ['pointerup','pointercancel','lostpointercapture'])$('#bottomContent').addEventListener(event,finishTimelineScrub);
 $('#bottomContent').addEventListener('keydown',ev=>{
+ if(ev.target.closest('[data-scrub-handle]')&&['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','Home','End'].includes(ev.key)){
+  ev.preventDefault();ev.stopPropagation();pause();singleStepEnd=null;
+  const end=rehearsal?time():timelineMetrics().total;
+  const step=(ev.key==='ArrowLeft'||ev.key==='ArrowDown'?-1:1)*(ev.shiftKey?1:.1);
+  seek(ev.key==='Home'?0:ev.key==='End'?end:Math.min(end,current+step));
+  $('#playhead [data-scrub-handle]')?.focus({preventScroll:true});
+  return;
+ }
  const bar=ev.target.closest('[data-timeline-bar]');if(rehearsal||!bar||!['ArrowLeft','ArrowRight'].includes(ev.key))return;ev.preventDefault();ev.stopPropagation();const found=findTimelineSelection(bar);if(!found)return;
  const {e,move}=found,delta=(ev.key==='ArrowLeft'?-1:1)*(ev.shiftKey?1:.1),base=move?C.moveEvent(e,move):e;
  if(!move&&song().mode==='steps')return;mutate(()=>Object.assign(move||e.cue,timelineEditValues(base,null,delta,!!move,song().mode)));focusTimelineBar(e.cue.id,move?.id);

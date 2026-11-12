@@ -1,6 +1,6 @@
 # Stagebook quick start
 
-Stagebook · Multilingual edition v9.5
+Stagebook · Multilingual edition v9.6
 
 OPEN AND SAVE
 Extract the package and open “Stagebook.html”. The “演出资料” folder contains the editable data. New productions, songs, actors and props use in-app forms; press Enter to create or Cancel to return. Import a complete ZIP or folder to continue another production.
@@ -83,3 +83,7 @@ Use **+ Add** under **Step photos and videos** to attach a reference image or cl
 Use **Share with cast → Export rehearsal video** to select one or more songs. Include connected music if needed, then combine songs in production order or create separate videos. Current and upcoming lyrics appear at the bottom. Generation takes normal playback time; keep the page visible and download the result. MP4/WebM support depends on the browser. Full rehearsal exports have no two-minute limit.
 
 Large libraries keep media outside the small entry page and load it by song. Keep the entire extracted folder together when moving or sharing it.
+
+## Practice from a song recording
+
+Open **Rehearsal video**, select a song and choose **Add video**. Drag the progress bar to find the section. Choose **Mark start** and **Mark end** or enter two timecodes. Playback pauses at the end and returns to the start. Press Play for another repetition. **Fullscreen video** keeps the player and segment controls on screen. Save the production to keep the recording with it.

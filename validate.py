@@ -154,6 +154,19 @@ def validate(root):
                 if (start is not None and (not numeric(start) or start<0)) or (end is not None and (not numeric(end) or end<0)) or (numeric(start) and numeric(end) and end<start):add('error',loc(n.get('id')),'Invalid annotation time range')
                 for obj in n.get('entityIds',[]):
                     if obj not in ids:add('error',loc(n.get('id')),'Annotation references an unknown object: '+obj)
+            video=q.get('rehearsalVideo')
+            if 'rehearsalVideo' in q:
+                if not isinstance(video,dict):
+                    add('error',rel,'Invalid rehearsal video metadata')
+                else:
+                    dims=[video.get('width'),video.get('height')]
+                    if not all(type(n) is int and n>0 for n in dims) or max(dims)>1920 or min(dims)>1080:
+                        add('error',rel,'Rehearsal video exceeds 1080p bounds')
+                    if not isinstance(video.get('name'),str) or type(video.get('bytes')) is not int or video['bytes']<=0 or not numeric(video.get('duration')) or video['duration']<=0 or video.get('mimeType') not in {'video/mp4','video/webm','video/quicktime'}:
+                        add('error',rel,'Invalid rehearsal video name, size, duration or media type')
+                    path=video.get('file')
+                    if not isinstance(path,str) or not safe_path(path):add('error',rel,'Invalid rehearsal video path')
+                    elif not (root/pathlib.PurePosixPath(rel).parent/path).is_file():add('warning',rel,'Rehearsal video file is missing: '+path)
             audio=q.get('audio')
             if audio:
                 path=audio.get('file')

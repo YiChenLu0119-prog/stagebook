@@ -6,7 +6,7 @@ Put actors on a stage, draw their movement, and place it against song time and l
 
 **Interface languages:** English · 简体中文 · 繁體中文. Switch languages in the top bar. Character names, lyrics and your production notes stay exactly as written.
 
-[Download](https://github.com/YiChenLu0119-prog/stagebook/releases/tag/v9.5.0) · [Quick start](docs/quick-start.md) · [Roadmap](docs/ROADMAP.md) · [Changelog](CHANGELOG.md) · [Contributing](CONTRIBUTING.md)
+[Download](https://github.com/YiChenLu0119-prog/stagebook/releases/tag/v9.6.0) · [Quick start](docs/quick-start.md) · [Roadmap](docs/ROADMAP.md) · [Changelog](CHANGELOG.md) · [Contributing](CONTRIBUTING.md)
 
 ![Stagebook editing workspace in the Hamilton palette](docs/images/workspace-hamilton.jpg)
 
@@ -19,6 +19,14 @@ Choose **+ Add** beside **Step photos and videos**. Images and videos are proces
 Choose **Share with cast → Export rehearsal video** or the same item under **More**. Select songs, whether to include connected music, and whether to combine them in production order or create separate files. The video records the stage at 1280 × 720, with the current lyric and the next timed line at the bottom. It has no two-minute limit. Generation runs at normal speed; keep the page visible. Native browser support determines whether the file is MP4 or WebM. Download the completed file from the result dialog. Lyrics use your existing timing and are not automatically realigned.
 
 For large productions, keep **Stagebook.html** and the **演出资料** folder together. The app loads each song's local media when needed; moving only the HTML file will break those media links. Large in-app saves and exports use this layout automatically. Original music files remain in the package for importing and editing. No music is recompressed by this loading change.
+
+## Full-song rehearsal video
+
+Open **Rehearsal video**, choose a song and select **Add video** to attach its full rehearsal recording. Scrub the progress bar to review a formation or use **Fullscreen video** to practice on a larger screen. Set the start and end from the current frame or enter the timecodes. Once the segment is set, playback pauses at the end and returns to the start for the next repetition.
+
+Each song holds one video. Stagebook keeps the original file when it fits within 1920 × 1080 for landscape or 1080 × 1920 for portrait. Larger recordings are resized locally at playback speed. Video duration has no fixed cap. Videos travel with the production package. For packages exceeding the 2 GB expanded ZIP limit, use folder saving in a browser that supports it.
+
+In the blocking timeline, drag the playhead to watch actors move as you scrub. In the production cast, use **Delete** next to a cast member to remove them and their blocking from the production. Undo restores them. Uncheck their participation to take them out of the current song while keeping their blocking.
 
 ## Singing practice
 

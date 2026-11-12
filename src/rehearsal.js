@@ -32,6 +32,12 @@ async function captureVersion(s,label,summary=''){
   q.audio.file=`assets/version-${hash}.mp3`;assets.set(`shows/${s.id}/songs/${q.id}/${q.audio.file}`,file);
  }
  const missingMedia=[];
+ for(const q of version.snapshot.songs)if(q.rehearsalVideo){
+  const video=q.rehearsalVideo,key=`shows/${s.id}/songs/${q.id}/`,file=await resourceFile(key+video.file);
+  if(!file){missingMedia.push(q.title+' / '+video.name);continue;}
+  video.file='assets/'+C.id('version-video')+'.'+C.rehearsalVideoMimes[video.mimeType];
+  assets.set(key+video.file,file);
+ }
  for(const q of version.snapshot.songs)for(const cue of q.cues)for(const a of cue.attachments||[]){const file=await resourceFile(`shows/${s.id}/songs/${q.id}/${a.file}`);if(!file){missingMedia.push(q.title+' / '+cue.title+' / '+a.name);continue;}const hash=await mediaContentHash(file);a.file=`assets/version-${hash}.${STEP_MEDIA_MIMES[a.mimeType]}`;assets.set(`shows/${s.id}/songs/${q.id}/${a.file}`,file);}
  if(missingMedia.length)version.missingMedia=missingMedia;
  if(missing.length)version.missingAudio=missing;
