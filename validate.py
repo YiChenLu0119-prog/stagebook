@@ -44,14 +44,15 @@ def validate_rehearsal_metadata(show, add, loc):
 def point(p):
     return isinstance(p, dict) and all(isinstance(p.get(k), (int,float)) and not isinstance(p.get(k),bool) and math.isfinite(p[k]) for k in ('x','y'))
 def validate_lighting_reminders(song, add, loc):
-    strokes = song.get('lightingSketches', [])
     def valid_stroke(stroke):
         return (isinstance(stroke, dict) and isinstance(stroke.get('color'), str)
                 and re.fullmatch(r'#[0-9a-fA-F]{6}', stroke['color'])
                 and isinstance(stroke.get('points'), list) and bool(stroke['points'])
                 and all(point(p) for p in stroke['points']))
-    if not isinstance(strokes, list) or not all(valid_stroke(s) for s in strokes):
-        add('error', loc, 'Invalid lighting sketch color or coordinates')
+    def check_sketches(strokes, location):
+        if not isinstance(strokes, list) or not all(valid_stroke(s) for s in strokes):
+            add('error', location, 'Invalid lighting sketch color or coordinates')
+    check_sketches(song.get('lightingSketches', []), loc)
     cues = song.get('lightingCues', [])
     ids = set()
     if not isinstance(cues, list):
@@ -65,6 +66,7 @@ def validate_lighting_reminders(song, add, loc):
             add('error', loc, 'Invalid lighting cue')
         else:
             ids.add(cue['id'])
+            check_sketches(cue.get('sketches', []), loc+'#'+cue['id'])
 
 def flatten(points, close=False):
     if not points or not all(point(p) for p in points): return []

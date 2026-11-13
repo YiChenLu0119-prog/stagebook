@@ -1,4 +1,10 @@
 {
+  "预览下条涂鸦": "Preview next sketch",
+  "把旧涂鸦移到此提醒": "Move earlier sketches to this cue",
+  "编辑所选提醒": "Edit selected cue",
+  "正在绘制：{0}": "Drawing for {0}",
+  "选择时间轴上的提醒开始涂鸦": "Select a cue on the timeline to draw",
+  "当前实线 · 下一条虚线": "Solid current sketch · dashed next sketch",
   "提醒时间轴": "Reminder timeline",
   "精确输入时间": "Enter an exact time",
   "添加提醒": "Add cue",

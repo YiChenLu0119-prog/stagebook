@@ -32,7 +32,8 @@ const {createApp}=require('./app-harness.cjs');
  assert.equal(node('reminderAt').value,'1.5','A new reminder defaults to the current playhead');
  assert.match(node('dialogBody').innerHTML,/<details id="reminderExact">/);
  node('reminderAt').value='00:06.5';node('reminderText').value='Raise wash';submit();
- assert.equal(q.lightingCues[0].at,6.5);assert.equal(value('reminderCountdown'),'5.0');
+ assert.equal(q.lightingCues[0].at,6.5);
+ h.api.seek(1.5);assert.equal(value('reminderCountdown'),'5.0');
 
  await h.api.action('reminder-add');
  node('reminderLyricPicker').value='line';node('reminderLyricPicker').onchange();
@@ -52,20 +53,46 @@ const {createApp}=require('./app-harness.cjs');
  q.lyrics=[];h.api.renderAll();
  assert.equal(run('lightingTimeline(song()).at(-1).at'),9,'A missing lyric falls back to the stored time');
 
+ const [wash,spot]=q.lightingCues;
+ await h.api.action('reminder-select:'+wash.id);
  node('reminderColor').value='#ff0055';
  pointer('pointerdown',10,15);pointer('pointermove',16,19);pointer('pointerup',20,21);
- assert.deepEqual(JSON.parse(JSON.stringify(q.lightingSketches)),[
+ assert.deepEqual(JSON.parse(JSON.stringify(wash.sketches??null)),[
   {color:'#ff0055',points:[{x:-10,y:5},{x:-4,y:9},{x:0,y:11}]}
- ]);
- assert.match(node('reminderSketches').innerHTML,/#ff0055/);
+ ],'Drawing belongs to the selected cue');
+ assert.equal(q.lightingSketches,undefined);
+ await h.api.action('reminder-select:'+spot.id);
+ node('reminderColor').value='#2255aa';
+ pointer('pointerdown',15,20);pointer('pointerup',16,21);
  pointer('pointerdown',12,16);pointer('pointercancel',12,16);
- assert.equal(q.lightingSketches.length,1);
+ assert.equal(spot.sketches.length,1);
+ await h.api.action('reminder-edit:'+spot.id);
+ node('reminderText').value='Spot center again';submit();
+ assert.equal(q.lightingCues[1].sketches[0].color,'#2255aa','Editing cue text retains the drawing');
+ await h.api.action('reminder-play');await h.api.action('reminder-play');
+ h.api.seek(0);
+ assert.doesNotMatch(node('reminderSketches').innerHTML,/#ff0055/);
+ assert.match(node('reminderSketchGhosts').innerHTML,/#ff0055/);
+ h.api.seek(7);
+ assert.match(node('reminderSketches').innerHTML,/#ff0055/);
+ assert.match(node('reminderSketchGhosts').innerHTML,/#2255aa/);
+ node('reminderSketchOnion').checked=false;
+ node('reminderSketchOnion').listeners.change[0]();
+ assert.equal(node('reminderSketchGhosts').innerHTML,'');
+ h.api.seek(9);
+ assert.match(node('reminderSketches').innerHTML,/#2255aa/);
+ assert.doesNotMatch(node('reminderSketches').innerHTML,/#ff0055/);
  assert.equal(h.C.checkStructure(h.api.state().lib),h.api.state().lib);
  const invalid=h.C.clone(h.api.state().lib);
- invalid.shows[0].songs[0].lightingCues[0].at=-1;
- assert.throws(()=>h.C.checkStructure(invalid),/灯光提醒格式无效/);
- await h.api.action('reminder-clear');assert.equal(q.lightingSketches,undefined);
- h.api.undo();assert.equal(h.api.state().lib.shows[0].songs[0].lightingSketches.length,1);
+ invalid.shows[0].songs[0].lightingCues[0].sketches[0].color='invalid';
+ assert.throws(()=>h.C.checkStructure(invalid),/舞台涂鸦/);
+ q.lightingSketches=[{color:'#445566',points:[{x:4,y:6}]}];
+ await h.api.action('reminder-select:'+wash.id);
+ await h.api.action('reminder-assign-sketches');
+ assert.equal(q.lightingSketches,undefined);assert.equal(wash.sketches[1].color,'#445566');
+ await h.api.action('reminder-clear');assert.equal(wash.sketches,undefined);
+ assert.equal(q.lightingCues[1].sketches.length,1);
+ h.api.undo();assert.equal(h.api.state().lib.shows[0].songs[0].lightingCues[0].sketches.length,2);
 
  h.api.seek(1.5);await h.api.action('reminder-play');h.api.advance(7);
  assert.equal(h.api.state().playing,true,'A step configured to pause does not stop the lighting clock');

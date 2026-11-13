@@ -1,6 +1,7 @@
 /* The lighting desk follows the same clock as the stage and the lyrics. */
 let reminderOpen=false,reminderContext=null,reminderStroke=null;
 let reminderFollow=true,reminderLyricsKey=null,reminderLines=[],reminderLineKey=null;
+let reminderSelection=null;
 let reminderTimeline=[],reminderCueKey='',reminderMoves=[],reminderMoveKey=null,reminderGhosts=[];
 const reminderPanel=$('#reminderPanel'),reminderStage=$('#reminderStage'),reminderWorld=$('#reminderWorld');
 const reminderLyrics=$('#reminderLyrics');
@@ -37,7 +38,7 @@ function openReminder(){
 }
 function leaveReminder(){
  if(!reminderOpen)return;
- cancelReminderStroke();cancelReminderRail();
+ cancelReminderStroke();cancelReminderRail();reminderSelection=null;
  reminderOpen=false;pause();void exitReminderFullscreen();
  if(reminderContext.showId===showId&&reminderContext.songId===songId)loop=reminderContext.loop;
  rate=reminderContext.rate;audio.playbackRate=rate;reminderContext=null;
@@ -63,7 +64,7 @@ function renderReminder(){
  const visualScale=Math.max(.2,Math.min(reminderStage.clientWidth/vw,reminderStage.clientHeight/vh));
  $('#reminderBackdrop').innerHTML=stageBackdrop(show().stage,visualScale)+stageAudience(show().stage,width,height,visualScale);
  if(reminderStroke&&reminderStroke.song!==q)cancelReminderStroke();
- renderReminderSketches();renderReminderLyrics();renderReminderFollow();updateReminder(true);updateReminderFullscreen();
+ renderReminderLyrics();renderReminderFollow();updateReminder(true);updateReminderFullscreen();
 }
 function reminderMarker(ent,p,ghost=false){
  const color=safeColor(ent.color),label=String(ent.label||ent.name||'?');
@@ -81,6 +82,7 @@ function updateReminder(immediate=false){
   $('#reminderNext').textContent=next?upcoming.map(event=>event.cue.text).join('\n'):tr(reminderTimeline.length?'本曲没有后续提醒':'还没有灯光提醒');
   $('#reminderCurrent').textContent=previous.map(event=>event.cue.text).join(' / ');
   $('#reminderNow').classList.toggle('hidden',!previous.length);
+  renderReminderSketches(previous,upcoming);
  }
  const remaining=next?next.at-current:0;
  $('#reminderCountdown').textContent=next?(Math.ceil(remaining*10)/10).toFixed(1):'—';
@@ -147,17 +149,49 @@ function setReminderFollow(follow){
  if(follow)updateReminderLyrics(true);
 }
 
-function reminderStrokePath(stroke){
+function reminderStrokePath(stroke,ghost=false){
  const first=stroke.points[0];
  if(!first)return '';
  // A tiny round-ended line also makes a click or tap leave a visible dot.
  const points=stroke.points.length===1?[first,{x:first.x+.01,y:first.y}]:stroke.points;
- return '<path d="'+C.path(points)+'" fill="none" stroke="'+stroke.color+'" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>';
+ return '<path d="'+C.path(points)+'" fill="none" stroke="'+stroke.color+'" stroke-width="3.5"'+(ghost?' stroke-dasharray="5 4"':'')+' stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>';
 }
-function renderReminderSketches(){
- const strokes=song()?.lightingSketches||[];
- $('#reminderSketches').innerHTML=strokes.map(reminderStrokePath).join('');
- $('#reminderUndo').disabled=$('#reminderClear').disabled=!strokes.length;
+function selectedReminder(){
+ if(reminderSelection?.showId!==showId||reminderSelection.songId!==songId)return null;
+ return reminderTimeline.find(({cue})=>cue.id===reminderSelection.id)||null;
+}
+function selectReminder(id){
+ const item=reminderTimeline.find(({cue})=>cue.id===id);
+ if(!item)return;
+ pause();cancelReminderStroke();
+ reminderSelection={showId,songId,id};
+ seek(item.at,{preview:true});
+ revealReminderCursor();renderReminderSketches();focusReminderClip(id);
+}
+function clearReminderSelection(){
+ if(!reminderSelection)return;
+ cancelReminderStroke();reminderSelection=null;renderReminderSketches();
+}
+function renderReminderSketches(previous,upcoming){
+ if(!previous)({previous,upcoming}=reminderCues(current));
+ const selected=selectedReminder(),cue=selected?.cue;
+ const layers=selected?[selected]:previous;
+ const strokes=layers.flatMap(({cue})=>cue.sketches||[]);
+ const ghosts=$('#reminderSketchOnion').checked?upcoming.flatMap(({cue})=>cue.sketches||[]):[];
+ $('#reminderSketches').innerHTML=strokes.map(stroke=>reminderStrokePath(stroke)).join('');
+ $('#reminderSketchGhosts').innerHTML=ghosts.map(stroke=>reminderStrokePath(stroke,true)).join('');
+ reminderStage.classList.toggle('drawing-ready',!!cue);
+ const target=$('#reminderSketchTarget');
+ target.textContent=cue?ui`正在绘制：${cue.text}`:ghosts.length?tr('当前实线 · 下一条虚线'):tr('选择时间轴上的提醒开始涂鸦');
+ target.title=target.textContent;
+ $('#reminderPen').classList.toggle('hidden',!cue);
+ for(const id of ['reminderUndo','reminderClear']){
+  const button=$('#'+id);
+  button.classList.toggle('hidden',!cue);button.disabled=!cue?.sketches?.length;
+ }
+ $('#reminderEditSelected').disabled=!cue;
+ $('#reminderAssignSketches').classList.toggle('hidden',!cue||!song()?.lightingSketches?.length);
+ updateReminderClipSelection();
 }
 function reminderPoint(event){
  const matrix=reminderWorld.getScreenCTM();
@@ -180,10 +214,11 @@ function cancelReminderStroke(){
  if(reminderStage.hasPointerCapture(id))reminderStage.releasePointerCapture(id);
 }
 reminderStage.addEventListener('pointerdown',event=>{
- if(!reminderOpen||reminderStroke||event.button!==0)return;
+ const cue=selectedReminder()?.cue;
+ if(!reminderOpen||!cue||playing||reminderStroke||event.button!==0)return;
  event.preventDefault();
  const color=$('#reminderColor').value;
- reminderStroke={pointerId:event.pointerId,song:song(),color:/^#[0-9a-f]{6}$/i.test(color)?color:'#c32c50',points:[]};
+ reminderStroke={pointerId:event.pointerId,song:song(),cue,color:/^#[0-9a-f]{6}$/i.test(color)?color:'#c32c50',points:[]};
  reminderStage.setPointerCapture(event.pointerId);addReminderPoint(event);
 });
 reminderStage.addEventListener('pointermove',event=>{
@@ -192,10 +227,10 @@ reminderStage.addEventListener('pointermove',event=>{
 reminderStage.addEventListener('pointerup',event=>{
  if(reminderStroke?.pointerId!==event.pointerId)return;
  addReminderPoint(event);
- const {song:owner,color,points}=reminderStroke;
+ const {song:owner,cue,color,points}=reminderStroke;
  cancelReminderStroke();
- if(owner!==song()||!points.length)return;
- mutate(()=>{(owner.lightingSketches??=[]).push({color,points});},false);renderReminderSketches();
+ if(owner!==song()||cue!==selectedReminder()?.cue||!points.length)return;
+ mutate(()=>{(cue.sketches??=[]).push({color,points});},false);renderReminderSketches();
 });
 for(const type of ['pointercancel','lostpointercapture'])reminderStage.addEventListener(type,event=>{
  if(reminderStroke?.pointerId===event.pointerId)cancelReminderStroke();
@@ -237,7 +272,7 @@ function editReminder(id){
    q.lightingCues=q.lightingCues.filter(cue=>cue.id!==id);
    if(!q.lightingCues.length)delete q.lightingCues;
   });
-  closeModal();
+  closeModal();clearReminderSelection();
  };
  $('#reminderForm').onsubmit=event=>{
   event.preventDefault();
@@ -247,13 +282,13 @@ function editReminder(id){
    exact.open=true;error.textContent=tr('请输入有效的提醒时间。');atInput.focus();return;
   }
   if(!text){input.focus();return;}
-  const cue={id:item?.cue.id||C.id('lighting'),at,text};
-  if(line)cue.lyricId=line.id;
+  const cue={...item?.cue,id:item?.cue.id||C.id('lighting'),at,text};
+  if(line)cue.lyricId=line.id;else delete cue.lyricId;
   mutate(()=>{
    const cues=q.lightingCues??=[],index=cues.findIndex(entry=>entry.id===cue.id);
    if(index<0)cues.push(cue);else cues[index]=cue;
   });
-  closeModal();focusReminderClip(cue.id);
+  closeModal();selectReminder(cue.id);
  };
  input.focus();
 }
@@ -281,6 +316,7 @@ for(const type of ['fullscreenchange','webkitfullscreenchange'])document.addEven
 });
 function toggleReminderPlayback(){
  if(playing){pause();return;}
+ clearReminderSelection();
  return play(true,!song().audio||!audioPlayable()&&audioState!=='loading');
 }
 function handleReminderKey(event,typing,cmd){
@@ -302,26 +338,36 @@ async function reminderAction(action){
  else if(action==='reminder-follow')setReminderFollow(true);
  else if(action==='reminder-audio')$('#audioInput').click();
  else if(action==='reminder-add')editReminder();
+ else if(action==='reminder-edit-selected'){const item=selectedReminder();if(item)editReminder(item.cue.id);}
+ else if(action.startsWith('reminder-select:'))selectReminder(action.slice('reminder-select:'.length));
  else if(action.startsWith('reminder-edit:'))editReminder(action.slice('reminder-edit:'.length));
  else if(action==='reminder-zoom-out')setReminderRailZoom(reminderRailZoom/1.6);
  else if(action==='reminder-zoom-in')setReminderRailZoom(reminderRailZoom*1.6);
  else if(action==='reminder-fit'){setReminderRailZoom(1);reminderRail.scrollLeft=0;}
  else if(action==='reminder-cancel')closeModal();
- else if(action==='reminder-undo'||action==='reminder-clear'){
-  const q=song();
-  if(!q.lightingSketches?.length)return;
+ else if(action==='reminder-assign-sketches'){
+  const q=song(),cue=selectedReminder()?.cue;
+  if(!cue||!q.lightingSketches?.length)return;
   mutate(()=>{
-   if(action==='reminder-undo')q.lightingSketches.pop();
-   if(action==='reminder-clear'||!q.lightingSketches.length)delete q.lightingSketches;
+   cue.sketches=(cue.sketches||[]).concat(q.lightingSketches);
+   delete q.lightingSketches;
+  },false);renderReminderSketches();
+ }else if(action==='reminder-undo'||action==='reminder-clear'){
+  const cue=selectedReminder()?.cue;
+  if(!cue?.sketches?.length)return;
+  mutate(()=>{
+   if(action==='reminder-undo')cue.sketches.pop();
+   if(action==='reminder-clear'||!cue.sketches.length)delete cue.sketches;
   },false);renderReminderSketches();
  }else if(action.startsWith('reminder-lyric:')){
   const line=reminderLines[+action.slice('reminder-lyric:'.length)];
-  if(line){seek(line.start,{preview:true});revealReminderCursor();setReminderFollow(true);}
+  if(line){clearReminderSelection();seek(line.start,{preview:true});revealReminderCursor();setReminderFollow(true);}
  }
 }
 $('#reminderSong').addEventListener('change',event=>{
- cancelReminderStroke();cancelReminderRail();setReminderFollow(true);void switchSong(event.target.value);
+ clearReminderSelection();cancelReminderRail();setReminderFollow(true);void switchSong(event.target.value);
 });
+$('#reminderSketchOnion').addEventListener('change',()=>renderReminderSketches());
 $('#reminderOnion').addEventListener('change',()=>updateReminder());
 for(const type of ['wheel','touchmove'])reminderLyrics.addEventListener(type,()=>setReminderFollow(false),{passive:true});
 reminderLyrics.addEventListener('keydown',event=>{

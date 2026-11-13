@@ -1,5 +1,11 @@
 # Changelog
 
+## 9.7.1 — 2026-11-13
+
+- Attach stage sketches to individual lighting cues. Select a cue marker and draw directly on the stage.
+- Show the current cue's sketch in solid strokes and preview the next cue with a faint dashed overlay. The sketch changes with the cue text.
+- Move shared sketches from older songs onto a cue of your choice.
+
 ## 9.7.0 — 2026-11-12
 
 - Add a fullscreen Cue prompter for lighting operators, with a large countdown, cue text and a highlight when a cue fires.

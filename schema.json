@@ -545,6 +545,12 @@
         "lyricId": {
           "type": "string",
           "minLength": 1
+        },
+        "sketches": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/lightingStroke"
+          }
         }
       },
       "required": [

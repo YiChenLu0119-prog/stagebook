@@ -39,12 +39,17 @@
     <div class="reminder-pane-head">
      <h2 data-i18n="舞台">舞台</h2>
      <label class="reminder-onion"><input id="reminderOnion" type="checkbox" checked> <span data-i18n="下一步站位">下一步站位</span></label>
-     <label class="reminder-color"><input id="reminderColor" type="color" value="#c32c50" aria-label="画笔颜色" data-i18n-aria-label="画笔颜色"></label>
+     <label class="reminder-onion"><input id="reminderSketchOnion" type="checkbox" checked> <span data-i18n="预览下条涂鸦">预览下条涂鸦</span></label>
+     <label class="reminder-color" id="reminderPen"><input id="reminderColor" type="color" value="#c32c50" aria-label="画笔颜色" data-i18n-aria-label="画笔颜色"></label>
      <button id="reminderUndo" data-action="reminder-undo" data-i18n="撤销一笔">撤销一笔</button>
      <button id="reminderClear" data-action="reminder-clear" data-i18n="清空涂鸦">清空涂鸦</button>
     </div>
+    <div class="reminder-sketch-status">
+     <span id="reminderSketchTarget"></span>
+     <button id="reminderAssignSketches" class="hidden" data-action="reminder-assign-sketches" data-i18n="把旧涂鸦移到此提醒">把旧涂鸦移到此提醒</button>
+    </div>
     <svg id="reminderStage" aria-label="舞台涂鸦区" data-i18n-aria-label="舞台涂鸦区">
-     <g id="reminderWorld"><g id="reminderBackdrop"></g><g id="reminderActors"></g><g id="reminderSketches"></g><g id="reminderDraft"></g></g>
+     <g id="reminderWorld"><g id="reminderBackdrop"></g><g id="reminderActors"></g><g id="reminderSketchGhosts"></g><g id="reminderSketches"></g><g id="reminderDraft"></g></g>
     </svg>
    </section>
    <section class="reminder-lyric-pane">
@@ -57,6 +62,7 @@
     <button id="reminderPlay" class="gold" data-action="reminder-play" aria-label="播放" data-i18n-aria-label="播放">▶</button>
     <output id="reminderClock"></output>
     <button id="reminderEdit" class="outline" data-action="reminder-add" data-i18n="＋ 添加提醒">＋ 添加提醒</button>
+    <button id="reminderEditSelected" data-action="reminder-edit-selected" data-i18n="编辑所选提醒">编辑所选提醒</button>
     <div class="reminder-zoom">
      <button data-action="reminder-zoom-out" aria-label="缩小时间轴" data-i18n-aria-label="缩小时间轴">−</button>
      <button data-action="reminder-zoom-in" aria-label="放大时间轴" data-i18n-aria-label="放大时间轴">＋</button>

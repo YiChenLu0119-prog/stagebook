@@ -27,12 +27,12 @@ function renderReminderRail(duration=reminderPlaybackEnd()){
   rows[row]=left+clipWidth;
   const label=fmt(at)+' · '+cue.text,linked=cue.lyricId&&song().lyrics.some(line=>line.id===cue.lyricId);
   return '<button type="button" class="cuebar reminder-clip'+(linked?' lyric-linked':'')+'" data-reminder-cue="'+esc(cue.id)+
-   '" data-action="reminder-edit:'+esc(cue.id)+'" title="'+esc(label+(linked?' · '+tr('吸附歌词'):''))+
+   '" data-action="reminder-select:'+esc(cue.id)+'" title="'+esc(label+(linked?' · '+tr('吸附歌词'):''))+
    '" aria-label="'+esc(label)+'" style="left:'+left+'px;top:'+(row*29+3)+'px;width:'+clipWidth+'px">'+
    (clipWidth>=55?'<span>'+esc(cue.text)+'</span>':'<span aria-hidden="true">◆</span>')+'</button>';
  }).join('');
  reminderClips.style.height=Math.max(31,rows.length*29+3)+'px';
- positionReminderPlayhead(duration);
+ positionReminderPlayhead(duration);updateReminderClipSelection();
 }
 function reminderRailX(at){return REMINDER_INSET+at*reminderRailScale;}
 function positionReminderPlayhead(duration){
@@ -57,6 +57,13 @@ function setReminderRailZoom(zoom,anchor){
  const at=(reminderRail.scrollLeft+x-REMINDER_INSET)/reminderRailScale;
  reminderRailZoom=Math.max(1,Math.min(128,zoom));
  renderReminderRail();reminderRail.scrollLeft=Math.max(0,reminderRailX(at)-x);
+}
+function updateReminderClipSelection(){
+ const selected=selectedReminder()?.cue.id;
+ for(const clip of reminderClips.querySelectorAll('[data-reminder-cue]')){
+  const active=clip.dataset.reminderCue===selected;
+  clip.classList.toggle('active',active);clip.setAttribute('aria-pressed',String(active));
+ }
 }
 function focusReminderClip(id){
  [...reminderClips.querySelectorAll('[data-reminder-cue]')].find(clip=>clip.dataset.reminderCue===id)?.focus();
@@ -91,7 +98,7 @@ reminderRail.addEventListener('pointerdown',event=>{
  reminderRailDrag={pointerId:event.pointerId,song:song(),clip,item,handle,startX:event.clientX,previous:current,
   offset:item?item.at-at:handle?current-at:0,target:null};
  reminderRail.setPointerCapture(event.pointerId);
- if(!item)seek(handle?current:at,{preview:true});
+ if(!item){clearReminderSelection();seek(handle?current:at,{preview:true});}
 });
 function moveReminderRail(event,drag){
  const {item,clip,offset,startX}=drag;
@@ -101,6 +108,7 @@ function moveReminderRail(event,drag){
  else if(event.clientX<view.left+18)reminderRail.scrollLeft-=16;
  const at=reminderTimeAt(event.clientX)+offset;
  if(!item){seek(at,{preview:true});return;}
+ if(!drag.target)clearReminderSelection();
  const linked=item.cue.lyricId&&reminderLines.some(line=>line.id===item.cue.lyricId);
  const target=reminderDragTarget(at,linked);
  drag.target=target;
@@ -121,19 +129,19 @@ function finishReminderRail(event){
  if(drag.song!==song())return;
  if(!drag.item){if(drag.handle)reminderHandle.focus({preventScroll:true});return;}
  const {cue,at}=drag.item,target=drag.target;
- if(committed&&!target){seek(at,{preview:true});editReminder(cue.id);return;}
+ if(committed&&!target){selectReminder(cue.id);return;}
  if(committed&&target&&(target.at!==at||target.lyricId!==cue.lyricId)){
   mutate(()=>{cue.at=target.at;if(target.lyricId)cue.lyricId=target.lyricId;else delete cue.lyricId;});
  }else{
   if(!committed)seek(drag.previous,{preview:true});
   renderReminderRail();
  }
- focusReminderClip(cue.id);
+ if(committed)selectReminder(cue.id);else focusReminderClip(cue.id);
 }
 for(const type of ['pointerup','pointercancel','lostpointercapture'])reminderRail.addEventListener(type,finishReminderRail);
 reminderHandle.addEventListener('keydown',event=>{
  if(!['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','Home','End'].includes(event.key))return;
- event.preventDefault();pause();
+ event.preventDefault();pause();clearReminderSelection();
  const step=(event.key==='ArrowLeft'||event.key==='ArrowDown'?-1:1)*(event.shiftKey?1:.1);
  seek(event.key==='Home'?0:event.key==='End'?reminderPlaybackEnd():current+step,{preview:true});revealReminderCursor();
 });

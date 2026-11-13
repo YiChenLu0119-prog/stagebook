@@ -207,10 +207,12 @@
        !Number.isSafeInteger(video.bytes)||video.bytes<=0||!finite(video.duration)||video.duration<=0)
       throw Error(tr('曲目排练视频的路径、格式、尺寸或时长无效。'));
   }
-  function checkLightingReminders(song){
-    const strokes=song.lightingSketches;
+  function checkLightingSketches(strokes){
     if(strokes!==undefined&&(!Array.isArray(strokes)||!strokes.every(stroke=>stroke&&typeof stroke.color==='string'&&/^#[0-9a-f]{6}$/i.test(stroke.color)&&Array.isArray(stroke.points)&&stroke.points.length&&stroke.points.every(point))))
       throw Error(tr('舞台涂鸦的颜色或坐标无效。'));
+  }
+  function checkLightingReminders(song){
+    checkLightingSketches(song.lightingSketches);
     const cues=song.lightingCues,ids=new Set();
     if(cues===undefined)return;
     if(!Array.isArray(cues))throw Error(tr('灯光提醒格式无效。'));
@@ -219,6 +221,7 @@
          typeof cue.text!=='string'||!cue.text.trim()||cue.lyricId!==undefined&&(typeof cue.lyricId!=='string'||!cue.lyricId))
         throw Error(tr('灯光提醒格式无效。'));
       ids.add(cue.id);
+      checkLightingSketches(cue.sketches);
     }
   }
   function checkStructure(lib){

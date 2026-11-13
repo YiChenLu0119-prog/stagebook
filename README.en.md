@@ -6,15 +6,15 @@ Put actors on a stage, draw their movement, and place it against song time and l
 
 **Interface languages:** English · 简体中文 · 繁體中文. Switch languages in the top bar. Character names, lyrics and your production notes stay exactly as written.
 
-[Download](https://github.com/YiChenLu0119-prog/stagebook/releases/tag/v9.7.0) · [Quick start](docs/quick-start.md) · [Roadmap](docs/ROADMAP.md) · [Changelog](CHANGELOG.md) · [Contributing](CONTRIBUTING.md)
+[Download](https://github.com/YiChenLu0119-prog/stagebook/releases/tag/v9.7.1) · [Quick start](docs/quick-start.md) · [Roadmap](docs/ROADMAP.md) · [Changelog](CHANGELOG.md) · [Contributing](CONTRIBUTING.md)
 
 ![Stagebook editing workspace in the Hamilton palette](docs/images/workspace-hamilton.jpg)
 
 ## Cue prompter for lighting
 
-Open **Cue prompter** when a lighting operator needs to anticipate a change during a musical number. The countdown shows how long until the next cue, and the cue text highlights when it fires. Watch the live stage on the left and the current lyric on the right. **Next positions** previews the actors' upcoming destinations. Draw directly on the stage to mark a spotlight area or a formation to watch.
+Open **Cue prompter** when a lighting operator needs to anticipate a change during a musical number. The countdown shows how long until the next cue, and the cue text highlights when it fires. Watch the live stage on the left and the current lyric on the right. **Next positions** previews the actors' upcoming destinations.
 
-To cue a lighting change, drag the playhead to the right moment and choose **Add cue**. Drag a cue marker to move it or click the marker to edit its text. Use **Snap to lyrics** to keep a cue at the start of a line, even if the lyrics are retimed. The cue timeline supports zoom and **Fit song**. Cues and sketches are saved with each song in the production package.
+To cue a lighting change, drag the playhead to the right moment and choose **Add cue**. Drag a cue marker to move it. Click a marker to select it, then draw on the stage or choose **Edit selected cue** to change its text. Use **Snap to lyrics** to keep a cue at the start of a line, even if the lyrics are retimed. The cue timeline supports zoom and **Fit song**. Each sketch stays with its cue. During playback, the current cue's sketch is solid and the next cue's sketch appears as a faint dashed overlay. Use **Preview next sketch** to toggle the overlay. Cue sketches travel with the saved production.
 
 ## Media notes and rehearsal videos
 
@@ -100,7 +100,7 @@ Give the assistant the saved production package and [AI-GUIDE.md](AI-GUIDE.md). 
 
 ## Get started
 
-1. Download **[Stagebook-v9.7.0-offline.zip](https://github.com/YiChenLu0119-prog/stagebook/releases/download/v9.7.0/Stagebook-v9.7.0-offline.zip)** from [Releases](https://github.com/YiChenLu0119-prog/stagebook/releases). Choose the named offline asset; source archives are for development.
+1. Download **[Stagebook-v9.7.1-offline.zip](https://github.com/YiChenLu0119-prog/stagebook/releases/download/v9.7.1/Stagebook-v9.7.1-offline.zip)** from [Releases](https://github.com/YiChenLu0119-prog/stagebook/releases). Choose the named offline asset; source archives are for development.
 2. Extract the ZIP and open **Stagebook.html** in a desktop browser. Older packages may call this file **走台本.html**.
 3. Explore the generic sample, or open the production menu at the top left and choose **New production**. Add your cast and drag their opening positions into place.
 4. Click the playback clock or timeline to choose a start time, then choose **Add step** or press `N`. Drag an actor to a destination and set their movement timing and note.
