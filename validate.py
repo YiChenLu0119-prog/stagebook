@@ -35,6 +35,7 @@ def validate_rehearsal_metadata(show, add, loc):
             if not isinstance(q,dict) or q.get('mode') not in ['steps','timed'] or not all(isinstance(q.get(k),list) for k in ['castIds','propIds','cues','lyrics','annotations']) or not isinstance(q.get('initial'),dict):fail('Invalid version song structure');continue
             if q.get('audio') and not safe_path(q['audio'].get('file')):fail('Invalid version audio path')
             validate_lighting_reminders(q, add, loc+'#'+v['id'])
+            validate_vocal_practice(q, add, loc+'#'+v['id'])
             for cue in q['cues']:
                 if not isinstance(cue,dict) or not isinstance(cue.get('id'),str) or not isinstance(cue.get('moves'),list):fail('Invalid version step');continue
                 for move in cue['moves']:
@@ -67,6 +68,37 @@ def validate_lighting_reminders(song, add, loc):
         else:
             ids.add(cue['id'])
             check_sketches(cue.get('sketches', []), loc+'#'+cue['id'])
+
+def validate_vocal_practice(song, add, loc):
+    if 'vocalPractice' not in song:
+        return
+    practice = song['vocalPractice']
+    def valid_list(items, limit, check):
+        return (isinstance(items, list) and len(items) <= limit and
+                all(isinstance(item, dict) and isinstance(item.get('id'), str)
+                    and re.fullmatch(r'[A-Za-z0-9_-]{1,96}', item['id'])
+                    and check(item) for item in items)
+                and len({item['id'] for item in items}) == len(items))
+    def within(value, low):
+        return numeric(value) and low <= value <= 86400
+    def text(item, key, limit, required=False):
+        value = item.get(key)
+        return isinstance(value, str) and len(value) <= limit and (not required or bool(value.strip()))
+    def note(item):
+        midi, start, duration = (item.get(key) for key in ('midi', 'start', 'duration'))
+        return (type(midi) is int and 0 <= midi <= 127 and within(start, 0) and
+                within(duration, .015) and start + duration <= 86400 and text(item, 'syllable', 80))
+    def part(item):
+        return text(item, 'role', 200, True) and valid_list(item.get('notes'), 2200, note)
+    def clip(item):
+        basis, offset = item.get('timebase'), item.get('offset')
+        clock = within(offset, 0) if basis == 'recording' else basis == 'relative' and 'offset' in item and offset is None
+        source = item.get('sourceURL')
+        link = 'sourceURL' in item and (source is None or text(item, 'sourceURL', 1000) and source.startswith('https://'))
+        return (clock and link and text(item, 'title', 200, True) and text(item, 'measure', 200)
+                and text(item, 'memo', 5000) and valid_list(item.get('parts'), 64, part))
+    if not isinstance(practice, dict) or type(practice.get('version')) is not int or practice['version'] != 1 or not valid_list(practice.get('clips'), 300, clip):
+        add('error', loc, 'Invalid vocal practice data')
 
 def flatten(points, close=False):
     if not points or not all(point(p) for p in points): return []
@@ -126,6 +158,7 @@ def validate(root):
             song_ids.add(q['id']);cast=q.get('castIds',[])+q.get('propIds',[]);initial=q.get('initial',{})
             if q.get('mode') not in ('steps','timed'):add('error',rel,'Mode must be steps or timed')
             validate_lighting_reminders(q, add, rel)
+            validate_vocal_practice(q, add, rel)
             for obj in cast:
                 if obj not in ids:add('error',loc(obj),'Unknown actor / prop')
                 if not point(initial.get(obj)):add('error',loc(obj),'Missing or invalid initial position')

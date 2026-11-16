@@ -1,5 +1,12 @@
 # Changelog
 
+## 9.8.0 — 2026-11-16
+
+- Mark any lyric as yours and add a short private rehearsal note.
+- Open per-song harmony practice inside Stagebook with continuous staff notation, score search, synthesized preview, and editable pitches and note values.
+- Join available passages into one practice range. Voice data travels with the production ZIP.
+- Add a downloadable one-song rehearsal example.
+
 ## 9.7.1 — 2026-11-13
 
 - Attach stage sketches to individual lighting cues. Select a cue marker and draw directly on the stage.

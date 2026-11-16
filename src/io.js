@@ -224,7 +224,7 @@ function recoverySummary(library,sid,qid,label){
 async function boot(){
  const embedded=$('#embedded-library');if(embedded)try{lib=C.checkStructure(JSON.parse(embedded.textContent));showId=lib.shows[0].id;songId=lib.shows[0].songs[0].id;restorePackageFocus(lib);}catch(e){toast(tr('嵌入数据无效，已打开示例：')+e.message);}
  focusActor=song().castIds[0]||'';prepareHumanScene();renderAll();if(embedded)$('#saveState').textContent=tr('已打开');
- try{const saved=await dbRead('draft');if(saved?.dirty){restoring=true;modal(tr('发现未保存的恢复草稿'),ui`<div class="recovery-comparison">${recoverySummary(lib,showId,songId,tr('当前文件'))}${recoverySummary(saved.library,saved.showId,saved.songId,tr('未保存草稿'))}</div><p class="footer-note">草稿时间：${esc(new Date(saved.when).toLocaleString(StageI18n.language))}。恢复草稿不会覆盖磁盘文件。</p><div class="dialogactions"><button id="discardDraft">使用当前文件</button><button id="restoreDraft" class="gold">恢复草稿</button></div>`);$('#discardDraft').onclick=()=>{restoring=false;closeModal();saveDraft();};$('#restoreDraft').onclick=async()=>{try{lib=C.checkStructure(saved.library);showId=saved.showId;songId=saved.songId;repairSelection();for(const ref of libraryMediaReferences(lib.shows)){const blob=await dbRead('audio:'+ref.key);if(blob)pendingAssets.set(ref.key,blob);}restoring=false;changed();closeModal();renderAll();await loadAudio();renderAll();toast(tr('草稿已恢复，请保存到新文件夹或导出演出包。'));}catch(e){toast(e.message);}};}}
+ try{const saved=await dbRead('draft');if(saved?.dirty){restoring=true;modal(tr('发现未保存的恢复草稿'),ui`<div class="recovery-comparison">${recoverySummary(lib,showId,songId,tr('当前文件'))}${recoverySummary(saved.library,saved.showId,saved.songId,tr('未保存草稿'))}</div><p class="footer-note">草稿时间：${esc(new Date(saved.when).toLocaleString(StageI18n.language))}。恢复草稿不会覆盖磁盘文件。</p><div class="dialogactions"><button id="discardDraft">使用当前文件</button><button id="restoreDraft" class="gold">恢复草稿</button></div>`);$('#discardDraft').onclick=()=>{restoring=false;closeModal();saveDraft();};$('#restoreDraft').onclick=async()=>{try{lib=restoreVocalNotation(C.checkStructure(saved.library),lib);showId=saved.showId;songId=saved.songId;repairSelection();for(const ref of libraryMediaReferences(lib.shows)){const blob=await dbRead('audio:'+ref.key);if(blob)pendingAssets.set(ref.key,blob);}restoring=false;changed();closeModal();renderAll();await loadAudio();renderAll();toast(tr('草稿已恢复，请保存到新文件夹或导出演出包。'));}catch(e){toast(e.message);}};}}
  catch(e){/* Draft recovery is optional; all explicit file operations remain available. */}
  await loadAudio();updateTransport();
 }
@@ -238,11 +238,12 @@ if(typeof ResizeObserver==='function'){
   layoutFrame=requestAnimationFrame(()=>{
    if(!drag&&!singing)renderStage();
    updateSongTitleOverflow();updateLyricsFocus(true);updateSingingFocus(true);
+   if(singingVocal)renderVocalScore(vocalClip());
    if(reminderOpen)updateReminderRail(reminderPlaybackEnd());
    if(bottomTab==='timeline'&&!timelineDrag)renderTimeline();
    else updatePlayhead();
   });
  });
- layoutObserver.observe($('#stageWrap'));layoutObserver.observe($('#bottomContent'));layoutObserver.observe($('#leftContent'));layoutObserver.observe($('#lyricsList'));layoutObserver.observe($('#singingList'));layoutObserver.observe(reminderRail);
+ layoutObserver.observe($('#stageWrap'));layoutObserver.observe($('#bottomContent'));layoutObserver.observe($('#leftContent'));layoutObserver.observe($('#lyricsList'));layoutObserver.observe($('#singingList'));layoutObserver.observe(reminderRail);layoutObserver.observe($('#vocalPractice'));
 }else window.addEventListener('resize',()=>{if(reminderOpen)updateReminderRail(reminderPlaybackEnd());if(!drag)renderStage();if(bottomTab==='timeline'&&!timelineDrag)renderTimeline();else updatePlayhead();});
 boot().catch(e=>{console.error(e);toast(tr('启动失败：')+e.message);});

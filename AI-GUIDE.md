@@ -214,3 +214,27 @@ A song may include one `rehearsalVideo` object with `name`, `file`, `mimeType`, 
 ## Lighting cue prompter (optional, format version 1)
 
 A song may have a `lightingCues` array. Each cue has a unique `id`, `at` in seconds (0 to 86400), and nonempty `text`. An optional `lyricId` follows the start of that lyric in the same song. Keep `at` as the fallback time if the lyric is removed. Cue times are independent of blocking steps. Each cue may carry a `sketches` array. Each entry has a six-digit hex `color` and at least one `{x, y}` point in stage coordinates. Preserve cue IDs and sketches when retiming cues. Older songs may contain a top-level `lightingSketches` array. Preserve it for the operator to assign to a cue.
+
+### Embedded vocal practice
+
+A song may include `vocalPractice: {"version":1,"clips":[...]}` in its own
+`song.json`. Stagebook opens these parts in **Singing → Harmony practice**.
+Folder saves, version snapshots and ZIP exports carry the field with the song.
+The performance MP3 and lyrics are independent of the synthesized practice
+player. Voice clips use seconds relative to the clip, MIDI pitch 0–127 and a
+stable ID on each clip, part and note. A recording-based clip also has an
+absolute `offset` in seconds. Preserve IDs and edit only the requested data.
+
+For a batch transfer from a standalone Vocal Rehearsal v1 export, pass
+`--vocal-data SHOW_ID FILE` to `package_show.py`. It joins the external
+`stagebookSongId` to the destination song ID inside the chosen show and copies
+the clips into that song. Use the score and recordings supplied by the
+production. Keep approximations in the clip memo.
+
+For sheet navigation, use ordered `clips[].bars` records `{number, start}` and
+optional `sections` records `{bar,title}` for recognizable entrances. A note's
+optional `bar` is the score's bar number. Its optional `beats` is the printed
+value in quarter-note units (1 for a quarter, 0.5 for an eighth, 0.75 for a
+dotted eighth). Copy both from notation, and leave uncertain fields absent.
+Keep the independent seconds-based fields for playback. Staff previews are
+practice transcriptions; keep the source reference for checking details.

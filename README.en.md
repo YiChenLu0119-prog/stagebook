@@ -2,7 +2,7 @@
 
 Stagebook is an offline workspace for blocking and rehearsing musicals, plays, and other staged performances. Plan entrances and crosses against song time, cue lights from a lyric, and give the cast one portable copy to review between rehearsals.
 
-**[Download Stagebook v9.7.1](https://github.com/YiChenLu0119-prog/stagebook/releases/download/v9.7.1/Stagebook-v9.7.1-offline.zip)** · [Quick start](docs/quick-start.md) · [Releases](https://github.com/YiChenLu0119-prog/stagebook/releases) · [Roadmap](docs/ROADMAP.md)
+**[Download Stagebook v9.8.0](https://github.com/YiChenLu0119-prog/stagebook/releases/download/v9.8.0/Stagebook-v9.8.0-offline.zip)** · [Quick start](docs/quick-start.md) · [Releases](https://github.com/YiChenLu0119-prog/stagebook/releases) · [Roadmap](docs/ROADMAP.md)
 
 Extract the ZIP and open **Stagebook.html** in a desktop browser. Keep the **演出资料** folder beside it. The app works offline without an account or installation. Switch between English, Simplified Chinese, and Traditional Chinese in the top bar.
 
@@ -35,6 +35,14 @@ Choose your role to see your current action and how long until your next move. F
 ![Sing view with Actor A’s lines highlighted in color and Actor B’s lines still readable around the active lyric](docs/images/v9.7/singing.jpg)
 
 Select your roles to highlight your parts while keeping the other voices visible. Jump to your next entrance, repeat a passage with a pickup, or slow down playback.
+
+Add **My note** beside a lyric to mark that you sing it or leave a short reminder. For example, mark your entrance in a shared chorus and write “second repeat, upper part.” Notes and marks stay in that browser profile. The rest of the cast can make their own notes in the same production.
+
+When a song contains voice data, open **Harmony practice** from **Sing**. Read the continuous staff, select a part to hear, drag to an entrance, or choose a start and end to run several passages as a group. The editable notation travels in the production ZIP. Synthesized practice audio uses the voice data supplied with the song.
+
+## Single-song example
+
+[Download the Alexander Hamilton example](https://github.com/YiChenLu0119-prog/stagebook/releases/download/v9.8.0/Alexander-Hamilton-example.zip) and import the ZIP from **Open production**. It contains the opening number’s stage layout, cast, 25 timed blocking steps, rehearsal audio, timed lyrics, and editable voice practice excerpts. Use this one-song ZIP to try the full workflow from blocking to rehearsing with the cast.
 
 ## Full-song rehearsal video
 

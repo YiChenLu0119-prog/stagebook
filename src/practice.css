@@ -78,3 +78,65 @@
  .song-video-transport input{order:3;flex-basis:100%}
  .song-video-range{gap:5px}
 }
+
+.vocal-mode .singing-options,.vocal-mode #singingLoopState,.vocal-mode .bottompanel{display:none}
+.vocal-practice{flex:1;min-height:0;overflow:auto;padding:18px 24px 32px}
+.vocal-controls,.vocal-practice details,.vocal-empty{max-width:850px;margin:0 auto 14px}
+.vocal-controls label{display:grid;gap:5px;min-width:0}
+.vocal-controls{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr);gap:12px}
+.vocal-controls select{width:100%;min-width:0}
+.vocal-player{display:flex;align-items:center;gap:10px;grid-column:1/-1;flex-wrap:wrap}
+.vocal-player .vocal-scrub{flex:1;min-width:110px;color:var(--muted);font-size:12px}
+.vocal-scrub input{width:100%;margin:0;accent-color:var(--gold)}
+#vocalClock{font-variant-numeric:tabular-nums;white-space:nowrap}
+.vocal-practice details{border-top:1px solid var(--line);padding-top:10px}
+.vocal-practice summary{cursor:pointer}
+.vocal-reference p{color:var(--muted);white-space:pre-line}
+@media(max-width:600px){.vocal-practice{padding:12px}}
+.vocal-workspace{display:grid;grid-template-columns:minmax(200px,260px) minmax(0,1fr);gap:24px;max-width:1320px;margin:auto}
+.vocal-index,.vocal-main{min-width:0}
+.vocal-index label{display:grid;gap:7px;font-size:13px}
+#vocalPassageList{display:grid;gap:4px;max-height:62dvh;overflow:auto;margin-top:9px;padding:3px}
+.vocal-passage{width:100%;text-align:left;border:1px solid var(--line);display:grid;gap:3px;padding:8px 10px}
+.vocal-passage strong{font-size:13px;overflow-wrap:anywhere}
+.vocal-passage small{color:var(--muted);font-size:11px}
+.vocal-passage[aria-current=true]{border-color:var(--gold);background:var(--accent-soft)}
+.vocal-subpassage{margin-inline-start:10px;width:calc(100% - 10px)}
+.vocal-controls h2,.vocal-score-nav h3,.vocal-staff-part h4{margin:0}
+.vocal-controls h2{font-size:18px}
+.vocal-score-nav{display:flex;align-items:center;gap:5px;flex-wrap:wrap;margin:14px 0 8px}
+.vocal-score-nav h3{font-size:15px;margin-inline-end:auto}
+.vocal-staff-part{margin:8px 0 16px}
+.vocal-staff-part h4{font-size:13px;margin-bottom:5px}
+#vocalScore{min-width:0}
+.vocal-system{margin:0 0 12px;padding:3px 0 7px;scroll-margin-block-start:145px}
+.vocal-staff{min-width:0}
+.vocal-staff h4{font-size:12px;color:var(--muted);margin:3px 0 0}
+.vocal-staff-line{display:flex;position:relative;isolation:isolate;min-width:0}
+.vocal-staff-line::before{position:absolute;inset-inline:0;top:56px;height:22px;z-index:-1;content:"";
+ background:repeating-linear-gradient(to bottom,var(--line) 0 1px,transparent 1px 5.3px)}
+.vocal-staff-measure{position:relative;min-width:0;flex:var(--bar-weight) 1 0;padding-top:20px}
+.vocal-staff-measure::after{content:"";position:absolute;top:56px;right:0;width:1px;height:22px;background:var(--line)}
+.vocal-bar-number{position:absolute;top:0;left:3px;font-size:11px;color:var(--muted);padding:0 4px;min-width:22px}
+.vocal-staff-measure.is-current .vocal-bar-number{color:var(--gold);background:var(--accent-soft)}
+.vocal-notes{display:flex;align-items:flex-start;min-height:115px;min-width:0;padding-inline:2px}
+.vocal-clef{flex:0 0 29px;text-align:center;margin-top:48px;font-size:29px;line-height:1.2}
+.vocal-note{display:grid;justify-items:center;min-width:0;flex:1 1 30px;padding:0;border:0;font-size:10px;white-space:nowrap;border-radius:3px}
+.vocal-note.is-sounding{background:var(--accent-soft);color:var(--gold)}
+.vocal-note svg{display:block;width:min(100%,32px);height:102px;overflow:visible;fill:currentColor;stroke:currentColor;stroke-width:1}
+.vocal-note svg .hollow{fill:var(--bg);stroke-width:1.4}
+.vocal-note svg path{fill:none}
+.vocal-note svg text{stroke:none;font-size:12px}
+.vocal-note small{max-width:100%;overflow:hidden;text-overflow:ellipsis}
+@media(max-width:680px){.vocal-workspace{display:block}.vocal-index{margin-bottom:14px}#vocalPassageList{max-height:185px}.vocal-system{scroll-margin-block-start:108px}}
+.vocal-index{position:sticky;top:0;align-self:start}
+.vocal-controls{position:sticky;top:0;z-index:2;background:var(--bg);padding:7px 0 10px;border-bottom:1px solid var(--line)}
+.vocal-active-section{display:block;color:var(--gold);font-size:12px;margin-top:3px;overflow-wrap:anywhere}
+.vocal-controls[hidden],.vocal-active-section[hidden]{display:none}
+@media(max-width:680px){.vocal-index{position:static}.vocal-controls h2{font-size:15px}}
+
+.vocal-run-label{color:var(--muted);font-size:12px;overflow-wrap:anywhere;margin:3px 0}
+
+.sing-note-button{font-size:11px;color:var(--muted);padding:4px 6px;white-space:nowrap}
+.sing-note-button.has-note,.sing-personal-note{color:var(--gold)}
+.sing-personal-note{display:block;font-size:13px;margin-top:5px;line-height:1.4;white-space:pre-wrap;overflow-wrap:anywhere}

@@ -224,6 +224,32 @@
       checkLightingSketches(cue.sketches);
     }
   }
+  const vocalId=value=>typeof value==='string'&&/^[A-Za-z0-9_-]{1,96}$/.test(value);
+  const vocalText=(value,max)=>typeof value==='string'&&value.length<=max;
+  const vocalTime=value=>finite(value)&&value>=0&&value<=86400;
+  const vocalBar=value=>Number.isInteger(value)&&value>=1&&value<=999;
+  const vocalBeats=value=>[.125,.25,.375,.5,.75,1,1.5,2,3,4,6].includes(value);
+  function validVocalNote(note){
+    return Boolean(note&&vocalId(note.id)&&vocalTime(note.start)&&vocalTime(note.duration)&&note.duration>=.015&&
+      note.start+note.duration<=86400&&Number.isInteger(note.midi)&&note.midi>=0&&note.midi<=127&&vocalText(note.syllable,80)&&
+      (note.bar===undefined||vocalBar(note.bar))&&(note.beats===undefined||vocalBeats(note.beats)));
+  }
+  function validVocalList(rows,limit,check){
+    return Array.isArray(rows)&&rows.length<=limit&&rows.every(row=>row&&vocalId(row.id)&&check(row))&&
+      new Set(rows.map(row=>row.id)).size===rows.length;
+  }
+  function checkVocalPractice(value){
+    if(!value||value.version!==1||!validVocalList(value.clips,300,clip=>
+      vocalText(clip.title,200)&&clip.title.trim()&&vocalText(clip.measure,200)&&vocalText(clip.memo,5000)&&
+      (clip.timebase==='recording'?vocalTime(clip.offset):clip.timebase==='relative'&&clip.offset===null)&&
+      (clip.sourceURL===null||vocalText(clip.sourceURL,1000)&&clip.sourceURL.startsWith('https://'))&&
+      (clip.bars===undefined||Array.isArray(clip.bars)&&clip.bars.length<=999&&clip.bars.every((bar,i)=>
+        bar&&vocalBar(bar.number)&&vocalTime(bar.start)&&(!i||clip.bars[i-1].number<bar.number&&clip.bars[i-1].start<bar.start)))&&
+      (clip.sections===undefined||Array.isArray(clip.sections)&&clip.sections.length<=999&&clip.sections.every(section=>
+        section&&vocalBar(section.bar)&&vocalText(section.title,200)&&clip.bars?.some(bar=>bar.number===section.bar)))&&
+      validVocalList(clip.parts,64,part=>vocalText(part.role,200)&&part.role.trim()&&validVocalList(part.notes,2200,validVocalNote))))
+      throw Error(tr('曲目和声数据无效。'));
+  }
   function checkStructure(lib){
     if(!lib||lib.version!==1||!Array.isArray(lib.shows))throw Error(tr('需要 version: 1 和 shows 数组。'));
     const showIds=new Set();
@@ -251,6 +277,7 @@
         for(const c of song.cues){if(!Array.isArray(c.moves))throw Error(tr('每一步都需要 moves 数组。'));for(const m of c.moves)if(!m||typeof m.id!=='string'||!Array.isArray(m.points)||!m.points.every(point)||!validControls(m.points))throw Error(tr('路线需要 ID 及有效坐标 points 数组。'));else for(const key of ['startOffset','duration'])if(m[key]!==undefined&&(!finite(m[key])||m[key]<0))throw Error(tr('演员移动时间需要非负秒数。'));}
         for(const l of song.lyrics)if(l.speakerIds!==undefined&&(!Array.isArray(l.speakerIds)||!l.speakerIds.every(id=>typeof id==='string')))throw Error(tr('歌词角色需要字符串 ID 数组。'));
         checkCueAttachments(song.cues);checkLightingReminders(song);
+        if(song.vocalPractice!==undefined)checkVocalPractice(song.vocalPractice);
         if(song.rehearsalVideo!==undefined)checkRehearsalVideo(song.rehearsalVideo);
         for(const n of song.annotations)if(n.entityIds!==undefined&&(!Array.isArray(n.entityIds)||!n.entityIds.every(id=>typeof id==='string')))throw Error(tr('记录 entityIds 必须为字符串数组。'));
         if(song.audio&&!safePath(song.audio.file))throw Error(tr('音频必须是曲目文件夹内的相对路径。'));
@@ -312,6 +339,6 @@
     if(!ref)return {start:annotation.start,end:annotation.end,missing:false};
     const source=noteSource(show,ref);return {start:source.start,end:source.end,missing:source.missing};
   }
-  const api={rehearsalVideoMimes,clone,id,finite,point,segment,bendSegment,insertRoutePoint,removeRoutePoint,flatten,along,path,inside,crosses,allowed,events,moveEvent,moveEvents,cuePlaybackEnd,position,beforeCue,cuePosition,setDestinations,setInitialPositions,removeActions,total,issues,checkStructure,safePath,newSong,newShow,dataFingerprint,showFingerprint,handoffState,checkRehearsalMetadata,noteSource,annotationRange};
+  const api={rehearsalVideoMimes,clone,id,finite,point,segment,bendSegment,insertRoutePoint,removeRoutePoint,flatten,along,path,inside,crosses,allowed,events,moveEvent,moveEvents,cuePlaybackEnd,position,beforeCue,cuePosition,setDestinations,setInitialPositions,removeActions,total,issues,checkStructure,validVocalNote,safePath,newSong,newShow,dataFingerprint,showFingerprint,handoffState,checkRehearsalMetadata,noteSource,annotationRange};
   root.StageCore=api;if(typeof module!=='undefined')module.exports=api;
 })(globalThis);

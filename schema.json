@@ -675,6 +675,25 @@
         },
         "notes": {
           "type": "string"
+        },
+        "vocalPractice": {
+          "type": "object",
+          "properties": {
+            "version": {
+              "const": 1
+            },
+            "clips": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/vocalClip"
+              },
+              "maxItems": 300
+            }
+          },
+          "required": [
+            "version",
+            "clips"
+          ]
         }
       },
       "required": [
@@ -687,6 +706,223 @@
         "cues",
         "lyrics",
         "annotations"
+      ]
+    },
+    "vocalNote": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9_-]{1,96}$"
+        },
+        "start": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 86400
+        },
+        "duration": {
+          "type": "number",
+          "minimum": 0.015,
+          "maximum": 86400
+        },
+        "midi": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 127
+        },
+        "syllable": {
+          "type": "string",
+          "maxLength": 80
+        },
+        "bar": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 999
+        },
+        "beats": {
+          "enum": [
+            0.125,
+            0.25,
+            0.375,
+            0.5,
+            0.75,
+            1,
+            1.5,
+            2,
+            3,
+            4,
+            6
+          ]
+        }
+      },
+      "required": [
+        "id",
+        "start",
+        "duration",
+        "midi",
+        "syllable"
+      ]
+    },
+    "vocalBar": {
+      "type": "object",
+      "properties": {
+        "number": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 999
+        },
+        "start": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 86400
+        }
+      },
+      "required": [
+        "number",
+        "start"
+      ]
+    },
+    "vocalSection": {
+      "type": "object",
+      "properties": {
+        "bar": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 999
+        },
+        "title": {
+          "type": "string",
+          "maxLength": 200
+        }
+      },
+      "required": [
+        "bar",
+        "title"
+      ]
+    },
+    "vocalPart": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9_-]{1,96}$"
+        },
+        "role": {
+          "type": "string",
+          "maxLength": 200
+        },
+        "notes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/vocalNote"
+          },
+          "maxItems": 2200
+        }
+      },
+      "required": [
+        "id",
+        "role",
+        "notes"
+      ]
+    },
+    "vocalClip": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9_-]{1,96}$"
+        },
+        "title": {
+          "type": "string",
+          "maxLength": 200
+        },
+        "measure": {
+          "type": "string",
+          "maxLength": 200
+        },
+        "memo": {
+          "type": "string",
+          "maxLength": 5000
+        },
+        "offset": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "timebase": {
+          "enum": [
+            "recording",
+            "relative"
+          ]
+        },
+        "sourceURL": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^https://",
+          "maxLength": 1000
+        },
+        "parts": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/vocalPart"
+          },
+          "maxItems": 64
+        },
+        "bars": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/vocalBar"
+          },
+          "maxItems": 999
+        },
+        "sections": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/vocalSection"
+          },
+          "maxItems": 999
+        }
+      },
+      "required": [
+        "id",
+        "title",
+        "measure",
+        "memo",
+        "offset",
+        "timebase",
+        "sourceURL",
+        "parts"
+      ],
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "timebase": {
+                "const": "recording"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "offset": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 86400
+              }
+            }
+          },
+          "else": {
+            "properties": {
+              "offset": {
+                "type": "null"
+              }
+            }
+          }
+        }
       ]
     },
     "show": {

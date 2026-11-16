@@ -1,5 +1,39 @@
 /* Personal singing preferences stay in this browser. Only explicit lyric attribution is production data. */
+let singingVocal=false;
 let singingContext=null,singingIdentity='',singingSignature='',singingActive='',singingFollow=true,singingRoles=[],singingSize=30,singingLead=2,singingAnchor=null,singingRange=null;
+let singingNotes=new Map();
+const singingNotesKey=()=>'stagebook.singing-notes.'+showId+'/'+songId;
+function loadSingingNotes(){
+ singingNotes=new Map();
+ try{
+  const rows=JSON.parse(localStorage.getItem(singingNotesKey())||'[]');
+  for(const row of rows)if(Array.isArray(row)&&typeof row[0]==='string'&&typeof row[1]?.text==='string')
+   singingNotes.set(row[0],{mine:row[1].mine===true,text:row[1].text.slice(0,160)});
+ }catch{}
+}
+function singingNoteDialog(id){
+ const line=lyricById(id);
+ if(!line)return;
+ pause();
+ const key=singingNotesKey(),previous=singingNotes.get(id);
+ modal(tr('我的唱段备注'),ui`<p>${esc(line.text)}</p>
+  <label class="smallcheck"><input id="singNoteMine" type="checkbox" ${!previous||previous.mine?'checked':''}>这句我唱</label>
+  <label class="field"><span>小备注</span><textarea id="singNoteText" maxlength="160" rows="2" placeholder="例如：第二遍进，唱上声部">${esc(previous?.text||'')}</textarea></label>
+  <div class="dialogactions">${previous?ui`<button id="clearSingNote">清除标记和备注</button>`:''}<button id="saveSingNote" class="gold">保存</button></div>`);
+ const save=(mine,text)=>{
+  if(key!==singingNotesKey())return;
+  const next=new Map(singingNotes);
+  if(mine||text)next.set(id,{mine,text});else next.delete(id);
+  try{localStorage.setItem(key,JSON.stringify([...next]));}
+  catch{toast(tr('这台浏览器无法保存个人备注。'));return;}
+  singingNotes=next;singingSignature='';
+  closeModal();
+  renderSinging();
+  document.querySelector(`[data-action="sing-note:${CSS.escape(id)}"]`)?.focus({preventScroll:true});
+ };
+ $('#saveSingNote').onclick=()=>save($('#singNoteMine').checked,$('#singNoteText').value.trim());
+ if(previous)$('#clearSingNote').onclick=()=>save(false,'');
+}
 function singerKey(text){return String(text||'').normalize('NFKC').toLocaleLowerCase().replace(/[’']/g,'').replace(/[^\p{L}\p{N}]+/gu,' ').trim();}
 function resolveSinger(label){
  const key=singerKey(label),actors=show()?.actors||[];
@@ -17,7 +51,7 @@ function lyricSegments(l){
  const result=[];if(matches[0].index)result.push({text:text.slice(0,matches[0].index),roles:explicit||[]});
  matches.forEach((m,i)=>result.push({text:text.slice(m.index,matches[i+1]?.index??text.length),roles:explicit||labelSingers(m[1])}));return result;
 }
-function singingLineIsMine(l){return lyricSegments(l).some(segment=>segment.roles.some(id=>singingRoles.includes(id)));}
+function singingLineIsMine(l){return singingNotes.get(l.id)?.mine===true||lyricSegments(l).some(segment=>segment.roles.some(id=>singingRoles.includes(id)));}
 function singingRoleOptions(){
  const options=new Map((show()?.actors||[]).filter(a=>song()?.castIds.includes(a.id)).map(a=>[a.id,{id:a.id,name:displayName(a)}]));
  for(const l of song()?.lyrics||[])for(const m of String(l.text).matchAll(/\[([^\]\n]+)\]/g))for(const label of m[1].split(/\s*(?:[\/&,、，＋+]|\band\b)\s*/i)){
@@ -32,14 +66,14 @@ function loadSingingPrefs(){
  try{const p=JSON.parse(localStorage.getItem(singingPrefsKey())||'{}');if(Array.isArray(p.roles))singingRoles=p.roles.filter(id=>typeof id==='string');if([24,30,38].includes(p.size))singingSize=p.size;if([0,2,4].includes(p.lead))singingLead=p.lead;}catch{}
 }
 function saveSingingPrefs(){try{localStorage.setItem(singingPrefsKey(),JSON.stringify({roles:singingRoles,size:singingSize,lead:singingLead}));}catch{}}
-function singingSongWillChange(){loop=null;singingRange=null;singingAnchor=null;}
+function singingSongWillChange(){vocalStop(true);loop=null;singingRange=null;singingAnchor=null;}
 function enterSinging(){
  if(singing)return;
  singingContext={identity:showId+'/'+songId,rehearsal,tool,stagePhase,selected:[...selected],selectedCue,inspect:{...inspect},bottomTab,lyricDockVisible,loop:loop&&{...loop},lead:$('#leadIn').value};
  singleStepEnd=null;loop=null;singingRange=null;singing=true;rehearsal=true;stagePhase='live';tool='select';$('#leadIn').value='0';singingFollow=true;singingIdentity='';renderAll();
 }
 function exitSinging(mode=null){
- if(!singing)return;const context=singingContext;singing=false;singingRange=null;singingAnchor=null;loop=null;
+ if(!singing)return;vocalStop(true);singingVocal=false;document.body.classList.remove('vocal-mode');const context=singingContext;singing=false;singingRange=null;singingAnchor=null;loop=null;
  if(context&&context.identity===showId+'/'+songId){rehearsal=context.rehearsal;tool=context.tool;stagePhase=context.stagePhase;selected=context.selected;selectedCue=context.selectedCue;inspect=context.inspect;bottomTab=context.bottomTab;lyricDockVisible=context.lyricDockVisible;loop=context.loop;$('#leadIn').value=context.lead;}
  else{const at=current;rehearsal=false;prepareHumanScene();positionMusicCursor(at);if(context)$('#leadIn').value=context.lead;}
  if(mode!==null){rehearsal=mode==='mode-rehearse';tool='select';stagePhase=rehearsal?'live':'end';}
@@ -48,20 +82,32 @@ function exitSinging(mode=null){
 function renderSinging(){
  $('#workspace').classList.toggle('singing',singing);document.body.classList.toggle('singing-mode',singing);$('#singingPanel').classList.toggle('hidden',!singing);$('#singMode').classList.toggle('selected',singing);$('#singMode').setAttribute('aria-pressed',String(singing));
  if(!singing)return;
- const identity=showId+'/'+songId;if(identity!==singingIdentity){singingIdentity=identity;singingSignature='';singingActive='';singingAnchor=null;singingFollow=true;loadSingingPrefs();}
+ if(!song()?.vocalPractice?.clips.length){vocalStop(true);singingVocal=false;}
+ const identity=showId+'/'+songId;if(identity!==singingIdentity){singingIdentity=identity;singingSignature='';singingActive='';singingAnchor=null;singingFollow=true;loadSingingPrefs();loadSingingNotes();}
  const roles=singingRoleOptions(),names=roles.filter(r=>singingRoles.includes(r.id)).map(r=>r.name).join(' / ');
- $('#singingTools').innerHTML=ui`<div class="singing-title"><label><span>练歌曲目</span><select id="singingSong" aria-label="练歌曲目">${show().songs.map(q=>`<option value="${esc(q.id)}" ${q.id===songId?'selected':''}>${esc(q.title)}</option>`).join('')}</select></label><button data-action="sing-exit">返回工作区</button></div><div class="singing-options"><button data-action="sing-roles" class="sing-role-button">${names?esc(names):tr('选择我负责的角色')}</button><label><span>字号</span><select id="singingSize">${[24,30,38].map(v=>`<option value="${v}" ${v===singingSize?'selected':''}>${v}</option>`).join('')}</select></label><label><span>速度</span><select id="singingSpeed">${[.5,.75,1,1.25].map(v=>`<option value="${v}" ${v===rate?'selected':''}>${v}×</option>`).join('')}</select></label><button data-action="sing-previous" ${!song().lyrics.some(singingLineIsMine)?'disabled':''}>上一句我的词</button><button data-action="sing-next" ${!song().lyrics.some(singingLineIsMine)?'disabled':''}>下一句我的词</button><button data-action="sing-passage" ${song().lyrics.length?'':'disabled'}>循环练习</button><button id="singingFollow" data-action="sing-follow" aria-pressed="${singingFollow}">${tr(singingFollow?'跟随播放':'回到当前句')}</button></div><div id="singingLoopState" class="singing-loop-state"></div>`;
+ $('#singingTools').innerHTML=ui`<div class="singing-title"><label><span>练歌曲目</span><select id="singingSong" aria-label="练歌曲目">${show().songs.map(q=>`<option value="${esc(q.id)}" ${q.id===songId?'selected':''}>${esc(q.title)}</option>`).join('')}</select></label><button id="singVocalMode" data-action="sing-vocal">和声练习</button><button data-action="sing-exit">返回工作区</button></div><div class="singing-options"><button data-action="sing-roles" class="sing-role-button">${names?esc(names):tr('选择我负责的角色')}</button><label><span>字号</span><select id="singingSize">${[24,30,38].map(v=>`<option value="${v}" ${v===singingSize?'selected':''}>${v}</option>`).join('')}</select></label><label><span>速度</span><select id="singingSpeed">${[.5,.75,1,1.25].map(v=>`<option value="${v}" ${v===rate?'selected':''}>${v}×</option>`).join('')}</select></label><button data-action="sing-previous" ${!song().lyrics.some(singingLineIsMine)?'disabled':''}>上一句我的词</button><button data-action="sing-next" ${!song().lyrics.some(singingLineIsMine)?'disabled':''}>下一句我的词</button><button data-action="sing-passage" ${song().lyrics.length?'':'disabled'}>循环练习</button><button id="singingFollow" data-action="sing-follow" aria-pressed="${singingFollow}">${tr(singingFollow?'跟随播放':'回到当前句')}</button></div><div id="singingLoopState" class="singing-loop-state"></div>`;
+ const vocalButton=document.querySelector('#singVocalMode');
+ if(vocalButton){
+  vocalButton.hidden=!song()?.vocalPractice?.clips.length;
+  vocalButton.setAttribute('aria-pressed',String(singingVocal));
+  vocalButton.textContent=tr(singingVocal?'返回歌词':'和声练习');
+  document.body.classList.toggle('vocal-mode',singingVocal);
+ }
+ if(singingVocal){renderVocalPractice();return;}
+ $('#vocalPractice').classList.add('hidden');
+ $('#singingList').classList.remove('hidden');
+ $('#singingContext').classList.remove('hidden');
  $('#singingList').style.setProperty('--sing-font',singingSize+'px');
  const signature=JSON.stringify([song().lyrics,singingRoles,StageI18n.language]);
  if(signature!==singingSignature){
-  $('#singingList').innerHTML=sortedSingingLyrics().map(l=>`<article class="sing-line ${singingLineIsMine(l)?'my-line':''}" data-sing-row="${esc(l.id)}"><div class="sing-line-head"><time>${fmt(l.start)}</time><span class="sing-line-badge">${singingLineIsMine(l)?tr('我的词'):''}</span><span class="sing-line-actions"><button data-action="sing-loop:${esc(l.id)}">${tr('循环这句')}</button><button data-action="sing-assign:${esc(l.id)}">${tr('指定角色')}</button></span></div><button class="sing-line-text" data-action="sing-jump:${esc(l.id)}">${lyricSegments(l).map(segment=>`<span class="${segment.roles.some(id=>singingRoles.includes(id))?'my-words':''}">${esc(segment.text)}</span>`).join('')}</button>${Array.isArray(l.speakerIds)&&l.speakerIds.length?`<small class="sing-attribution">${l.speakerIds.map(id=>esc(entity(id)?.name||id)).join(' / ')}</small>`:''}</article>`).join('')||ui`<div class="singing-empty"><p>先导入带时间的歌词，即可开始练歌。</p><button data-action="lyrics">导入歌词</button></div>`;
+  $('#singingList').innerHTML=sortedSingingLyrics().map(l=>{const personal=singingNotes.get(l.id);return `<article class="sing-line ${singingLineIsMine(l)?'my-line':''}" data-sing-row="${esc(l.id)}"><div class="sing-line-head"><time>${fmt(l.start)}</time><span class="sing-line-badge">${singingLineIsMine(l)?tr('我的词'):''}</span><span class="sing-line-actions"><button data-action="sing-loop:${esc(l.id)}">${tr('循环这句')}</button><button data-action="sing-assign:${esc(l.id)}">${tr('指定角色')}</button></span><button class="sing-note-button ${personal?'has-note':''}" data-action="sing-note:${esc(l.id)}">${tr(personal?'改备注':'我的备注')}</button></div><button class="sing-line-text" data-action="sing-jump:${esc(l.id)}">${lyricSegments(l).map(segment=>`<span class="${personal?.mine||segment.roles.some(id=>singingRoles.includes(id))?'my-words':''}">${esc(segment.text)}</span>`).join('')}</button>${Array.isArray(l.speakerIds)&&l.speakerIds.length?`<small class="sing-attribution">${l.speakerIds.map(id=>esc(entity(id)?.name||id)).join(' / ')}</small>`:''}${personal?.text?`<small class="sing-personal-note">${esc(personal.text)}</small>`:''}</article>`;}).join('')||ui`<div class="singing-empty"><p>先导入带时间的歌词，即可开始练歌。</p><button data-action="lyrics">导入歌词</button></div>`;
   singingSignature=signature;singingActive='';
  }
  updateSingingFocus(true);
 }
 function sortedSingingLyrics(){return [...song().lyrics].sort((a,b)=>a.start-b.start||a.end-b.end);}
 function updateSingingFocus(force=false){
- if(!singing)return;const list=sortedSingingLyrics(),active=list.filter(l=>l.start<=current&&l.end>current),key=active.map(l=>l.id).join('|');
+ if(!singing||singingVocal)return;const list=sortedSingingLyrics(),active=list.filter(l=>l.start<=current&&l.end>current),key=active.map(l=>l.id).join('|');
  if(key!==singingActive||force){
   for(const row of $$('[data-sing-row]')){const on=active.some(l=>l.id===row.dataset.singRow);row.classList.toggle('active',on);row.setAttribute('aria-current',String(on));}
   const chosen=active.find(singingLineIsMine)||active[0]||list.find(l=>l.start>current)||list.at(-1);
@@ -69,7 +115,7 @@ function updateSingingFocus(force=false){
   singingActive=key;
  }
  const upcoming=list.find(l=>l.start>current&&singingLineIsMine(l)),mine=active.some(singingLineIsMine);
- const text=mine?tr('正在唱你的词'):upcoming?ui`你的下一句：${fmt(upcoming.start)} · 还有 ${Math.ceil(upcoming.start-current)} 秒`:singingRoles.length?tr('本曲没有后续自己的词'):tr('选好角色后，自己的词会突出显示；其他人的词仍然可见。');
+ const text=mine?tr('正在唱你的词'):upcoming?ui`你的下一句：${fmt(upcoming.start)} · 还有 ${Math.ceil(upcoming.start-current)} 秒`:singingRoles.length||singingNotes.size?tr('本曲没有后续自己的词'):tr('选好角色后，自己的词会突出显示；其他人的词仍然可见。');
  if($('#singingContext').textContent!==text)$('#singingContext').textContent=text;
  const state=$('#singingLoopState');if(state){const html=singingRange?ui`<span>循环：${fmt(loop?.start)} → ${fmt(loop?.end)} · 提前 ${singingLead} 秒</span><button data-action="sing-stop-loop">关闭循环</button>`:'';if(state.innerHTML!==html)state.innerHTML=html;}
 }
@@ -107,6 +153,10 @@ function singingPassageDialog(){
 async function singingAction(a){
  if(a==='mode-sing'){enterSinging();return true;}if(!singing)return false;
  if(a==='mode-edit'||a==='mode-rehearse'){exitSinging(a);return true;}
+ if(a==='sing-vocal'){
+  pause();vocalStop(true);singingVocal=!singingVocal;renderSinging();$('#singVocalMode').focus();return true;
+ }
+ if(singingVocal&&vocalAction(a))return true;
  if(a==='sing-exit'){exitSinging();return true;}
  if(a==='sing-roles'){singingRolesDialog();return true;}
  if(a==='sing-follow'){singingFollow=true;updateSingingFocus(true);$('#singingFollow').textContent=tr('跟随播放');$('#singingFollow').setAttribute('aria-pressed','true');return true;}
@@ -115,11 +165,17 @@ async function singingAction(a){
  if(a==='sing-stop-loop'){loop=null;singingRange=null;updateSingingFocus();return true;}
  if(a.startsWith('sing-jump:')){seekSingingLine(a.slice(10));return true;}
  if(a.startsWith('sing-loop:')){const id=a.slice(10);startSingingLoop(id,id);return true;}
+ if(a.startsWith('sing-note:')){singingNoteDialog(a.slice(10));return true;}
  if(a.startsWith('sing-assign:')){assignSingingLine(a.slice(12));return true;}
  return false;
 }
 function handleSingingKey(e,typing,cmd){
  if(typing||cmd)return false;
+ if(singingVocal){
+  if(e.key==='Escape'){e.preventDefault();vocalStop();singingVocal=false;renderSinging();return true;}
+  if(e.code==='Space'&&e.target?.tagName!=='BUTTON'&&e.target?.tagName!=='SUMMARY'){e.preventDefault();vocalPlay();return true;}
+  return true;
+ }
  if(e.code==='Space'&&e.target?.tagName==='BUTTON')return true;
  if(e.code==='Space'){e.preventDefault();play();return true;}
  if(['ArrowLeft','ArrowRight','[',']'].includes(e.key)){e.preventDefault();navigateSinging(e.key==='ArrowLeft'||e.key==='['?-1:1);return true;}
