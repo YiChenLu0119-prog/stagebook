@@ -121,6 +121,8 @@ All screenshots were captured in the released Stagebook v9.7.1 using a generic r
 
 Give your assistant a saved package and the [AI import guide](AI-GUIDE.md). It can turn measured stage dimensions into boundaries and entrances, organize a cast or script breakdown, prepare lyric timestamps from supplied audio when it has suitable tools, or draft actor paths. Ask for a complete import-ready ZIP, then review the timing and movement in Stagebook. AI preparation happens outside the offline editor.
 
+For AI-assisted changes to Stagebook itself, see the [AI development guide](AI-DEVELOPMENT.md) for source entry points, data flow, and verification.
+
 ## Ongoing development
 
 Future work will explore more comfortable editing, clearer cast handoffs, cue readability at the lighting desk, browser compatibility, and accessibility. A desktop edition remains under exploration. Follow the [roadmap](docs/ROADMAP.md) or open an [issue](https://github.com/YiChenLu0119-prog/stagebook/issues) with a rehearsal task and where it got difficult.
