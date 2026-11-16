@@ -1,0 +1,4 @@
+.song-resume:not([hidden]){display:flex;align-items:center;flex-wrap:wrap;gap:2px 5px;margin:5px 0 0}
+.sceneheading .song-resume button{min-height:26px;padding:3px 6px;white-space:normal;text-align:start}
+.sceneheading .song-resume #songResumeContinue{color:var(--gold);border-color:var(--line)}
+.sceneheading .song-resume #songResumeReset{font-size:11px}

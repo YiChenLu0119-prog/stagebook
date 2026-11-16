@@ -81,7 +81,7 @@ async function toggleSongVideo(){
 }
 function updateSongVideoAvailability(){
  const source=songVideoSource;
- $('#songVideoStatus').textContent=tr(!source?'这首歌还没有排练视频。':source.failed?'视频无法读取，请导入完整演出包或重新选择视频。':source.ready?'':'正在读取视频…');
+ $('#songVideoStatus').textContent=tr(!source?'这首歌还没有排练视频。点「添加视频」选择这首歌的录像。':source.failed?'视频无法读取，请导入完整演出包或重新选择视频。':source.ready?'':'正在读取视频…');
  for(const control of $$('#songVideoScreen button, #songVideoScreen input'))control.disabled=!source?.ready;
  updateSongVideoRange();updateSongVideoTransport();
 }
@@ -132,31 +132,14 @@ function renderSongVideo(){
  updateSongVideoAvailability();updateSongVideoFullscreenButton();
 }
 
-function songVideoIsFullscreen(){return (document.fullscreenElement||document.webkitFullscreenElement)===songVideoScreen;}
+const songVideoPresentation=createViewportPresentation(songVideoScreen,'video-viewport',()=>$('#songVideoFullscreen'),updateSongVideoFullscreenButton);
 function updateSongVideoFullscreenButton(){
- const active=songVideoIsFullscreen()||songVideoScreen.classList.contains('video-viewport');
- const button=$('#songVideoFullscreen');
+ const active=songVideoPresentation.active(),button=$('#songVideoFullscreen');
  button.textContent=tr(active?'退出全屏（Esc）':'全屏播放');
  button.setAttribute('aria-pressed',String(active));
 }
-async function exitSongVideoFullscreen(){
- songVideoScreen.classList.remove('video-viewport');
- if(songVideoIsFullscreen()){
-  try{await (document.exitFullscreen||document.webkitExitFullscreen)?.call(document);}catch{}
- }
- updateSongVideoFullscreenButton();
-}
-async function toggleSongVideoFullscreen(){
- if(songVideoIsFullscreen()||songVideoScreen.classList.contains('video-viewport')){
-  await exitSongVideoFullscreen();return;
- }
- try{
-  const request=songVideoScreen.requestFullscreen||songVideoScreen.webkitRequestFullscreen;
-  if(request){await request.call(songVideoScreen);if(songVideoIsFullscreen())return;}
- }catch{}
- if(songVideoOpen)songVideoScreen.classList.add('video-viewport');
- updateSongVideoFullscreenButton();
-}
+function exitSongVideoFullscreen(){return songVideoPresentation.exit();}
+function toggleSongVideoFullscreen(){if(song()?.rehearsalVideo||songVideoPresentation.active())return songVideoPresentation.toggle();}
 function openSongVideo(){
  if(songVideoOpen)return;
  if(singing)exitSinging();
@@ -168,9 +151,9 @@ function leaveSongVideo(){
 }
 function handleSongVideoKey(e,typing,cmd){
  if(cmd&&['z','y','o'].includes(e.key.toLowerCase()))return false;
- if(e.key==='Escape'&&!typing){
-  if(songVideoIsFullscreen()||songVideoScreen.classList.contains('video-viewport'))void exitSongVideoFullscreen();
-  else{leaveSongVideo();renderAll();}
+ if(e.key==='Escape'&&(!typing||songVideoPresentation.active())){
+  if(songVideoPresentation.active())void exitSongVideoFullscreen();
+  else{leaveSongVideo();renderAll();$('#songVideoMode').focus();}
   e.preventDefault();
  }else if(e.code==='Space'&&!typing&&!e.target.closest?.('button,select,input')){
   e.preventDefault();void toggleSongVideo();
@@ -220,7 +203,7 @@ async function songVideoAction(a){
   }
   break;
  }
- case 'song-video-exit':leaveSongVideo();renderAll();break;
+ case 'song-video-exit':leaveSongVideo();renderAll();$('#songVideoMode').focus();break;
  case 'song-video-play':await toggleSongVideo();break;
  case 'song-video-fullscreen':await toggleSongVideoFullscreen();break;
  case 'song-video-mark-start':setSongVideoPoint('start',songVideoPlayer.currentTime);break;
@@ -263,4 +246,3 @@ songVideoPlayer.addEventListener('play',()=>{
 songVideoPlayer.addEventListener('pause',()=>{cancelAnimationFrame(songVideoFrame);updateSongVideoTransport();});
 songVideoPlayer.addEventListener('timeupdate',()=>{if(!stopSongVideoAtBoundary())updateSongVideoTransport();});
 songVideoPlayer.addEventListener('ended',()=>{stopSongVideoAtBoundary(true);updateSongVideoTransport();});
-for(const name of ['fullscreenchange','webkitfullscreenchange'])document.addEventListener(name,updateSongVideoFullscreenButton);

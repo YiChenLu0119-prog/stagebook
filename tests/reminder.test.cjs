@@ -22,6 +22,7 @@ const {createApp}=require('./app-harness.cjs');
  await h.api.action('mode-reminder');
  assert(node('workspace').classList.contains('reminder-mode'));
  assert.equal(value('reminderCountdown'),'—','Blocking steps do not create lighting cues');
+ assert(node('reminderPrevious').disabled&&node('reminderFollowing').disabled,'No cue navigation is offered on an empty timeline');
  assert.match(node('reminderActors').innerHTML,/reminder-ghost/);
  node('reminderOnion').checked=false;
  node('reminderOnion').listeners.change[0]();
@@ -97,8 +98,52 @@ const {createApp}=require('./app-harness.cjs');
  h.api.seek(1.5);await h.api.action('reminder-play');h.api.advance(7);
  assert.equal(h.api.state().playing,true,'A step configured to pause does not stop the lighting clock');
  assert.equal(value('reminderCurrent'),'Raise wash');
+
+ const liveSong=h.api.state().lib.shows[0].songs[0];
+ liveSong.lyrics=[{id:'outside',start:12,end:14,text:'Cannot accidentally seek here'}];
+ liveSong.lightingCues=[
+  {id:'intro',at:0,text:'Intro'},
+  {id:'blue',at:5,text:'Blue'},
+  {id:'warm',at:5,text:'Warm'}
+ ];
+ h.api.seek(0);h.api.renderAll();
+ const dataBeforeLock=JSON.stringify(liveSong);
+ await h.api.action('reminder-lock');
+ assert.equal(h.api.state().playing,true,'Switching on the live lock does not stop playback');
+ assert(h.document.body.classList.contains('reminder-live-locked'));
+ assert(node('reminderSong').disabled&&node('reminderSeek').disabled);
+ assert.match(lyrics.innerHTML,/reminder-lyric:0" disabled/);
+ await h.api.action('reminder-lyric:0');
+ await h.api.action('reminder-select:warm');
+ await h.api.action('reminder-add');
+ assert.equal(h.api.state().current,0,'Live lock ignores lyric and cue clicks');
+ assert.equal(node('dialog').open,false,'Live lock cannot open the cue editor');
+ const ignoredRailPointer={button:0,target:node('reminderSeek'),preventDefault(){assert.fail('A locked playhead must not start a drag');}};
+ node('reminderRail').listeners.pointerdown[0](ignoredRailPointer);
+ await h.api.action('reminder-next');
+ assert.equal(run('selectedReminder().cue.id'),'intro','Navigation can select a cue at time zero');
+ assert.equal(h.api.state().playing,false,'Cue jumps pause playback');
+ assert(node('reminderPrevious').disabled,'The first cue is the lower bound');
+ await h.api.action('reminder-next');
+ assert.equal(h.api.state().current,5);
+ assert.equal(run('selectedReminder().cue.id'),'blue');
+ await h.api.action('reminder-next');
+ assert.equal(h.api.state().current,5);
+ assert.equal(run('selectedReminder().cue.id'),'warm','Same-time cues are navigable in order');
+ assert(node('reminderFollowing').disabled,'The last cue is the upper bound');
+ pointer('pointerdown',10,15);pointer('pointerup',12,18);
+ await h.api.action('reminder-clear');
+ assert.equal(JSON.stringify(liveSong),dataBeforeLock,'Cue jumps and live lock cannot modify the production');
+ await h.api.action('reminder-previous');
+ assert.equal(run('selectedReminder().cue.id'),'blue');
+ await h.api.action('reminder-lock');
+ assert(!h.document.body.classList.contains('reminder-live-locked'));
+ assert(!node('reminderSeek').disabled);
+ await h.api.action('reminder-lyric:0');
+ assert.equal(h.api.state().current,12,'Unlocking restores lyric seeking');
+
  await h.api.action('mode-edit');
  assert(!node('workspace').classList.contains('reminder-mode'));
  assert.equal(h.api.state().playing,false);
- console.log('PASS: independent cue times, live lyric snapping, stage ghosts, drawing persistence and continuous playback');
+ console.log('PASS: lighting cue timing, lyrics, sketches, live lock, paused cue navigation and stable same-time cues');
 })().catch(error=>{console.error(error);process.exitCode=1;});

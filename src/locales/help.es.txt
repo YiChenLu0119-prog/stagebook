@@ -1,0 +1,20 @@
+Stagebook · Guía de uso
+
+Abrir y guardar
+Extrae el ZIP y abre Stagebook.html o 走台本.html. Mantén la carpeta 演出资料 junto al HTML. Para continuar un proyecto que te han enviado, importa el ZIP o la carpeta completa. Guarda una copia en ZIP o guarda en la carpeta vinculada si tu navegador lo permite.
+
+Tutorial y búsquedas
+Abre la ayuda (?) de la barra superior y elige «Iniciar tutorial». Las indicaciones señalan los controles en la pantalla. En «Buscar una función», escribe qué quieres hacer y elige «Ver ubicación». Usa ⌘ / Ctrl + K para buscar canciones, intérpretes y notas de la producción. En el menú superior, elige el idioma de la interfaz. Los nombres, la letra de las canciones y las notas conservan su idioma original.
+
+Movimientos en escena
+En «Editar», coloca al reparto en sus posiciones iniciales. Sitúa el cursor en la línea de tiempo y añade un paso con el botón correspondiente o con N. Arrastra al intérprete hacia su destino y ajusta el recorrido o la duración. Desplaza el cursor de reproducción para ver dónde está cada intérprete. Amplía la línea de tiempo con el control deslizante o pellizcando con dos dedos.
+En «Ensayar», elige tu papel para consultar tu próximo movimiento y sus notas.
+
+Canto, video y luces
+En «Cantar», sigue la letra, repite un fragmento o marca tus entradas mediante notas personales. Las canciones con partes vocales permiten practicarlas por separado. En «Video de ensayo» puedes añadir un video a cada canción. En «Señales de luces», añade una señal en la línea de tiempo, vincúlala a la letra o dibuja sobre el plano.
+
+Música y letra
+Cada canción puede usar un MP3. Importa la letra con tiempos de inicio y fin en TXT o JSON. Haz clic en una línea para ir a su momento. Ejemplo: 12.3 - 16.8 | Una línea de letra.
+
+Atajos y archivos para IA
+Espacio reproduce o pausa, N añade un paso en el cursor y ⌘ / Ctrl + Z deshace. Pulsa ? para ver los atajos. Para que un asistente externo prepare archivos importables, comparte AI-GUIDE.md junto con un paquete de la producción.

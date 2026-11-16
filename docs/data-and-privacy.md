@@ -12,7 +12,7 @@ The interface language is a browser preference, separate from production JSON. E
 
 ## Public examples and tests
 
-The public sample uses generic actors, schematic paths and instructional text. It includes no soundtrack, commercial lyrics or private production notes. A synthetic silent MP3 is included only as a test fixture; media readiness is mocked in the automated round-trip checks.
+The demo bundled with the offline app uses generic actors, schematic paths, and instructional text. The separate Hamilton production library includes lyrics, audio, voice data, blocking, a rehearsal video, lighting cues, and the saved production snapshots that came with it. A synthetic silent MP3 is included only as a test fixture; media readiness is mocked in the automated round-trip checks.
 
 ## Sharing and permissions
 

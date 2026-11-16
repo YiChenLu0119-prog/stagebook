@@ -1,19 +1,20 @@
 # Roadmap
 
-Stagebook is being developed gradually from real blocking and rehearsal work. The current release is a preview; this page records directions for further exploration, not promised features or dates.
+Stagebook is being developed gradually from real blocking and rehearsal work. Stagebook 10.1 is the first stable GitHub release. This page records areas for future work.
 
-## Available in this preview
+## Available in 10.1
 
 - Local stage and timeline editing with independent actor timing.
 - Lyrics alongside blocking, action notes and actor-focused rehearsal.
 - Portable production packages, Undo/Redo and path checks.
-- English, Simplified Chinese and Traditional Chinese interfaces.
+- English, Simplified Chinese, Traditional Chinese, Japanese, and Spanish interfaces.
 - Optional timestamped production history with restore/backup and historical audio.
 - Edition labels, change summaries and selected role-specific rehearsal notes sheets.
 - A full-width timeline, responsive panels and four musical-inspired appearance palettes.
 - One-click stage fullscreen with compact playback controls and Escape to return.
 - A lyric-focused singing workspace with role highlighting, pickup loops and slower playback.
 - A lighting cue prompter with an independent timeline, lyric-linked cues, a stage preview and stage sketches.
+- A guided walkthrough, searchable features, optional animated control demonstrations, and editable alignment and spacing suggestions.
 - Centered lyric follow and contained, scrolling long song titles.
 - Reduced-motion feedback and immediate lyric following under that system preference.
 
@@ -42,4 +43,4 @@ Release notes will record completed changes. Use this roadmap to discuss future 
 
 ## Later research
 
-Performer/track mapping, detailed scheduling, cloud collaboration and receipt tracking need further research. They are not included in v9.4.0. A manual rehearsal-check label records an action; it does not certify understanding or safety.
+Performer/track mapping, detailed scheduling, cloud collaboration and receipt tracking need further research. A manual rehearsal-check label records an action; it does not certify understanding or safety.

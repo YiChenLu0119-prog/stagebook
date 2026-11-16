@@ -2,9 +2,15 @@
 
 Stagebook is an offline workspace for blocking and rehearsing musicals, plays, and other staged performances. Plan entrances and crosses against song time, cue lights from a lyric, and give the cast one portable copy to review between rehearsals.
 
-**[Download Stagebook v9.8.0](https://github.com/YiChenLu0119-prog/stagebook/releases/download/v9.8.0/Stagebook-v9.8.0-offline.zip)** · [Quick start](docs/quick-start.md) · [Releases](https://github.com/YiChenLu0119-prog/stagebook/releases) · [Roadmap](docs/ROADMAP.md)
+**[Download Stagebook 10.1](https://github.com/YiChenLu0119-prog/stagebook/releases/download/v10.1.0/Stagebook-v10.1.0-offline.zip)** · [Quick start](docs/quick-start.md) · [Releases](https://github.com/YiChenLu0119-prog/stagebook/releases) · [Roadmap](docs/ROADMAP.md)
 
-Extract the ZIP and open **Stagebook.html** in a desktop browser. Keep the **演出资料** folder beside it. The app works offline without an account or installation. Switch between English, Simplified Chinese, and Traditional Chinese in the top bar.
+Extract the ZIP and open **Stagebook.html** in a desktop browser. Keep the **演出资料** folder beside it. The app works offline without an account or installation. Choose English, Simplified Chinese, Traditional Chinese, Japanese, or Spanish from **⋯ → Interface language**.
+
+## Get started in the app
+
+Open **Quick guide → Interactive tutorial** for a walkthrough. **Find a feature** searches for actions by name and takes you to the relevant workspace or control. Hover over a supported button or focus it with the keyboard to see a short animated demonstration. Turn these off in **Workflow preferences** whenever you prefer.
+
+Stagebook keeps editing tools close to the current task and gives rehearsal, video, and lighting their own workspaces. Use fullscreen when projecting the stage or running cues at the lighting desk.
 
 ## Blocking and song timeline
 
@@ -40,9 +46,9 @@ Add **My note** beside a lyric to mark that you sing it or leave a short reminde
 
 When a song contains voice data, open **Harmony practice** from **Sing**. Read the continuous staff, select a part to hear, drag to an entrance, or choose a start and end to run several passages as a group. The editable notation travels in the production ZIP. Synthesized practice audio uses the voice data supplied with the song.
 
-## Single-song example
+## Complete Hamilton production package
 
-[Download the Alexander Hamilton example](https://github.com/YiChenLu0119-prog/stagebook/releases/download/v9.8.0/Alexander-Hamilton-example.zip) and import the ZIP from **Open production**. It contains the opening number’s stage layout, cast, 25 timed blocking steps, rehearsal audio, timed lyrics, and editable voice practice excerpts. Use this one-song ZIP to try the full workflow from blocking to rehearsing with the cast.
+[Download the 17-song Hamilton production](https://github.com/YiChenLu0119-prog/stagebook/releases/download/v10.1.0/Hamilton-17-song-production.zip). Use **⋯ → Import** to open the ZIP, or extract it and open the included **Stagebook.html**. The package includes synchronized lyrics and audio, editable voice practice data, and the latest blocking for the opening number and My Shot. The opener also includes a lighting cue and a full-song rehearsal video. A separate reference entry for the opener and three saved production snapshots travel with the library.
 
 ## Full-song rehearsal video
 

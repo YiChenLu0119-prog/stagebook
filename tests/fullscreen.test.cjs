@@ -15,5 +15,22 @@ function fire(h,type='fullscreenchange'){for(const fn of h.document.listeners[ty
  h=fixture();h.stage.requestFullscreen=async()=>{throw Error('Fullscreen is not allowed');};await h.api.toggleStageFullscreen();assert.equal(h.api.fullscreenMode(),'window','Denied native fullscreen still fills the window');await h.api.exitStageFullscreen();assert.equal(h.api.fullscreenMode(),'');
  h=fixture();h.stage.webkitRequestFullscreen=()=>{h.document.webkitFullscreenElement=h.stage;fire(h,'webkitfullscreenchange');};h.document.webkitExitFullscreen=()=>{h.document.webkitFullscreenElement=null;fire(h,'webkitfullscreenchange');};await h.api.toggleStageFullscreen();assert.equal(h.api.fullscreenMode(),'native');await h.api.exitStageFullscreen();assert.equal(h.api.fullscreenMode(),'');
  for(const language of ['en','zh-TW']){h.api.setInterfaceLanguage(language);await h.api.toggleStageFullscreen();assert(!/[\u4e00-\u9fff]/.test(h.$('#stageFullscreenButton').textContent)||language==='zh-TW');await h.api.exitStageFullscreen();}
- console.log('PASS: native and WebKit fullscreen, window fallback, denied requests, browser exit and Escape, focus/inert restoration, playback/production/layout context preserved, translated controls');
+ h=fixture();
+ const singingWorkspace=h.$('#workspace'),singingButton=h.$('#singingFullscreen');
+ singingWorkspace.parent=h.document.body;h.document.body.children=[singingWorkspace,h.outside];
+ await h.api.action('mode-sing');h.api.seek(3.5);singingButton.focus();
+ let grantFullscreen;
+ singingWorkspace.requestFullscreen=()=>new Promise(resolve=>{grantFullscreen=()=>{
+  h.document.fullscreenElement=singingWorkspace;fire(h);resolve();
+ };});
+ h.document.exitFullscreen=async()=>{h.document.fullscreenElement=null;fire(h);};
+ const entering=h.api.action('sing-fullscreen');
+ assert(singingWorkspace.classList.contains('singing-presentation'),'Window fills before native permission resolves');
+ assert(h.outside.inert);
+ await h.api.action('sing-fullscreen');grantFullscreen();await entering;
+ assert.equal(h.document.fullscreenElement,null,'A late native grant is cancelled after exiting');
+ assert(!singingWorkspace.classList.contains('singing-presentation'));
+ assert(!h.outside.inert);assert.equal(h.document.activeElement,singingButton);
+ assert.equal(h.api.state().current,3.5);assert(h.api.singingState().singing);
+ console.log('PASS: fullscreen native and window fallback, delayed native grant cancellation, focus/inert restoration, playback/production/layout context preserved and translated controls');
 })().catch(error=>{console.error(error);process.exitCode=1;});

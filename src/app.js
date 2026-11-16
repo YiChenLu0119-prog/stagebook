@@ -26,7 +26,7 @@ const displayName=e=>e?.name||e?.label||e?.id||tr('未知对象');
 const field=(label,key,value,type='text',extra='')=>`<label class="field"><span>${esc(label)}</span><input data-field="${esc(key)}" type="${type}" value="${esc(value??'')}" ${extra}></label>`;
 const notesField=(obj,key='notes')=>ui`<label class="field"><span>自由备注</span><textarea aria-label="自由备注" data-field="${key}" placeholder="动作、眼神、道具去向、排练提醒……">${esc(obj?.[key]||'')}</textarea></label>`;
 function toast(s){$('#toast').textContent=s;$('#toast').classList.remove('hidden');clearTimeout(toast.timer);toast.timer=setTimeout(()=>$('#toast').classList.add('hidden'),4200);}
-function modal(title,body){$('#dialogTitle').textContent=title;$('#dialogBody').innerHTML=body;if(!$('#dialog').open)$('#dialog').showModal();}
+function modal(title,body){$('#dialogTitle').textContent=title;$('#dialogBody').innerHTML=body;if(!$('#dialog').open)$('#dialog').showModal();if(tutorialIndex>=0)positionTutorial();}
 function closeModal(){$('#dialog').close();}
 function confirmAction(message){
  pause();return new Promise(resolve=>{
@@ -37,9 +37,26 @@ function confirmAction(message){
   $('#confirmCancel').onclick=()=>finish(false);$('#confirmContinue').onclick=()=>finish(true);dialog.addEventListener('cancel',cancel);dialog.addEventListener('close',closed);$('#confirmCancel').focus();
  });
 }
-function nameDialog(title,label,onCreate){
- pause();modal(title,ui`<form id="nameForm"><label class="field"><span>${label}</span><input id="newName" aria-label="${label}" autocomplete="off" maxlength="160"></label><p id="nameError" class="warning" role="status"></p><div class="dialogactions"><button type="button" id="nameCancel">取消</button><button type="submit" class="gold">创建</button></div></form>`);
+function nameDialog(title,label,onCreate,example=''){
+ pause();modal(title,ui`<form id="nameForm"><label class="field"><span>${esc(label)}</span><input id="newName" aria-label="${esc(label)}" ${example?'aria-describedby="nameExample"':''} autocomplete="off" maxlength="160"></label>
+ ${example?`<p id="nameExample" class="muted">${esc(tr(example))}</p>`:''}<p id="nameError" class="warning" role="status"></p><div class="dialogactions"><button type="button" id="nameCancel">取消</button><button type="submit" class="gold">创建</button></div></form>`);
  $('#nameCancel').onclick=closeModal;$('#nameForm').onsubmit=async event=>{event.preventDefault();const name=$('#newName').value.trim();if(!name){$('#nameError').textContent=tr('请输入名称。');$('#newName').focus();return;}closeModal();try{await onCreate(name);}catch(error){toast(error.message);}};$('#newName').focus();
+}
+const modeGuideEntries=[
+ ['edit','编排','改站位和路线','先摆起始站位，再把播放指针移到要加动作的位置。'],
+ ['rehearse','走位排练','看我的走位','选择自己的角色，跟着倒计时和舞台预演下一次移动。'],
+ ['sing','练歌','练歌词和声部','选角色标出自己的词，点歌词旁的「我的备注」记进句。'],
+ ['song-video','排练视频','看录像复盘','选择曲目，再添加或打开该曲的排练视频。'],
+ ['reminder','灯光提示','排提示和倒计时','在时间轴或歌词上定位，再点「＋ 添加提醒」。']
+];
+function modeGuideDialog(){
+ const rows=modeGuideEntries.map(([id,mode,goal,step])=>
+  `<li><button data-action="guide-mode:${id}"><strong>${esc(tr(goal))}</strong><span>${esc(tr(mode))}</span><small>${esc(tr(step))}</small></button></li>`
+ ).join('');
+ modal(tr('从哪里开始'),ui`<ul class="mode-guide-list">${rows}</ul><div class="mode-guide-footer">
+  <button class="gold" data-action="tutorial-start">开始新手教程</button><button data-action="guide-import">打开演出包</button><button data-action="guide-edit-details">详细编排指南</button>
+ </div>`);
+ $('#dialogBody').querySelector('button')?.focus();
 }
 function setInterfaceLanguage(language){
  const previous=StageI18n.language;if(language===previous)return;
@@ -53,6 +70,7 @@ function setInterfaceLanguage(language){
  $$('[data-action=save]').forEach(button=>{button.textContent=tr(dirty?'保存 ·':'保存');button.title=dirty?tr('有未保存修改'):rootDir?tr('保存到')+' '+rootDir.name:tr('下载演出包');});
  for(const item of scrolls){$(item.id).scrollTop=item.top;$(item.id).scrollLeft=item.left;}
  if(savedToast)$('#toast').textContent=StageI18n.retranslateStatus(savedToast,previous);
+ refreshOnboardingLanguage();
  toast(tr('界面语言已切换'));
 }
 $('#interfaceLanguage').addEventListener('change',event=>setInterfaceLanguage(event.target.value));
@@ -72,20 +90,47 @@ function undo(redo=false){
 function repairSelection(){if(!show())showId=lib.shows[0]?.id;if(!song())songId=show()?.songs[0]?.id;selected=selected.filter(id=>activeEntities().some(e=>e.id===id));if(!song().cues.some(c=>c.id===selectedCue))prepareHumanScene();else{stagePhase='end';inspect=selected.length>1?{type:'group'}:selected.length===1?{type:'entity',id:selected[0]}:{type:'cue',id:selectedCue};}}
 function target(){const s=show(),q=song();if(!s||!q)return null;switch(inspect.type){case 'show':return s;case 'stage':return s.stage;case 'song':case 'song-settings':return q;case 'entity':return entity(inspect.id);case 'cue':return q.cues.find(x=>x.id===inspect.id);case 'move':return q.cues.flatMap(x=>x.moves).find(x=>x.id===inspect.id);case 'lyric':return q.lyrics.find(x=>x.id===inspect.id);case 'annotation':return q.annotations.find(x=>x.id===inspect.id);case 'anchor':return s.stage.anchors.find(x=>x.id===inspect.id);case 'wall':return s.stage.walls.find(x=>x.id===inspect.id);case 'backstage':return s.stage.backstage.find(x=>x.id===inspect.id);}}
 function inspectObject(type,id){if(type!=='move')selectedRouteNode=null;if(['stage','wall','backstage','anchor'].includes(type))selected=[];inspect={type,id};if(type==='entity'){pause();singleStepEnd=null;selected=[id];syncPlaybackContext();inspect={type,id};}if(type==='cue'){selectedCue=id;}if(type==='move'){const c=song().cues.find(c=>c.moves.some(m=>m.id===id));selectedCue=c?.id;selected=[target()?.entityId].filter(Boolean);}if(['cue','move'].includes(type)&&!rehearsal){pause();singleStepEnd=null;stagePhase='end';tool='select';}renderInspector();renderStage();renderBottom();renderEditorBar();updateTransport();renderLyricsDock();}
-async function switchSong(id){if(singing)singingSongWillChange();songId=id;pause();selected=[];prepareHumanScene();focusActor=song()?.castIds[0]||'';renderAll();await loadAudio();renderAll();}
-async function switchShow(id){if(singing)singingSongWillChange();showId=id;songId=show()?.songs[0]?.id;pause();selected=[];prepareHumanScene();focusActor=song()?.castIds[0]||'';renderAll();await loadAudio();renderAll();}
+async function switchSong(id){
+ if(id===songId)return;
+ const previousActor=focusActor;
+ saveSongVisit();if(singing)singingSongWillChange();
+ songId=id;pause();resetTransportLoop();selected=[];prepareHumanScene();beginSongVisit(previousActor);
+ renderAll();await loadAudio();renderAll();
+}
+async function switchShow(id){
+ if(id===showId)return;
+ saveSongVisit();if(singing)singingSongWillChange();
+ showId=id;songId=show()?.songs[0]?.id;pause();resetTransportLoop();selected=[];prepareHumanScene();beginSongVisit();
+ renderAll();await loadAudio();renderAll();
+}
 function renderAll(){
  if(!song())return;
  syncRouteSelection();if(!playing&&stagePhase==='live')syncPlaybackContext();
  $('#showButton').textContent=(show().title||tr('未命名演出'))+' ▾';$('#songTitle').textContent=song().title;
  $('#songEyebrow').textContent=ui`曲目 ${String(show().songs.indexOf(song())+1).padStart(2,'0')}`;
  $('#songSubtitle').textContent=ui`${song().cues.length} 个步骤`;
+ renderSongResume();
  $('#workspace').classList.toggle('rehearsing',rehearsal);$('#reloadButton').disabled=!rootDir;
  $('#reloadButton').title=rootDir?tr('读取 ')+rootDir.name+tr(' 的最新文件'):tr('先通过导入走台连接演出文件夹');
  $$('[data-action=undo]').forEach(b=>b.disabled=!history.length);$$('[data-action=redo]').forEach(b=>b.disabled=!future.length);
  $('#castSummary').textContent=ui`${song().castIds.length} 位角色 · ${song().propIds.length} 件道具`;
  $('#selectedSummary').textContent=selected.length?ui`已选 ${selected.length} 个对象`:tr('自由单位 · 俯视图');
- $('#editMode').classList.toggle('selected',!rehearsal&&!singing&&!songVideoOpen&&!reminderOpen);$('#rehearseMode').classList.toggle('selected',rehearsal&&!singing&&!songVideoOpen&&!reminderOpen);
+ const stageMode=!singing&&!songVideoOpen&&!reminderOpen;
+ for(const [id,active] of [['editMode',stageMode&&!rehearsal],['rehearseMode',stageMode&&rehearsal]]){
+  $('#'+id).classList.toggle('selected',active);
+  $('#'+id).setAttribute('aria-pressed',String(active));
+ }
+ const rolePicker=$('#stageRehearsalRole'),roleVisible=stageMode&&rehearsal&&song().castIds.length>0;
+ const rightToggle=$('.workspacebar .right-toggle');
+ rightToggle.textContent=tr(rehearsal?'下一次移动':'动作 / 笔记');
+ rightToggle.setAttribute('aria-expanded',String($('#workspace').classList.contains('show-right')));
+ $('#stageRehearsalRoleField').classList.toggle('hidden',!roleVisible);
+ if(roleVisible){
+  const options=song().castIds.map(id=>`<option value="${esc(id)}">${esc(displayName(entity(id)))}</option>`).join('');
+  if(rolePicker.innerHTML!==options)rolePicker.innerHTML=options;
+  if(!song().castIds.includes(focusActor))focusActor=song().castIds[0];
+  rolePicker.value=focusActor;
+ }
  $('#toolInitial').classList.toggle('selected',tool==='initial');$('#toolSelect').classList.toggle('selected',tool==='select');
  $('#stageHint').textContent=inspect.type==='move'&&!rehearsal?tr('点选经过点后按 Delete 删除 · 右键添加节点'):rehearsal?tr('选择你的角色，跟着音乐排练'):tool==='initial'?tr('拖动演员，摆好开场位置'):stagePhase==='start'?tr('正在查看起点 · 切到「落点」继续编排'):selected.length?tr('拖演员改位置 · 拖路线圆点改弯度'):tr('拖动演员摆位 · Shift 多选');
  issuesCache=C.issues(show(),song());$('#issuesButton').textContent=issuesCache.length?ui`${issuesCache.length} 处待检查`:tr('检查走台');$('#issuesButton').classList.toggle('warning',issuesCache.some(i=>i.level==='error'));
@@ -94,14 +139,14 @@ function renderAll(){
 function renderLeft(){
  $('#leftTabs').innerHTML=[['songs',tr('曲目')],['actors',tr('角色')],['props',tr('道具')]].map(([k,v])=>`<button data-action="left-${k}" class="${leftTab===k?'selected':''}">${v}</button>`).join('');
  const s=show(),q=song();
- if(leftTab==='songs')$('#leftContent').innerHTML=ui`<div class="sectionlabel">曲目 <span>${s.songs.length}</span><button class="tiny" data-action="add-song">＋ 新建</button></div>`+s.songs.map((q,i)=>`<button class="songcard ${q.id===songId?'active':''}" data-song="${esc(q.id)}" title="${esc(q.title)}" aria-current="${q.id===songId?'true':'false'}"><span class="number">${String(i+1).padStart(2,'0')}</span><span class="songcard-copy"><strong class="song-title-window"><span class="song-title-text">${esc(q.title)}</span></strong><small>${q.cues.length?ui`${q.cues.length} 个步骤`:tr('待编排')}${q.audio?' · ♫':''}</small></span></button>`).join('')+ui`<button class="full muted show-settings" data-action="show-settings">演出设置</button>`;
+ if(leftTab==='songs')$('#leftContent').innerHTML=ui`<div class="sectionlabel">曲目 <span>${s.songs.length}</span><button class="tiny ${rehearsal?'hidden':''}" data-action="add-song">＋ 新建</button></div>`+s.songs.map((q,i)=>`<button class="songcard ${q.id===songId?'active':''}" data-song="${esc(q.id)}" title="${esc(q.title)}" aria-current="${q.id===songId?'true':'false'}"><span class="number">${String(i+1).padStart(2,'0')}</span><span class="songcard-copy"><strong class="song-title-window"><span class="song-title-text">${esc(q.title)}</span></strong><small>${q.cues.length?ui`${q.cues.length} 个步骤`:tr('待编排')}${q.audio?' · ♫':''}</small></span></button>`).join('')+ui`<button class="full muted show-settings" data-action="show-settings">演出设置</button>`;
 
  else {
  const isActor=leftTab==='actors',list=isActor?s.actors:s.props,ids=isActor?q.castIds:q.propIds;
- $('#leftContent').innerHTML=ui`<div class="sectionlabel">${isActor?tr('全场角色名单'):tr('全场道具')} / ${list.length}<button class="tiny" data-action="add-${isActor?'actor':'prop'}">＋ 添加</button></div><p class="muted" style="font-size:10px">勾选本曲目使用的对象；未勾选者只保留在名单。</p>`+list.map(e=>{
+ $('#leftContent').innerHTML=ui`<div class="sectionlabel">${isActor?tr('全场角色名单'):tr('全场道具')} / ${list.length}<button class="tiny ${rehearsal?'hidden':''}" data-action="add-${isActor?'actor':'prop'}">＋ 添加</button></div><p class="muted ${rehearsal?'hidden':''}" style="font-size:10px">勾选本曲目使用的对象；未勾选者只保留在名单。</p>`+list.map(e=>{
   const deleteLabel=esc(ui`从演出删除 ${e.name}`);
   const remove=isActor&&!rehearsal?`<button class="tiny cast-delete" data-action="delete-actor:${esc(e.id)}" aria-label="${deleteLabel}" title="${deleteLabel}">${tr('删除')}</button>`:'';
-  return ui`<div class="listitem ${selected.includes(e.id)?'active':''}" data-entity="${esc(e.id)}"><input type="checkbox" data-participation="${esc(e.id)}" ${ids.includes(e.id)?'checked':''} aria-label="${esc(e.name)}参与本曲目"><span class="entitydot ${isActor?'':'prop'}" style="background:${safeColor(e.color)}">${esc(e.label)}</span><div class="label"><b>${esc(e.name)}</b><small>${ids.includes(e.id)?tr('本曲目参演'):tr('未参与本曲目')}</small></div>${remove}</div>`;
+  return ui`<div class="listitem ${selected.includes(e.id)?'active':''}" data-entity="${esc(e.id)}"><input type="checkbox" data-participation="${esc(e.id)}" ${ids.includes(e.id)?'checked':''} ${rehearsal?'disabled':''} aria-label="${esc(e.name)}参与本曲目"><span class="entitydot ${isActor?'':'prop'}" style="background:${safeColor(e.color)}">${esc(e.label)}</span><div class="label"><b>${esc(e.name)}</b><small>${ids.includes(e.id)?tr('本曲目参演'):tr('未参与本曲目')}</small></div>${remove}</div>`;
  }).join('');
  }
  requestAnimationFrame(updateSongTitleOverflow);
@@ -159,20 +204,52 @@ function renderStage(){
  html+=stageAudience(s.stage,width,height,visualScale)+'</g>';
  svg.innerHTML=html;$('#currentCue').textContent=tool==='initial'?tr('起始站位'):(!playing&&stagePhase!=='live'&&chosen?chosen:currentEvent)?.cue.title||tr('起始站位');
 }
+let inspectorPaintKey='';
+function inspectorDisclosure(id,label,html){
+ return `<details class="advanced-details inspector-fold" data-inspector-fold="${id}"><summary>${label}</summary><div class="inspector-fold-body">${html}</div></details>`;
+}
+function paintInspector(html,key=JSON.stringify([showId,songId,tool,inspect.type,inspect.id,selected])){
+ const panel=$('#inspector'),same=key===inspectorPaintKey;
+ const folds=()=>$$('#inspector [data-inspector-fold]');
+ const open=same?new Set(folds().filter(node=>node.open).map(node=>node.dataset.inspectorFold)):new Set();
+ const focused=document.activeElement;
+ const summary=same&&focused?.tagName==='SUMMARY'?focused.parentElement?.dataset.inspectorFold:null;
+ const roleFocused=same&&focused?.id==='focusActor';
+ const top=panel.scrollTop;
+ inspectorPaintKey=key;
+ panel.innerHTML=html;
+ for(const node of folds()){
+  node.open=open.has(node.dataset.inspectorFold);
+  if(summary===node.dataset.inspectorFold)node.querySelector('summary')?.focus({preventScroll:true});
+ }
+ if(roleFocused)$('#focusActor')?.focus({preventScroll:true});
+ panel.scrollTop=same?top:0;
+ hydrateStepMedia();
+}
 function renderInspector(){
  $('#inspectorTitle').textContent=rehearsal?tr('演员排练'):tr('详情与笔记');
  if(rehearsal){renderRehearsal();return;}
  if(renderHumanInspector())return;
  const t=target()||song();if(!target())inspect={type:'song',id:songId};const type=inspect.type==='song-settings'?'song':inspect.type,q=song();
- let html=`<span class="tag">${({show:'PRODUCTION',stage:'STAGE PLAN',song:'SONG',entity:'CHARACTER / PROP',cue:'BLOCKING STEP',move:'MOVEMENT',lyric:'LYRIC',annotation:'NOTE',anchor:'MARK',wall:'WALL',backstage:'BACKSTAGE'})[type]||'DETAIL'}</span>`;
- if(type==='show')html+=field(tr('演出名称'),'title',t.title)+notesField(t)+ui`<button class="danger full" data-action="delete-show">删除这场演出</button>`;
+ const titles={show:'演出设置',stage:'舞台布局',song:'曲目设置',entity:'角色／道具名称',cue:'本步笔记',move:'路径节点',lyric:'歌词',annotation:'排练记录',anchor:'标记与出入口',wall:'舞台布局',backstage:'舞台布局'};
+ $('#inspectorTitle').textContent=tr(titles[type]||'详情与笔记');
+ let html='';
+ if(type==='show')html+=field(tr('演出名称'),'title',t.title)+notesField(t)+inspectorDisclosure('production-actions',tr('更多操作'),ui`<button class="danger full" data-action="delete-show">删除这场演出</button>`);
  else if(type==='song'){
- html+=field(tr('曲目名称'),'title',t.title)+ui`<label class="field"><span>演示方式</span><select data-field="mode"><option value="steps" ${t.mode==='steps'?'selected':''}>按步骤（可无音乐）</option><option value="timed" ${t.mode==='timed'?'selected':''}>按时间（可静音计时）</option></select></label>`+field(tr('演示总时长（秒，可留空自动计算）'),'duration',t.duration,'number','min="0" step="0.1"')+notesField(t)+ui`<div class="row wrap"><button data-action="duplicate-song">复制曲目</button><button data-action="shift-times">整体调整时间</button></div><button class="full" data-action="remove-audio">移除音乐引用</button><button class="danger full" data-action="delete-song">删除曲目</button><p class="footer-note">音乐和歌词都可缺省。演出文件保持普通文本，外部 AI 编辑后点“重新加载”。</p>`;
+ html+=field(tr('曲目名称'),'title',t.title)+ui`<label class="field"><span>演示方式</span><select data-field="mode"><option value="steps" ${t.mode==='steps'?'selected':''}>按步骤（可无音乐）</option><option value="timed" ${t.mode==='timed'?'selected':''}>按时间（可静音计时）</option></select></label>`+field(tr('演示总时长（秒，可留空自动计算）'),'duration',t.duration,'number','min="0" step="0.1"')+notesField(t)+inspectorDisclosure('song-actions',tr('更多操作'),ui`<div class="row wrap"><button data-action="duplicate-song">复制曲目</button><button data-action="shift-times">整体调整时间</button></div><button class="full" data-action="remove-audio">移除音乐引用</button><button class="danger full" data-action="delete-song">删除曲目</button>`);
  }else if(type==='entity'){
- const p=q.initial[t.id]||{x:0,y:0};html+=field(tr('角色／道具名称'),'name',t.name)+ui`<div class="two">${field(tr('舞台短标签'),'label',t.label)}${field(tr('颜色'),'color',t.color,'color')}</div><h3>本曲目起始位置</h3><div class="two">${field('X','initial.x',p.x,'number','step="0.1"')}${field('Y','initial.y',p.y,'number','step="0.1"')}</div>`+notesField(t)+ui`<button class="full" data-action="entity-records">查看本曲目全部记录</button><button class="danger full" data-action="delete-entity">从演出删除对象</button>`;
+ const p=q.initial[t.id]||{x:0,y:0};html+=field(tr('角色／道具名称'),'name',t.name)+ui`<div class="two">${field(tr('舞台短标签'),'label',t.label)}${field(tr('颜色'),'color',t.color,'color')}</div><h3>本曲目起始位置</h3><div class="two">${field('X','initial.x',p.x,'number','step="0.1"')}${field('Y','initial.y',p.y,'number','step="0.1"')}</div>`+notesField(t)+inspectorDisclosure('entity-actions',tr('更多操作'),ui`<button class="full" data-action="entity-records">查看本曲目全部记录</button><button class="danger full" data-action="delete-entity">从演出删除对象</button>`);
  }else if(type==='cue'){
- const ev=C.events(q).find(e=>e.cue.id===t.id);$('#inspectorTitle').textContent=tr('本步笔记');
- html=field(tr('步骤名称'),'title',t.title)+ui`<label class="field"><span>这一步的安排</span><textarea aria-label="本步安排" data-field="notes" placeholder="例如：所有人面向观众，Burr 向前两步。">${esc(t.notes||'')}</textarea></label>${stepMediaSection(t)}<p class="context-tip">点击舞台上的演员，写下他在这一步的动作。</p><details class="advanced-details"><summary>时间与暂停 · ${t.duration} 秒</summary>${q.mode==='timed'?field(tr('开始秒数'),'at',t.at,'number','min="0" step="0.1"'):''}${field(tr('移动时长（秒）'),'duration',t.duration,'number','min="0" step="0.1"')}<label class="smallcheck"><input type="checkbox" data-field="stopAfter" ${t.stopAfter?'checked':''}>到达后暂停</label>${!stepPausesEnabled()?tr('<p class="footer-note">当前为连续播放，暂停标记暂不生效。</p>'):''}</details><details class="advanced-details"><summary>本步行动 · ${t.moves.length}</summary>`+t.moves.map(m=>`<button class="routeitem full" data-inspect="entity" data-id="${esc(m.entityId)}">${esc(displayName(entity(m.entityId)))}</button>`).join('')+ui`</details><details class="advanced-details"><summary>${tr(q.mode==='steps'?'复制、排序与删除':'复制与删除')}</summary><div class="row wrap">${q.mode==='steps'?tr('<button data-action="cue-up">↑ 前移</button><button data-action="cue-down">↓ 后移</button>'):''}<button data-action="duplicate-cue">复制步骤</button><button class="danger" data-action="delete-cue">删除步骤</button></div></details>`;
+ const timing=(q.mode==='timed'?field(tr('开始秒数'),'at',t.at,'number','min="0" step="0.1"'):'')+
+  field(tr('移动时长（秒）'),'duration',t.duration,'number','min="0" step="0.1"');
+ const actions=t.moves.map(m=>`<button class="routeitem full" data-inspect="entity" data-id="${esc(m.entityId)}">${esc(displayName(entity(m.entityId)))}</button>`).join('');
+ html=field(tr('步骤名称'),'title',t.title,'text','placeholder="'+esc(tr('例如：Burr 从左后入场'))+'"')+
+  ui`<label class="field inspector-blocking-note"><span>这一步的安排</span><textarea aria-label="本步安排" data-field="notes" placeholder="例如：所有人面向观众，Burr 向前两步。">${esc(t.notes||'')}</textarea></label>
+  <section class="inspector-step-timing"><div class="two">${timing}</div><label class="smallcheck"><input type="checkbox" data-field="stopAfter" ${t.stopAfter?'checked':''}>到达后暂停</label>${!stepPausesEnabled()?tr('<p class="footer-note">当前为连续播放，暂停标记暂不生效。</p>'):''}</section>`;
+ if(actions)html+=inspectorDisclosure('cue-cast',ui`本步行动 · ${t.moves.length}`,actions);
+ html+=inspectorDisclosure('cue-media',tr('本步图片与视频'),stepMediaSection(t));
+ html+=inspectorDisclosure('cue-actions',tr(q.mode==='steps'?'复制、排序与删除':'复制与删除'),
+  ui`<div class="row wrap">${q.mode==='steps'?tr('<button data-action="cue-up">↑ 前移</button><button data-action="cue-down">↓ 后移</button>'):''}<button data-action="duplicate-cue">复制步骤</button><button class="danger" data-action="delete-cue">删除步骤</button></div>`);
 
  }else if(type==='move'){
  html=pathInspectorHTML(t);
@@ -186,21 +263,36 @@ function renderInspector(){
  html+=notesField(t)+ui`<button class="danger full" data-action="delete-stage-object">删除对象</button>`;
  }
  const relevant=issuesCache.filter(i=>i.type===type&&i.id===inspect.id);html+=relevant.map(i=>`<p class="warning">${esc(i.text)}</p>`).join('');
- $('#inspector').innerHTML=html;hydrateStepMedia();
+ paintInspector(html);
 }
 function currentLyric(){return song().lyrics.find(l=>l.start<=current&&l.end>current);}
 function renderRehearsal(){
- const q=song(),ev=C.moveEvents(q),active=ev.filter(e=>e.start<=current&&e.end>=current&&e.move.entityId===focusActor);const next=ev.find(e=>e.start>current+.02&&e.move.entityId===focusActor);
- let html=ui`<label class="field"><span>这首曲目，我是</span><select id="focusActor">${q.castIds.map(id=>`<option value="${esc(id)}" ${id===focusActor?'selected':''}>${esc(displayName(entity(id)))}</option>`).join('')}</select></label>`;
- if(!q.castIds.length)html+=tr('<div class="empty">先在左侧角色名单勾选参演者。</div>');
- const lyric=currentLyric();if(lyric&&!lyricDockVisible)html+=ui`<h3>当前歌词</h3><div class="rehearsal-lyric">${esc(lyric.text)}</div>${lyric.notes?`<div class="notecard">${esc(lyric.notes)}</div>`:''}`;
- html+=ui`<div class="rehearsal-card"><div class="eyebrow">下一次移动</div><div class="big" id="nextCountdown">${next?(next.start-current).toFixed(1)+tr(' 秒'):'—'}</div><div>${esc(next?.cue.title||tr('本曲目没有后续移动'))}</div></div>`;
- html+=tr('<h3>当前行动</h3>');if(!active.length)html+=tr('<p class="context-tip">这一步保持站位，等待下一次行动。</p>');
- for(const e of active){html+=`<div class="notecard"><small>${fmt(e.start)} → ${fmt(e.end)} · ${esc(e.cue.title)}</small>${esc(e.cue.notes||tr('沿舞台路线移动'))}${e.move.notes?'<br>'+esc(e.move.notes):''}</div>`;}
- for(const a of q.annotations)if(annotationVisibleForActor(a,focusActor,current))html+=`<div class="notecard"><small>${esc(a.title)}</small>${esc(a.notes)}</div>`;
- const en=entity(focusActor);if(en?.notes)html+=ui`<details class="advanced-details"><summary>角色提醒</summary><div class="notecard">${esc(en.notes)}</div></details>`;
- if(q.notes)html+=ui`<details class="advanced-details"><summary>曲目说明与参考资料</summary><div class="notecard">${esc(q.notes)}</div></details>`;
- html+=stepMediaSection(eventAtCursor()?.cue);html+=ui`<button data-action="actor-records" class="full">查看我的全部记录</button><button data-action="session-actor" class="full">我的排练提示单</button>`;$('#inspector').innerHTML=html;hydrateStepMedia();
+ const q=song(),moves=C.moveEvents(q).filter(entry=>entry.move.entityId===focusActor);
+ const active=moves.filter(entry=>entry.start<=current&&entry.end>=current);
+ const next=moves.find(entry=>entry.start>current+.02);
+ if(!q.castIds.length){
+  paintInspector(tr('<div class="empty">本曲目还没有角色。在「编排」中添加参演角色。</div>'),'rehearsal:'+showId+'/'+songId);
+  return;
+ }
+ const lyric=currentLyric(),en=entity(focusActor),cue=eventAtCursor()?.cue;
+ const visibleLyrics=lyric&&!lyricDockVisible?ui`<h3>当前歌词</h3><div class="rehearsal-lyric">${esc(lyric.text)}</div>${lyric.notes?`<div class="notecard">${esc(lyric.notes)}</div>`:''}`:'';
+ const notes=q.annotations.filter(a=>annotationVisibleForActor(a,focusActor,current)).map(a=>
+  `<div class="notecard"><small>${esc(a.title)}</small>${esc(a.notes)}</div>`
+ ).join('');
+ const instructions=active.map(entry=>{
+  const {cue,move}=entry, personal=move.notes||cue.notes||tr('沿舞台路线移动');
+  const shared=move.notes&&cue.notes&&move.notes!==cue.notes?`<p class="rehearsal-shared-note">${esc(cue.notes)}</p>`:'';
+  return `<div class="notecard rehearsal-action-note"><small>${fmt(entry.start)} → ${fmt(entry.end)} · ${esc(cue.title)}</small><p>${esc(personal)}</p>${shared}</div>`;
+ }).join('');
+ const references=(en?.notes?ui`<div class="notecard"><small>角色提醒</small>${esc(en.notes)}</div>`:'')+
+  (q.notes?ui`<div class="notecard"><small>曲目说明与参考资料</small>${esc(q.notes)}</div>`:'')+
+  (cue?.attachments?.length?stepMediaSection(cue):'')+
+  ui`<button data-action="actor-records" class="full">查看我的全部记录</button><button data-action="session-actor" class="full">我的排练提示单</button>`;
+ const role=ui`<label class="field inspector-role"><span>这首曲目，我是</span><select id="focusActor">${q.castIds.map(id=>`<option value="${esc(id)}" ${id===focusActor?'selected':''}>${esc(displayName(entity(id)))}</option>`).join('')}</select></label>`;
+ const html=ui`<div class="inspector-rehearsal"><div class="rehearsal-card"><div class="eyebrow">下一次移动</div><div class="big" id="nextCountdown">${next?(next.start-current).toFixed(1)+tr(' 秒'):'—'}</div><div class="inspector-next-action">${esc(next?.cue.title||tr('本曲目没有后续移动'))}</div></div>
+ <section class="rehearsal-notes"><h3>当前行动</h3>${instructions||tr('<p class="context-tip">这一步保持站位，等待下一次行动。</p>')}${notes}${visibleLyrics}</section>
+ ${role}${inspectorDisclosure('rehearsal-records',tr('排练记录'),references)}</div>`;
+ paintInspector(html,'rehearsal:'+showId+'/'+songId);
 }
 function renderBottom(){
  $('#timelineZoomBar').classList.toggle('hidden',bottomTab!=='timeline');
@@ -228,7 +320,8 @@ function updateTransport(){
  $('#currentTime').textContent=fmt(current);$('#totalTime').textContent='/ '+fmt(time());$('#playButton').textContent=playing?'Ⅱ':'▶';
  const pauses=stepPausesEnabled(),pauseButton=$('#stepPauseButton');pauseButton.textContent=pauses?tr('逐步暂停'):tr('连续播放');pauseButton.classList.toggle('selected',!pauses);pauseButton.setAttribute('aria-pressed',String(pauses));pauseButton.title=pauses?tr('点击统一关闭本场全部曲目的步骤结束暂停'):tr('点击恢复各步骤原有的暂停设置');
  renderAudioStatus();
- updateStageFullscreenControls();$('#loopButton').classList.toggle('selected',!!loop);updatePlayhead();updateLyricsFocus();updateSingingFocus();updateReminder();
+ updateStageFullscreenControls();$('#loopButton').classList.toggle('selected',!!loop);updatePlayhead();updateLyricsFocus();updateSingingFocus();updateReminder();updateLoopControls();
+ if(songResumeOffer&&(current>.05||playing))renderSongResume();
 }
 function setStepPauses(enabled){
  if(stepPausesEnabled()===enabled)return;
@@ -247,7 +340,7 @@ function seek(t,{preview=false}={}){
 async function play(immediate=false,silent=false){
  if(playing||countdownTimer){pause();return;}const request=++audioPlayGeneration,identity=song();
  if(identity.audio&&!silent){if(audioState==='loading')await audioReady;if(request!==audioPlayGeneration||identity!==song())return;if(!audioPlayable()){toast(tr('音乐未连接，请连接音乐或点「静音走台」。'));return;}}
- stagePhase='live';tool='select';audioSilentMode=silent;if(syncPlaybackContext()){renderInspector();renderBottom();}renderEditorBar();if(current>=playbackEnd()-.01)seek(loop?.start||0);
+ stagePhase='live';tool='select';audioSilentMode=silent;const range=singleStepEnd===null?activeTransportLoop():null;if(range&&(current<range.start||current>=range.end))seek(range.start);if(syncPlaybackContext()){renderInspector();renderBottom();}renderEditorBar();if(current>=playbackEnd()-.01)seek(loop?.start||0);
  const count=+$('#leadIn').value;if(count&&!immediate){let n=count;$('#countdownOverlay').textContent=n;$('#countdownOverlay').classList.remove('hidden');countdownTimer=setInterval(()=>{n--;if(n<=0){clearInterval(countdownTimer);countdownTimer=null;$('#countdownOverlay').classList.add('hidden');play(true,silent);}else $('#countdownOverlay').textContent=n;},1000);return;}
  playing=true;lastClock=performance.now();if(audioPlayable()&&!silent&&current<audioDuration){const player=audio;player.currentTime=current;player.playbackRate=rate;player.preservesPitch=true;try{await startAudioPlayback(player);if(request!==audioPlayGeneration||player!==audio||!playing){player.pause();return;}beginAudioProgress(player);}catch(e){if(request!==audioPlayGeneration)return;playing=false;if(e.name==='TimeoutError'){player.pause();audioState='error';audioError=tr('音乐启动超时，请重新连接 MP3。');}updateTransport();toast(e.name==='NotAllowedError'?tr('浏览器尚未允许播放音乐，请再点一次播放。'):tr('音乐播放失败，请重新连接音乐。'));return;}}
  if(request!==audioPlayGeneration)return;lastClock=performance.now();updateTransport();renderEditorBar();frame=requestAnimationFrame(tick);
@@ -255,9 +348,10 @@ async function play(immediate=false,silent=false){
 
 function tick(now){
  if(!playing)return;if(!checkAudioProgress(now))return;const before=current;current+=(Math.max(0,now-lastClock)/1000)*rate;lastClock=Math.max(lastClock,now);if(audioPlayable()&&!audioSilentMode&&!audio.paused&&audio.currentTime<audioDuration-.05)current=audio.currentTime;
- let stop=singleStepEnd===null&&!singing&&!reminderOpen&&stepPausesEnabled()?C.events(song()).map(e=>({...e,end:C.cuePlaybackEnd(e)})).sort((a,b)=>a.end-b.end).find(e=>e.cue.stopAfter&&e.end>before+.001&&e.end<=current):null;
+ const transportRange=singleStepEnd===null?activeTransportLoop():null;
+ let stop=singleStepEnd===null&&!transportRange&&!singing&&!reminderOpen&&stepPausesEnabled()?C.events(song()).map(e=>({...e,end:C.cuePlaybackEnd(e)})).sort((a,b)=>a.end-b.end).find(e=>e.cue.stopAfter&&e.end>before+.001&&e.end<=current):null;
  if(stop){seek(stop.end);pause();if(!rehearsal)chooseStep(stop.cue.id,'end',true,true);return;}
- if(loop&&current>=loop.end){seek(loop.start);if(audioPlayable()&&!audioSilentMode&&current<audioDuration)audio.play().catch(()=>{if(playing){pause();toast(tr('音乐未能继续播放，请重新点播放。'));}});}else if(current>=playbackEnd()){seek(playbackEnd());pause();return;}
+ if(loop&&current>=loop.end&&!(loop.transport&&!transportRange)){if(transportRange&&!operationPrefs.repeatLoop){pause();seek(loop.start);return;}seek(loop.start);if(audioPlayable()&&!audioSilentMode&&current<audioDuration)audio.play().catch(()=>{if(playing){pause();toast(tr('音乐未能继续播放，请重新点播放。'));}});}else if(current>=playbackEnd()){seek(playbackEnd());pause();return;}
  if(syncPlaybackContext()){renderInspector();renderEditorBar();renderBottom();}
  if(!tick.lastRender||now-tick.lastRender>33){if(!reminderOpen)renderStage();updateTransport();tick.lastRender=now;}
  const key=C.moveEvents(song()).filter(e=>e.start<=current&&e.end>=current).map(e=>e.move.id).join('|')+'|'+currentLyric()?.id;
@@ -302,8 +396,9 @@ document.addEventListener('change',async ev=>{
   }catch(e){toast(e.message);renderInspector();}
  }else if(input.matches('[data-note-entity]')){const t=target();if(inspect.type==='annotation')mutate(()=>t.entityIds=input.checked?[...new Set([...t.entityIds,input.dataset.noteEntity])]:t.entityIds.filter(id=>id!==input.dataset.noteEntity));
  }else if(input.matches('[data-participation]')){
+  if(rehearsal)return;
   const id=input.dataset.participation;mutate(()=>{const key=show().actors.some(a=>a.id===id)?'castIds':'propIds';if(input.checked){song().initial[id]||=nextInitialPosition();if(!song()[key].includes(id))song()[key].push(id);}else song()[key]=song()[key].filter(x=>x!==id);});
- }else if(input.id==='focusActor'){focusActor=input.value;renderStage();renderRehearsal();}
+ }else if(input.id==='focusActor'||input.id==='stageRehearsalRole'){focusActor=input.value;$('#stageRehearsalRole').value=focusActor;renderStage();renderRehearsal();}
  else if(input.id==='speed'){rate=Number(input.value);audio.playbackRate=rate;audio.preservesPitch=true;}
  else if(input.id==='showRoutes'||input.id==='showGrid'||input.id==='allRoutes')renderStage();
 });
@@ -311,7 +406,7 @@ document.addEventListener('click',async ev=>{
  const el=ev.target.closest('[data-action],[data-song],[data-inspect],[data-entity],[data-lyric],[data-record],[data-issue],[data-session-source]');if(!el)return;
  if(ev.target.matches('input,select,textarea'))return;
  if(el.dataset.sessionSource){addSessionRef(JSON.parse(el.dataset.sessionSource));return;}
- if(el.dataset.action){$$('details.app-menu[open],details.stage-tools[open]').forEach(d=>d.open=false);try{await action(el.dataset.action);}catch(e){console.error(e);toast(e.message||tr('操作失败'));}return;}
+ if(el.dataset.action){if(!el.closest('[data-menu-keep-open]'))closeWorkspaceMenus();try{await action(el.dataset.action);}catch(e){console.error(e);toast(e.message||tr('操作失败'));}return;}
  if(el.dataset.song){await switchSong(el.dataset.song);return;}
  if(el.dataset.inspect){inspectObject(el.dataset.inspect,el.dataset.id);return;}
  if(el.dataset.entity&&!el.closest('#stage')){inspectObject('entity',el.dataset.entity);return;}
@@ -353,7 +448,7 @@ $('#stage').addEventListener('pointermove',ev=>{
  renderStage();
  if(drag.kind==='box')$('#scene').insertAdjacentHTML('beforeend',`<rect x="${Math.min(p.x,drag.origin.x)}" y="${Math.min(p.y,drag.origin.y)}" width="${Math.abs(dx)}" height="${Math.abs(dy)}" fill="#9c7b3520" stroke="#9c7b35" stroke-width=".3"/>`);
 });
-$('#stage').addEventListener('pointerup',()=>{if(!drag)return;const moved=drag.started;drag=null;if(moved)renderAll();else{renderStage();renderInspector();renderEditorBar();}});
+$('#stage').addEventListener('pointerup',()=>{if(!drag)return;const moved=drag.started;drag=null;if(moved)renderAll();else{renderStage();renderInspector();renderEditorBar();if(bottomTab==='timeline'&&timelineSelectedOnly)renderTimeline();}});
 $('#stage').addEventListener('pointercancel',()=>{drag=null;renderAll();});
 for(const [id,axis,prop,min,max,invert] of [['leftSplit','x','--left',130,420,false],['rightSplit','x','--right',230,520,true],['bottomSplit','y','--bottom',160,600,true]])$('#'+id).addEventListener('pointerdown',e=>{e.preventDefault();const start=axis==='x'?e.clientX:e.clientY,initial=parseFloat(getComputedStyle(document.documentElement).getPropertyValue(prop));const move=ev=>{const delta=(axis==='x'?ev.clientX:ev.clientY)-start;document.documentElement.style.setProperty(prop,Math.max(min,Math.min(max,initial+(invert?-delta:delta)))+'px');};const up=()=>{document.removeEventListener('pointermove',move);document.removeEventListener('pointerup',up);updatePlayhead();};document.addEventListener('pointermove',move);document.addEventListener('pointerup',up,{once:true});});
 
@@ -381,6 +476,21 @@ async function deleteProductionEntity(s,en){
 
 async function action(a){
  if(videoExporting||stepMediaBusy){toast(tr('正在处理素材，请完成或取消后再操作。'));return;}
+ if(operationsAction(a))return;
+ if(a==='alignment-check'){openAlignmentDialog();return;}
+ if(a==='feature-find'){featureFinderOpen();return;}
+ if(a==='tutorial-start'){await startTutorial();return;}
+ if(a==='mode-guide'){modeGuideDialog();return;}
+ if(a==='guide-import'){openDialog();return;}
+ if(a==='guide-edit-details'){await humanAction('human-tour');return;}
+ if(a.startsWith('guide-mode:')){
+  const which=a.slice(11);
+  if(modeGuideEntries.some(([id])=>id===which)){
+   closeModal();
+   await action('mode-'+which);
+  }
+  return;
+ }
  if(a==='mode-reminder'){openReminder();return;}
  if(a.startsWith('reminder-')){await reminderAction(a);return;}
  if(reminderOpen&&['mode-edit','mode-rehearse','mode-sing','mode-song-video'].includes(a))leaveReminder();
@@ -447,11 +557,11 @@ async function action(a){
  case 'playback-settings':playbackDialog();break;
  case 'toggle-step-pauses':setStepPauses(!stepPausesEnabled());break;
  case 'audio':$('#audioInput').click();break;
- case 'lyrics':lyricsDialog();break;
+ case 'lyrics':if(singing||canEdit())lyricsDialog();break;
  case 'add-cue':createNextStep();break;
  case 'add-actor':addEntity(false);break;
  case 'add-prop':addEntity(true);break;
- case 'add-song':nameDialog(tr('添加曲目'),tr('曲目名称'),async name=>{const n=C.newSong(name);mutate(()=>s.songs.push(n),false);await switchSong(n.id);});break;
+ case 'add-song':nameDialog(tr('添加曲目'),tr('曲目名称'),async name=>{const n=C.newSong(name);mutate(()=>s.songs.push(n),false);await switchSong(n.id);},'填歌曲或场次名，例如「开场合唱」。');break;
  case 'duplicate-song':{const n=C.clone(q);n.id=C.id('song');n.title+=tr(' · 副本');const assets=new Map(),prefix=`shows/${s.id}/songs/${q.id}/`;for(const ref of songMediaReferences(s,q)){const file=await resourceFile(ref.key);if(file)assets.set(`shows/${s.id}/songs/${n.id}/`+ref.key.slice(prefix.length),file);}mutate(()=>{for(const [key,file]of assets)pendingAssets.set(key,file);s.songs.splice(s.songs.indexOf(q)+1,0,n);},false);await switchSong(n.id);break;}
  case 'delete-song':if(s.songs.length===1){toast(tr('每场演出至少保留一个曲目。'));break;}if(await confirmAction(tr('删除此曲目及其走台？可通过撤销恢复。'))){mutate(()=>s.songs=s.songs.filter(x=>x.id!==q.id),false);await switchSong(s.songs[0].id);}break;
  case 'delete-show':if(lib.shows.length===1){toast(tr('演出库至少保留一场演出。'));break;}if(await confirmAction(tr('删除这场演出？可通过撤销恢复。'))){mutate(()=>lib.shows=lib.shows.filter(x=>x.id!==s.id),false);await switchShow(lib.shows[0].id);}break;
@@ -478,7 +588,7 @@ async function action(a){
  case 'remove-audio':if(q.audio){mutate(()=>q.audio=null,false);await loadAudio();renderAll();}break;
  }
 }
-function libraryDialog(){modal(tr('演出库'),ui`<div class="row"><span class="muted">每场演出独立保存舞台、角色、道具与曲目。</span><span class="spacer"></span><button id="newShow" class="gold">＋ 新建演出</button></div><div class="librarygrid" style="margin-top:18px">`+lib.shows.map((s,i)=>ui`<div class="librarycard ${s.id===showId?'active':''}" data-library-show="${esc(s.id)}"><div class="eyebrow">PRODUCTION ${String(i+1).padStart(2,'0')}</div><h3>${esc(s.title)}</h3><p class="muted">${s.songs.length} 首曲目 · ${s.actors.length} 位角色</p><span class="tag">LOCAL / OFFLINE</span></div>`).join('')+'</div>');$('#newShow').onclick=()=>nameDialog(tr('新建演出'),tr('演出名称'),async title=>{const s=C.newShow(title);mutate(()=>lib.shows.push(s),false);await switchShow(s.id);});$$('[data-library-show]').forEach(el=>el.onclick=()=>{closeModal();switchShow(el.dataset.libraryShow);});}
+function libraryDialog(){modal(tr('演出库'),ui`<div class="row"><span class="muted">每场演出独立保存舞台、角色、道具与曲目。</span><span class="spacer"></span><button id="newShow" class="gold">＋ 新建演出</button></div><div class="librarygrid" style="margin-top:18px">`+lib.shows.map((s,i)=>ui`<div class="librarycard ${s.id===showId?'active':''}" data-library-show="${esc(s.id)}"><div class="eyebrow">PRODUCTION ${String(i+1).padStart(2,'0')}</div><h3>${esc(s.title)}</h3><p class="muted">${s.songs.length} 首曲目 · ${s.actors.length} 位角色</p><span class="tag">LOCAL / OFFLINE</span></div>`).join('')+'</div>');$('#newShow').onclick=()=>nameDialog(tr('新建演出'),tr('演出名称'),async title=>{const s=C.newShow(title);mutate(()=>lib.shows.push(s),false);await switchShow(s.id);},'填剧目或演出的名称，例如「音乐剧社冬季公演」。');$$('[data-library-show]').forEach(el=>el.onclick=()=>{closeModal();switchShow(el.dataset.libraryShow);});}
 function actorRecords(id){const name=displayName(entity(id)),rows=records().filter(r=>r.showId===showId&&(!r.songId||r.songId===songId)&&(!r.entityIds.length||r.entityIds.includes(id)));const moves=C.events(song()).flatMap(e=>e.cue.moves.filter(m=>m.entityId===id).map(m=>({showId,songId,type:'move',id:m.id,label:e.cue.title+' · '+fmt(C.moveEvent(e,m).start)+' → '+fmt(C.moveEvent(e,m).end),notes:m.notes||e.cue.notes||tr('按舞台路线移动'),time:C.moveEvent(e,m).start,entityIds:[id]})));modal(name+tr(' · 本曲目完整记录'),[...moves,...rows.filter(r=>r.type!=='move')].map(recordHTML).join('')||tr('<div class="empty">还没有为此角色添加走台或备注。</div>'));}
 function searchDialog(){modal(tr('检索整个演出库'),ui`<input id="searchInput" class="full" placeholder="角色、歌词、动作、道具或任意备注关键词"><div id="searchResults"></div>`);const input=$('#searchInput');input.oninput=()=>{const term=input.value.trim().toLowerCase();$('#searchResults').innerHTML=term?records().filter(r=>(r.label+' '+r.notes).toLowerCase().includes(term)).map(recordHTML).join('')||tr('<div class="empty">没有匹配的记录。</div>'):tr('<div class="empty">搜索所有演出里的备注，点击结果跳回对应对象。</div>');};input.oninput();input.focus();}
 function issueContext(issue){
@@ -495,7 +605,7 @@ function locateIssue(index){
 }
 function issuesDialog(){pause();issuesCache=C.issues(show(),song());modal(tr('本曲目检查'),ui`<p class="context-tip">已暂停播放。点击一项，直接修改对应演员的路线或时间。</p>`+issuesCache.map((i,n)=>{const c=issueContext(i);return ui`<button class="issue full ${i.level==='warning'?'warn':''}" data-issue="${n}"><b>${esc(c.label)}</b><span>${esc(c.text)}</span><small>定位并修改 →</small></button>`;}).join('')+(issuesCache.length?'':tr('<div class="empty">✓ 当前曲目未发现编排错误</div>')));}
 function viewDialog(){modal(tr('调整工作区'),ui`<div class="stack"><label><input type="checkbox" id="viewLeft" ${!$('#workspace').classList.contains('noleft')?'checked':''}> 曲目／角色／道具列表</label><label><input type="checkbox" id="viewRight" ${!$('#workspace').classList.contains('noright')?'checked':''}> 详情、备注与演员提示</label><label><input type="checkbox" id="viewBottom" ${!$('#workspace').classList.contains('nobottom')?'checked':''}> 时间轴和歌词区域</label></div><p class="footer-note">拖动面板之间的分隔线调整大小。隐藏面板后，舞台自动占据释放的空间。隐藏时间轴时仍可用空格播放／暂停，方向键逐步查看。</p><button id="viewReset">恢复默认布局</button>`);for(const [id,cls]of [['viewLeft','noleft'],['viewRight','noright'],['viewBottom','nobottom']])$('#'+id).onchange=e=>$('#workspace').classList.toggle(cls,!e.target.checked);$('#viewReset').onclick=()=>{$('#workspace').className='workspace';document.documentElement.style.removeProperty('--left');document.documentElement.style.removeProperty('--right');document.documentElement.style.removeProperty('--bottom');stageFocusPrevious=null;timelineHeightPrevious=null;updateLayoutControls();closeModal();renderStage();if(bottomTab==='timeline')renderTimeline();};}
-function loopDialog(){modal(tr('局部循环'),ui`<div class="two"><label class="field"><span>开始秒数</span><input id="loopStart" type="number" min="0" step=".1" value="${loop?.start||current}"></label><label class="field"><span>结束秒数</span><input id="loopEnd" type="number" min="0" step=".1" value="${loop?.end||Math.min(time(),current+12)}"></label></div><div class="dialogactions"><button id="clearLoop">关闭循环</button><button id="setLoop" class="gold">启用循环</button></div>`);$('#clearLoop').onclick=()=>{loop=null;closeModal();updateTransport();};$('#setLoop').onclick=()=>{const start=+$('#loopStart').value,end=+$('#loopEnd').value;if(!(end>start&&start>=0&&end<=time()))return toast(tr('结束时间需大于开始时间，且在本曲目范围内。'));loop={start,end};seek(start);closeModal();updateTransport();};}
+function loopDialog(){modal(tr('局部循环'),ui`<div class="two"><label class="field"><span>开始秒数</span><input id="loopStart" type="number" min="0" step=".1" value="${activeTransportLoop()?.start??current}"></label><label class="field"><span>结束秒数</span><input id="loopEnd" type="number" min="0" step=".1" value="${activeTransportLoop()?.end??Math.min(time(),current+12)}"></label></div><div class="dialogactions"><button id="clearLoop">关闭循环</button><button id="setLoop" class="gold">启用循环</button></div>`);$('#clearLoop').onclick=()=>{markTransportLoop('clear');closeModal();};$('#setLoop').onclick=()=>{const start=+$('#loopStart').value,end=+$('#loopEnd').value;if(!(end>start&&start>=0&&end<=time()))return toast(tr('结束时间需大于开始时间，且在本曲目范围内。'));setTransportLoop(start,end);seek(start);closeModal();updateTransport();};}
 function playbackDialog(){modal(tr('排练播放设置'),ui`<label class="smallcheck"><input type="checkbox" id="modalStepPauses" ${stepPausesEnabled()?'checked':''}>允许步骤结束后暂停</label><p class="footer-note">关闭后，本场所有曲目连续播放；各步骤原有的暂停设置会保留。「预览本步」仍在本步结束时停止。</p><label class="field"><span>播放速度</span><select id="modalSpeed">${[.5,.75,1,1.25,1.5].map(v=>`<option value="${v}" ${rate===v?'selected':''}>${v}×</option>`).join('')}</select></label><label class="field"><span>开始前倒数</span><select id="modalLead">${[0,3,5].map(v=>`<option value="${v}" ${+$('#leadIn').value===v?'selected':''}>${v?v+tr(' 秒'):tr('无')}</option>`).join('')}</select></label><button data-action="loop">设置局部循环</button>`);$('#modalStepPauses').onchange=e=>setStepPauses(e.target.checked);$('#modalSpeed').onchange=e=>{rate=+e.target.value;audio.playbackRate=rate;audio.preservesPitch=true;$('#speed').value=rate;};$('#modalLead').onchange=e=>$('#leadIn').value=e.target.value;}
 function shiftDialog(){modal(tr('整体调整时间'),ui`<p class="muted">移动指定秒数之后的走台、歌词和有时间的备注。只适用于按时间编排；不会剪辑或移动 MP3。</p><div class="two"><label class="field"><span>从多少秒开始</span><input id="shiftFrom" type="number" value="${current}" min="0"></label><label class="field"><span>移动多少秒（负数为提前）</span><input id="shiftBy" type="number" value="2" step=".1"></label></div><button id="applyShift" class="gold">应用调整</button>`);$('#applyShift').onclick=()=>{if(song().mode!=='timed')return toast(tr('先在曲目设置切换为按时间编排。'));const from=+$('#shiftFrom').value,by=+$('#shiftBy').value;mutate(()=>{for(const c of song().cues)if(c.at>=from)c.at=Math.max(0,c.at+by);for(const l of song().lyrics){if(l.start>=from){l.start=Math.max(0,l.start+by);l.end=Math.max(l.start,l.end+by);}}for(const n of song().annotations)if(n.start!=null&&n.start>=from){n.start=Math.max(0,n.start+by);if(n.end!=null)n.end=Math.max(n.start,n.end+by);}});closeModal();};}
 function jsonStageDialog(){modal(tr('舞台坐标文本'),ui`<p class="muted">直线节点使用 x、y；曲线目标节点额外包含 c1、c2 两个控制点。此舞台由本场所有曲目共用。</p><textarea id="stageJSON" class="importarea" style="height:350px">${esc(JSON.stringify(show().stage,null,2))}</textarea><div class="dialogactions"><button id="applyStage" class="gold">应用舞台</button></div>`);$('#applyStage').onclick=()=>{try{const stage=JSON.parse($('#stageJSON').value),temp=C.clone(lib);temp.shows.find(s=>s.id===showId).stage=stage;C.checkStructure(temp);mutate(()=>show().stage=stage);closeModal();}catch(e){toast(e.message);}};}

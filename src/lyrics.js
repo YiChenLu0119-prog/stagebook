@@ -8,7 +8,7 @@ function lyricField(l,key,label,type='text'){
 }
 function renderLyricsDock(force=false){
  if(!song())return;const identity=showId+'/'+songId;if(identity!==lyricDockSong){lyricDockSong=identity;lyricEditId=null;lyricRenderSignature='';lyricActiveId=null;}
- if(lyricEditId&&!lyricById(lyricEditId))lyricEditId=null;
+ if(lyricEditId&&(rehearsal||!lyricById(lyricEditId)))lyricEditId=null;
  $('#lyricsDock').classList.toggle('hidden',!lyricDockVisible);$('#stageAndLyrics').classList.toggle('lyrics-hidden',!lyricDockVisible);$('#lyricsToggle').classList.toggle('selected',lyricDockVisible);$('#lyricsToggle').setAttribute('aria-pressed',String(lyricDockVisible));$('#lyricsCount').textContent=song().lyrics.length?ui`${song().lyrics.length} 句`:'';
  $('#lyricFollowButton').textContent=tr(lyricFollow?'跟随播放':'回到当前句');$('#lyricFollowButton').classList.toggle('selected',lyricFollow);$('#lyricFollowButton').setAttribute('aria-pressed',String(lyricFollow));
  const signature=JSON.stringify(song().lyrics)+'|'+lyricEditId+'|'+rehearsal+'|'+StageI18n.language,focused=document.activeElement?.closest?.('[data-lyric-inline]');
@@ -18,7 +18,7 @@ function renderLyricsDock(force=false){
   $('#lyricsList').innerHTML=list.length?list.map((l,i)=>{
    const edit=lyricEditId===l.id;
    return ui`<article class="dock-lyric ${edit?'editing':''}" data-lyric-row="${esc(l.id)}"><div class="dock-lyric-heading"><button data-action="lyrics-jump:${esc(l.id)}" class="lyric-time" aria-label="定位第 ${i+1} 句歌词，${fmt(l.start)}">${fmt(l.start)} → ${fmt(l.end)}</button>${!rehearsal?ui`<button data-action="lyrics-edit:${esc(l.id)}" class="lyric-edit-button" aria-label="编辑第 ${i+1} 句歌词">${edit?tr('收起'):tr('编辑')}</button>`:''}</div>${edit?lyricField(l,'text',tr('歌词内容'),'textarea')+ui`<div class="two">${lyricField(l,'start',tr('开始秒数'),'number')}${lyricField(l,'end',tr('结束秒数'),'number')}</div><p class="lyric-edit-tip">改开始时间会保留原时长；结束时间可单独调。</p><details><summary>这句的备注</summary>${lyricField(l,'notes',tr('歌词备注'),'textarea')}</details><div class="lyric-edit-actions"><button data-action="lyrics-edit:${esc(l.id)}">完成</button><button class="danger" data-action="lyrics-delete:${esc(l.id)}">删除这句</button></div>`:`<button class="lyric-line" data-action="lyrics-jump:${esc(l.id)}">${esc(l.text||tr('（空白歌词）'))}</button>${l.notes?`<p class="dock-lyric-note">${esc(l.notes)}</p>`:''}`}</article>`;
-  }).join(''):ui`<div class="lyrics-empty"><p>歌词和走台可以一起看、一起改。</p><button data-action="lyrics">导入歌词</button><button data-action="add-lyric">在当前时间写一句</button></div>`;
+  }).join(''):rehearsal?ui`<div class="lyrics-empty"><p>本曲目还没有歌词。</p></div>`:ui`<div class="lyrics-empty"><p>歌词和走台可以一起看、一起改。</p><button data-action="lyrics">导入歌词</button><button data-action="add-lyric">在当前时间写一句</button></div>`;
   lyricRenderSignature=signature;lyricActiveId=null;
  }
  updateLyricsFocus();

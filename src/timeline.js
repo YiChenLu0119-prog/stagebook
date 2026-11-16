@@ -1,6 +1,7 @@
 /* Timeline view state does not change the saved show unless a clip is edited. */
 const TIMELINE_LABEL=120;
 let timelineZoom=1,timelineDrag=null,timelineScrub=null;
+let timelineSelectedOnly=false;
 const timelineRanges=new Map();
 let timelineGesture=null;
 const timeRound=n=>Math.round(n*10)/10;
@@ -24,15 +25,22 @@ function renderTimeline(){
  const viewport=$('#bottomContent'),scrollLeft=viewport.scrollLeft,scrollTop=viewport.scrollTop,{total,pixelsPerSecond}=timelineMetrics(),q=song();
  const width=TIMELINE_LABEL+total*pixelsPerSecond;
  let html=`<div class="timeline clip-timeline" style="width:${width}px"><div class="ruler" data-seek="true">${timelineRulerTicks(total,pixelsPerSecond)}`;
- html+='</div>';const events=C.events(q);
+ html+='</div>'+timelineLoopMarkup(total,pixelsPerSecond);const events=C.events(q);
  const clip=(e,m,color)=>{const span=m?C.moveEvent(e,m):e,active=selectedCue===e.cue.id&&(!m||selected.includes(m.entityId)),name=m?displayName(entity(m.entityId)):e.cue.title;
-  return ui`<div class="cuebar ${m?'actor-clip':'step-clip'} ${active?'active':''}" data-timeline-bar="${m?'move':'cue'}" data-cue="${esc(e.cue.id)}" ${m?`data-move="${esc(m.id)}"`:''} role="button" tabindex="0" aria-label="${esc(name)}，${fmt(span.start)}开始，持续${span.duration}秒" title="${esc(name)} · ${fmt(span.start)}–${fmt(span.end)} · 拖动移动，拖两端调整时长" style="left:${span.start*pixelsPerSecond}px;width:${Math.max(14,span.duration*pixelsPerSecond)}px;background:${color}">${m||q.mode==='timed'?tr('<span class="clip-edge left-edge" data-timeline-edge="left" title="拖动调整开始时间"></span>'):''}<span class="clip-caption">${esc(m?m.notes||e.cue.title:e.cue.title)}</span><span class="clip-edge right-edge" data-timeline-edge="right" title="拖动调整结束时间"></span></div>`;
+  return ui`<div class="cuebar ${m?'actor-clip':'step-clip'} ${active?'active':''}" data-timeline-bar="${m?'move':'cue'}" data-cue="${esc(e.cue.id)}" ${m?`data-move="${esc(m.id)}"`:''} role="button" tabindex="0" aria-label="${esc(name)}，${fmt(span.start)}开始，持续${span.duration}秒" title="${esc(name)} · ${fmt(span.start)}–${fmt(span.end)}${rehearsal?'':tr(' · 拖动移动，拖两端调整时长')}" style="left:${span.start*pixelsPerSecond}px;width:${Math.max(14,span.duration*pixelsPerSecond)}px;background:${color}">${m||q.mode==='timed'?tr('<span class="clip-edge left-edge" data-timeline-edge="left" title="拖动调整开始时间"></span>'):''}<span class="clip-caption">${esc(m?m.notes||e.cue.title:e.cue.title)}</span><span class="clip-edge right-edge" data-timeline-edge="right" title="拖动调整结束时间"></span></div>`;
  };
  html+=tr('<div class="lane"><div class="lanename">走台步骤</div><div class="lanetrack" data-seek="true">')+events.map(e=>clip(e,null,'#8b7046')).join('')+'</div></div>';
- for(const en of activeEntities())html+=`<div class="lane"><div class="lanename" data-entity="${esc(en.id)}" title="${esc(en.name)}">${esc(en.label)} · ${esc(en.name)}</div><div class="lanetrack" data-seek="true">`+events.flatMap(e=>e.cue.moves.filter(m=>m.entityId===en.id).map(m=>clip(e,m,safeColor(en.color)))).join('')+'</div></div>';
+ const entities=activeEntities(),selection=!rehearsal&&timelineSelectedOnly?entities.filter(en=>selected.includes(en.id)):[];
+ for(const en of selection.length?selection:entities)html+=`<div class="lane"><div class="lanename" data-entity="${esc(en.id)}" title="${esc(en.name)}">${esc(en.label)} · ${esc(en.name)}</div><div class="lanetrack" data-seek="true">`+events.flatMap(e=>e.cue.moves.filter(m=>m.entityId===en.id).map(m=>clip(e,m,safeColor(en.color)))).join('')+'</div></div>';
  const scrubLabel=esc(tr('拖动播放指针'));
  html+=`<div class="playhead" id="playhead"><button type="button" class="playhead-handle" data-scrub-handle role="slider" aria-label="${scrubLabel}" title="${scrubLabel}" aria-valuemin="0"></button></div></div>`;
  viewport.innerHTML=html;viewport.scrollLeft=scrollLeft;viewport.scrollTop=scrollTop;
+ const filter=$('#timelineSelectedOnly'),copy=$('#timelineCopyAtPlayhead');
+ filter.classList.toggle('hidden',rehearsal);
+ filter.classList.toggle('selected',timelineSelectedOnly);
+ filter.setAttribute('aria-pressed',String(timelineSelectedOnly));
+ copy.classList.toggle('hidden',rehearsal);
+ copy.disabled=!events.length;
  $('#timelineZoom').value=Math.log2(timelineZoom);$('#timelineZoomLabel').textContent=(Math.round(timelineZoom*10)/10)+'×';updatePlayhead();
 }
 function setTimelineZoom(value,anchor){
@@ -49,6 +57,7 @@ function timelineAction(a){
  if(a==='timeline-zoom-in')setTimelineZoom(timelineZoom*1.4);
  if(a==='timeline-fit'){const range=timelineRange();range.span=range.end=Math.max(!song().duration&&!audioDuration?60:1,time(),current);setTimelineZoom(1);$('#bottomContent').scrollLeft=0;}
  if(a==='timeline-extend'){const range=timelineRange();range.end=Math.max(range.end,time())+30;renderTimeline();$('#bottomContent').scrollLeft=TIMELINE_LABEL+range.end*timelineMetrics().pixelsPerSecond-$('#bottomContent').clientWidth;}
+ if(a==='timeline-selected-only'&&!rehearsal){timelineSelectedOnly=!timelineSelectedOnly;renderTimeline();}
  return true;
 }
 function timelineEditValues(base,edge,delta,isMove,mode){

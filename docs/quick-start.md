@@ -1,13 +1,16 @@
 # Stagebook quick start
 
-Stagebook · Multilingual edition v9.7
+Stagebook 10.1
 
 OPEN AND SAVE
 Extract the package and open “Stagebook.html”. The “演出资料” folder contains the editable data. New productions, songs, actors and props use in-app forms; press Enter to create or Cancel to return. Import a complete ZIP or folder to continue another production.
 Use Save (⌘ / Ctrl + S) to download a durable package, or write to a connected folder when the browser supports it. Browser recovery drafts do not replace saving a file. Share with cast exports blocking, lyrics and connected audio together.
 
 INTERFACE LANGUAGE
-Use the language selector in the top bar: 简体中文, 繁體中文 or English. The choice is remembered in this browser and included in exported HTML. A viewer's own saved preference takes priority. Switching language keeps the playhead, view and selection; it does not translate character names, lyrics or notes.
+Open **⋯ → Interface language** to choose English, Simplified Chinese, Traditional Chinese, Japanese, or Spanish. The choice is remembered in this browser and included in exported HTML. A viewer's own saved preference takes priority. Switching language keeps the playhead, view and selection; it does not translate character names, lyrics or notes.
+
+IN-APP HELP
+Open **Quick guide → Interactive tutorial** for a walkthrough, or use **Find a feature** to locate a command. Supported controls show short animated demonstrations on hover or keyboard focus. Change this and keyboard focus preferences in **Workflow preferences**.
 
 BLOCK A MOVEMENT
 A blocking step is a timed cue for the cast. Each actor’s movement has its own path, delay and duration within or beyond that step.
@@ -89,4 +92,4 @@ Large libraries keep media outside the small entry page and load it by song. Kee
 
 ## Practice from a song recording
 
-Open **Rehearsal video**, select a song and choose **Add video**. Drag the progress bar to find the section. Choose **Mark start** and **Mark end** or enter two timecodes. Playback pauses at the end and returns to the start. Press Play for another repetition. **Fullscreen video** keeps the player and segment controls on screen. Save the production to keep the recording with it.
+Open **Rehearsal video**, select a song and choose **Add video**. Drag the progress bar to find the section. Choose **Mark start** and **Mark end** or enter two timecodes. Press an active marker again to clear it. Playback pauses at the end and returns to the start. Press Play for another repetition. **Fullscreen video** keeps the player and segment controls on screen. Save the production to keep the recording with it.

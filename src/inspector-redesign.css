@@ -1,0 +1,62 @@
+/* Inspector hierarchy follows the selected content rather than the app-wide toolbar. */
+#inspector .inspector-fold {
+  border: 0;
+  border-top: 1px solid var(--line);
+  padding: 5px 0 0;
+  margin-top: 5px;
+}
+#inspector .inspector-fold > summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 38px;
+  padding: 4px 2px;
+  color: var(--muted);
+  font-weight: 600;
+}
+#inspector .inspector-fold > summary::before {
+  content: "";
+  width: 5px;
+  height: 5px;
+  flex: 0 0 5px;
+  border-inline-end: 1px solid currentColor;
+  border-block-end: 1px solid currentColor;
+  transform: rotate(-45deg);
+}
+#inspector .inspector-fold[open] > summary::before { transform: rotate(45deg); }
+#inspector .inspector-fold > summary:hover,
+#inspector .inspector-fold[open] > summary { color: var(--text); }
+.inspector-fold-body { display: grid; gap: 8px; padding: 3px 0 10px; }
+.inspector-fold-body .context-tip { margin: 2px 0 0; }
+.inspector-fold-body .step-media { border: 0; margin: 0; padding: 0; }
+.inspector-fold-body .step-media-heading > span { display: none; }
+.inspector-fold-body .step-media-heading { justify-content: end; }
+.inspector-fold-body .step-media .footer-note { margin-bottom: 0; }
+.inspector-step-timing { margin-bottom: 14px; }
+.inspector-step-timing .field { margin-block: 0 4px; }
+.inspector-blocking-note textarea,
+#inspector textarea[data-human-note] { min-height: 76px; }
+.inspector-movement > .route-choice { margin-bottom: 14px; }
+.inspector-rehearsal .rehearsal-card {
+  padding: 13px 14px;
+  margin: 0 0 12px;
+  border-radius: 10px;
+  display: grid;
+  gap: 5px;
+}
+.inspector-rehearsal .rehearsal-card .big { font-size: clamp(22px, 2vw, 34px); font-variant-numeric: tabular-nums; }
+.inspector-next-action { color: var(--text); overflow-wrap:anywhere; }
+.inspector-rehearsal .inspector-role { margin-top: 14px; }
+.inspector-rehearsal .rehearsal-notes { display: grid; gap: 7px; }
+.inspector-rehearsal .rehearsal-notes h3 { margin: 4px 0 0; }
+.inspector-rehearsal .notecard { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+.inspector-rehearsal .rehearsal-action-note { display: grid; gap: 4px; }
+.inspector-rehearsal .rehearsal-action-note .rehearsal-shared-note { color: var(--muted); }
+.inspector-rehearsal .rehearsal-action-note p { margin: 0; }
+@media (max-width: 850px) {
+  #inspector .inspector-fold > summary { min-height: 44px; }
+  #inspector .route-choice > button { min-height: 35px; }
+}
+#inspector .inspector-fold > summary::-webkit-details-marker { display: none; }
+.inspector-inline-actions { margin-top: 8px; }
+.inspector-inline-actions > button { color: var(--muted); }

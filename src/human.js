@@ -50,8 +50,8 @@ function renderEditorBar(){
  $('#stepDetailsButton').disabled=rehearsal;$('#stepDetailsButton').classList.toggle('hidden',rehearsal||inspect.type==='cue');
  $('#stepContext').textContent=tool==='initial'?tr('拖动演员摆好开场位置'):!e?tr('此处还没有动作'):stagePhase==='live'?ui`当前第 ${index+1} / ${list.length} 步`:stagePhase==='start'?tr('本步起点'):ui`第 ${index+1} / ${list.length} 步`;
  $('#ghostsToggle').checked=showGhosts;$('#snapToggle').checked=snapToGrid;$('#linkToggle').checked=linkNext;
- $('#pasteFormation').disabled=!formationClipboard;
- $('#stageViewBadge').textContent=playing?tr('正在预览'):tool==='initial'?tr('起始站位'):stagePhase==='end'?tr('本步落点'):stagePhase==='start'?tr('本步起点'):tr('播放位置');
+ $('#pasteFormation').disabled=rehearsal||!formationClipboard;
+ $('#stageViewBadge').textContent=playing?tr('正在预览'):tool==='initial'||!e&&current===0?tr('起始站位'):e&&stagePhase==='end'?tr('本步落点'):e&&stagePhase==='start'?tr('本步起点'):tr('播放位置');
  $('#stageViewBadge').classList.toggle('hidden',rehearsal);
 }
 function stepMiniature(cueId){
@@ -70,27 +70,41 @@ function selectionTools(){return ui`<div class="selection-actions"><button data-
 function renderHumanInspector(){
  if(rehearsal)return false;
  if(tool==='initial'&&inspect.type==='song'){
-  $('#inspectorTitle').textContent=tr('起始站位');$('#inspector').innerHTML=tr('<div class="human-inspector-title"><h2>摆好开场位置</h2></div><p class="context-tip">拖动舞台上的演员，或从上方名单选择角色。准备好后，选择一个步骤继续编排。</p><button class="full" data-action="song-settings">曲目设置与笔记</button>');return true;
+  $('#inspectorTitle').textContent=tr('起始站位');
+  paintInspector(tr('<p class="context-tip">拖动舞台上的演员，或从上方名单选择角色。准备好后，选择一个步骤继续编排。</p><button class="full" data-action="song-settings">曲目设置与笔记</button>'));
+  return true;
  }
  if(selected.length>1&&['entity','group'].includes(inspect.type)){
   $('#inspectorTitle').textContent=tr('多人编排');
-  $('#inspector').innerHTML=ui`<div class="human-inspector-title"><h2>已选 ${selected.length} 个对象</h2><p>${selected.map(id=>esc(displayName(entity(id)))).join(' · ')}</p></div>${selectionTools()}<div class="row wrap"><button data-action="human-copy">复制这组站位</button><button data-action="human-clear">取消选择</button></div><label class="field"><span>给这组人写本步动作</span><textarea id="groupNote" placeholder="例如：同时看向 Hamilton，停住两拍。"></textarea></label><button data-action="human-group-note" class="gold full" ${!selectedCue?'disabled':''}>写入这 ${selected.length} 人的本步动作</button><p class="context-tip">每人都能在自己的本步动作里看到；各自已有备注会保留。</p>`;return true;
+  const note=selectedCue?ui`<label class="field"><span>给这组人写本步动作</span><textarea id="groupNote" placeholder="例如：同时看向 Hamilton，停住两拍。"></textarea></label><button data-action="human-group-note" class="gold full">写入这 ${selected.length} 人的本步动作</button>`:'';
+  paintInspector(ui`<div class="human-inspector-title"><h2>已选 ${selected.length} 个对象</h2><p>${selected.map(id=>esc(displayName(entity(id)))).join(' · ')}</p></div>${selectionTools()}${note}`+
+   ui`<div class="row wrap inspector-inline-actions"><button data-action="human-copy">复制这组站位</button><button data-action="human-clear">取消选择</button></div>`);
+  return true;
  }
  if(inspect.type!=='entity'||!activeEntities().some(en=>en.id===inspect.id))return false;
- const en=entity(inspect.id),isProp=show().props.some(p=>p.id===inspect.id),e=selectedEvent(),initial=tool==='initial',p=initial?song().initial[en.id]:e?C.cuePosition(song(),e.cue.id,en.id):viewPosition(en.id);
- const m=e?.cue.moves.find(m=>m.entityId===en.id),before=e?C.beforeCue(song(),e.cue.id,en.id):p;
+ const en=entity(inspect.id),isProp=show().props.some(p=>p.id===en.id),e=selectedEvent(),initial=tool==='initial';
+ const p=initial?song().initial[en.id]:e?C.cuePosition(song(),e.cue.id,en.id):viewPosition(en.id);
+ const m=e?.cue.moves.find(m=>m.entityId===en.id);
  $('#inspectorTitle').textContent=initial?tr('起始站位与角色'):tr('本步行动');
  let html=`<div class="human-inspector-title"><span class="entitydot" style="background:${safeColor(en.color)}">${esc(en.label)}</span><h2>${esc(en.name)}</h2><p>${initial?tr('走台开始前的位置'):e?esc(e.cue.title):tr('先选择一个步骤')}</p></div>`;
  if(initial||e){
   html+=ui`<div class="movement-summary">${!initial?tr('落点 · '):''}${esc(stageRegion(p))}${!initial&&stagePhase!=='end'?tr('<button data-action="human-end">查看落点</button>'):''}</div><div class="nudge-controls"><span>微调</span><button data-action="human-nudge-left" aria-label="向画面左侧微调">←</button><button data-action="human-nudge-up" aria-label="向画面上方微调">↑</button><button data-action="human-nudge-down" aria-label="向画面下方微调">↓</button><button data-action="human-nudge-right" aria-label="向画面右侧微调">→</button></div>`;
-  if(!initial&&m&&blockedRoute(m.points))html+=gateRouteFields(m);
+  const blocked=!initial&&m&&blockedRoute(m.points);
   if(initial)html+=ui`<p class="context-tip">在舞台上拖动这个角色，设置开场位置。</p>`;
-  if(!initial){html+=moveTimingFields(en,e,m)+ui`<label class="field"><span>这一步怎么做</span><textarea aria-label="本步动作备注" data-human-note="${esc(en.id)}" data-human-cue="${esc(e.cue.id)}" placeholder="例如：慢慢走到中间，先看 Burr，再转向观众。">${esc(m?.notes||'')}</textarea></label>${stepMediaSection(e.cue)}${linkedStepNotes(en.id,e)}<div class="route-choice"><button data-action="human-straight" class="${m&&!m.points.some(p=>p.c1)?'selected':''}">直走</button><button data-action="human-curve" class="${m?.points.some(p=>p.c1)?'selected':''}">绕弯</button><button data-action="human-route" ${!m?'disabled':''}>路径节点</button></div><p class="context-tip route-tip">拖演员改落点，拖线中间的圆点改弯度。</p>${m&&!blockedRoute(m.points)?gateRouteFields(m):''}<details class="advanced-details position-details"><summary>移到指定位置 / 更多</summary><button class="full" data-action="human-reset-move" ${!m?'disabled':''}>回到上一步的位置</button>`;}
-  if(initial)html+=ui`<details class="advanced-details position-details"><summary>移到指定位置 / 更多</summary>`;
-  html+=ui`<div class="zone-picker"><label class="field"><span>舞台区域 · 按观众视角</span><select id="stageZone">${stageZones().map(z=>`<option value="${z.key}">${z.name}</option>`).join('')}</select></label><button data-action="human-place" class="outline">移到这里</button></div><label class="field"><span>已有标记 / 出入口</span><select id="humanAnchor"><option value="">选择标记或出入口…</option>${show().stage.anchors.map(a=>`<option value="${esc(a.id)}">${esc(a.name)}</option>`).join('')}</select></label><details class="data-details"><summary>高级坐标与路径节点</summary>${humanPositionFields(p)}${!initial?tr('<button data-action="human-route" class="full">编辑路径节点</button>'):''}</details></details>`;
+  else{
+   const route=ui`<div class="route-choice"><button data-action="human-straight" class="${m&&!m.points.some(p=>p.c1)?'selected':''}">直走</button><button data-action="human-curve" class="${m?.points.some(p=>p.c1)?'selected':''}">绕弯</button><button data-action="human-route" ${!m?'disabled':''}>路径节点</button></div>`;
+   html+=ui`<div class="inspector-movement"><label class="field"><span>这一步怎么做</span><textarea aria-label="本步动作备注" data-human-note="${esc(en.id)}" data-human-cue="${esc(e.cue.id)}" placeholder="例如：慢慢走到中间，先看 Burr，再转向观众。">${esc(m?.notes||'')}</textarea></label>${moveTimingFields(en,e,m)}${route}${blocked?gateRouteFields(m):''}${linkedStepNotes(en.id,e)}</div>`;
+  }
+  const position=ui`${!initial?ui`<button class="full" data-action="human-reset-move" ${!m?'disabled':''}>回到上一步的位置</button>`:''}
+   <div class="zone-picker"><label class="field"><span>舞台区域 · 按观众视角</span><select id="stageZone">${stageZones().map(z=>`<option value="${z.key}">${z.name}</option>`).join('')}</select></label><button data-action="human-place" class="outline">移到这里</button></div>
+   <label class="field"><span>已有标记 / 出入口</span><select id="humanAnchor"><option value="">选择标记或出入口…</option>${show().stage.anchors.map(a=>`<option value="${esc(a.id)}">${esc(a.name)}</option>`).join('')}</select></label>${humanPositionFields(p)}${m&&!initial&&!blocked?gateRouteFields(m):''}`;
+  html+=inspectorDisclosure('actor-position',tr('移到指定位置 / 更多'),position);
+  if(!initial)html+=inspectorDisclosure('actor-media',tr('本步图片与视频'),stepMediaSection(e.cue));
  }
- html+=ui`<details class="advanced-details"><summary>${tr(isProp?'道具资料与长期备注':'角色资料与长期备注')}</summary>${field(tr('角色／道具名称'),'name',en.name)}<div class="two">${field(tr('短标签'),'label',en.label)}${field(tr('颜色'),'color',en.color,'color')}</div><div class="two">${field(tr('起始 X'),'initial.x',song().initial[en.id]?.x,'number','step="0.1"')}${field(tr('起始 Y'),'initial.y',song().initial[en.id]?.y,'number','step="0.1"')}</div>${notesField(en)}<button class="danger full" data-action="delete-entity">从演出删除对象</button></details><button class="full" data-action="entity-records">${tr(isProp?'查看这个道具的全部记录':'查看这个角色的全部记录')}</button><p class="footer-note">Shift + 点击人物或框选空白区域，可选中多人。</p>`;
- $('#inspector').innerHTML=html;hydrateStepMedia();return true;
+ const profile=field(tr('角色／道具名称'),'name',en.name)+ui`<div class="two">${field(tr('短标签'),'label',en.label)}${field(tr('颜色'),'color',en.color,'color')}</div><div class="two">${field(tr('起始 X'),'initial.x',song().initial[en.id]?.x,'number','step="0.1"')}${field(tr('起始 Y'),'initial.y',song().initial[en.id]?.y,'number','step="0.1"')}</div>${notesField(en)}<button class="full" data-action="entity-records">${tr(isProp?'查看这个道具的全部记录':'查看这个角色的全部记录')}</button><button class="danger full" data-action="delete-entity">从演出删除对象</button>`;
+ html+=inspectorDisclosure('actor-profile',tr(isProp?'道具资料与长期备注':'角色资料与长期备注'),profile);
+ paintInspector(html);
+ return true;
 }
 function editablePositions(){
  if(tool!=='initial'&&stagePhase!=='end'){pause();stagePhase='end';}
@@ -172,6 +186,7 @@ function updateStageFullscreenControls(){
 }
 function setStageFullscreenMode(mode){
  const wasActive=!!stageFullscreenMode,active=!!mode;stageFullscreenMode=mode;
+ if(wasActive===active)return;
  if(active&&!wasActive){
   stageFullscreenFocus=document.activeElement;stageFullscreenInert=[];
   // Keep keyboard focus inside the stage in the window-filling fallback too.
@@ -226,14 +241,14 @@ async function humanAction(a){
  switch(a){
  case 'human-step-details':selected=[];inspect={type:e&&tool!=='initial'?'cue':'song',id:e&&tool!=='initial'?e.cue.id:songId};renderAll();break;
  case 'human-left':$('#workspace').classList.toggle('show-left');break;
- case 'human-right':$('#workspace').classList.toggle('show-right');break;
+ case 'human-right':{const open=$('#workspace').classList.toggle('show-right');$('.workspacebar .right-toggle').setAttribute('aria-expanded',String(open));break;}
  case 'human-prev':{const list=C.events(song()),i=list.findIndex(x=>x.cue.id===selectedCue);if(i>0)chooseStep(list[i-1].cue.id);else{pause();tool='initial';current=0;selected=[];inspect={type:'song',id:songId};renderAll();}break;}
  case 'human-next':{const list=C.events(song()),i=tool==='initial'?-1:list.findIndex(x=>x.cue.id===selectedCue);if(list[i+1])chooseStep(list[i+1].cue.id);break;}
  case 'human-start':case 'human-end':if(e){pause();stagePhase=a==='human-start'?'start':'end';renderAll();}break;
  case 'human-preview':if(e){pause();stagePhase='live';singleStepEnd=C.cuePlaybackEnd(e);seek(e.start);renderEditorBar();await play(true);}break;
  case 'human-next-step':createNextStep();break;
  case 'human-copy':{const ids=selected.length?selected:activeEntities().map(en=>en.id);formationClipboard={};for(const id of ids){const p=viewPosition(id);if(p)formationClipboard[id]={x:p.x,y:p.y};}renderEditorBar();toast(tr('已复制 ')+Object.keys(formationClipboard).length+tr(' 个对象的站位，可切换步骤后粘贴。'));break;}
- case 'human-paste':{if(!formationClipboard)break;const ids=new Set(activeEntities().map(en=>en.id)),positions=Object.fromEntries(Object.entries(formationClipboard).filter(([id])=>ids.has(id)));if(!Object.keys(positions).length){toast(tr('本曲目没有相同的角色／道具。'));break;}if(tool!=='initial'&&!e){toast(tr('先选择一个走台步骤。'));break;}snapshot();applyPositions(positions);selected=Object.keys(positions);inspect={type:selected.length>1?'group':'entity',id:selected[0]};renderAll();toast(tr('已粘贴站位，角色备注保持原样。'));break;}
+ case 'human-paste':{if(!canEdit()||!formationClipboard)break;const ids=new Set(activeEntities().map(en=>en.id)),positions=Object.fromEntries(Object.entries(formationClipboard).filter(([id])=>ids.has(id)));if(!Object.keys(positions).length){toast(tr('本曲目没有相同的角色／道具。'));break;}if(tool!=='initial'&&!e){toast(tr('先选择一个走台步骤。'));break;}snapshot();applyPositions(positions);selected=Object.keys(positions);inspect={type:selected.length>1?'group':'entity',id:selected[0]};renderAll();toast(tr('已粘贴站位，角色备注保持原样。'));break;}
  case 'human-clear':selected=[];inspect={type:e?'cue':'song',id:e?.cue.id||songId};renderAll();break;
  case 'human-align-horizontal':case 'human-align-vertical':case 'human-space-horizontal':case 'human-space-vertical':alignSelection(a.slice(6));break;
  case 'human-group-note':writeGroupActionNote();break;

@@ -2,8 +2,8 @@
 (function(root){
  'use strict';
  const messages=/*__LOCALES__*/{};
- const supported=['zh-CN','zh-TW','en'],storageKey='stagebook.ui-language';
- function normalize(value){const s=String(value||'').toLowerCase();if(/^zh-(tw|hk|mo|hant)/.test(s))return 'zh-TW';if(/^zh/.test(s))return 'zh-CN';return 'en';}
+ const supported=['zh-CN','zh-TW','en','es','ja'],storageKey='stagebook.ui-language';
+ function normalize(value){const s=String(value||'').toLowerCase();if(/^zh-(tw|hk|mo|hant)/.test(s))return 'zh-TW';if(/^zh/.test(s))return 'zh-CN';const base=s.split('-')[0];return supported.includes(base)?base:'en';}
  let language='zh-CN';
  try{const saved=root.localStorage?.getItem(storageKey),embedded=root.document?.documentElement?.getAttribute('data-ui-language');language=saved&&supported.includes(saved)?saved:embedded&&supported.includes(embedded)?embedded:root.navigator?.language?normalize(root.navigator.language):'zh-CN';}catch{if(root.navigator?.language)language=normalize(root.navigator.language);}
  const missing=new Set();

@@ -1,0 +1,91 @@
+#controlCoach{
+ position:fixed;z-index:95;pointer-events:none;box-sizing:border-box;
+ width:min(258px,calc(100vw - 20px));overflow:hidden;
+ padding:8px 9px 9px;border:1px solid var(--line);border-radius:10px;
+ color:var(--text);background:var(--panel);box-shadow:0 8px 24px #0005;
+}
+#controlCoach[hidden]{display:none}
+.coach-demo{
+ display:block;width:100%;height:96px;border-radius:6px;
+ background:color-mix(in srgb,var(--panel2) 70%,var(--bg));
+}
+.coach-copy{padding:6px 4px 0;line-height:1.42}
+.coach-copy strong{font-size:12px;text-wrap:pretty}
+.coach-copy p{margin:2px 0 0;color:var(--muted);font-size:11.5px;text-wrap:pretty}
+.coach-demo text{font:700 11px/1 system-ui,sans-serif;fill:var(--gold);text-anchor:middle}
+.coach-panel{fill:var(--bg);stroke:var(--line)}
+.coach-window{fill:var(--panel2);stroke:var(--muted);stroke-width:1.3}
+.coach-line{fill:none;stroke:var(--muted);stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.coach-line.coach-back{stroke:color-mix(in srgb,var(--muted) 44%,var(--panel2))}
+.coach-action-line{stroke:var(--gold)}
+.coach-accent{fill:var(--gold)}
+.coach-secondary{fill:color-mix(in srgb,var(--muted) 75%,var(--panel2))}
+.coach-dark{fill:var(--bg)}
+.coach-ring{fill:none;stroke:var(--gold);stroke-width:1.5}
+.coach-guide{stroke-dasharray:3 4;stroke:var(--gold);opacity:.45}
+.coach-align-guideline{stroke:var(--gold);stroke-dasharray:4 3}
+.coach-marker-match,.coach-marked-range{fill:var(--gold);opacity:.24}
+.coach-muted-track{fill:var(--bg)}
+.coach-lyric-text{stroke-width:2.4}
+.coach-lyric-highlight{stroke-width:1.2;fill:color-mix(in srgb,var(--gold) 20%,var(--bg))}
+.coach-demo-stage .coach-actor,.coach-demo-walk .coach-actor{transform:translate(56px,-21px)}
+.coach-align-one{transform:translateY(12px)}
+.coach-align-two{transform:translateY(-8px)}
+.coach-align-three{transform:translateY(9px)}
+.coach-demo-seek .coach-playhead{transform:translateX(43px)}
+.coach-demo-cue .coach-cue-dot{transform:translateX(42px)}
+.coach-demo-cue-prev .coach-cue-dot{transform:translateX(-42px)}
+.coach-demo-a .coach-marker-b,.coach-demo-a .coach-marked-range,.coach-demo-a-clear .coach-marker-a,
+.coach-demo-a-clear .coach-marker-b,.coach-demo-b-clear .coach-marker-b,.coach-demo-a-clear .coach-marked-range,
+.coach-demo-b-clear .coach-marked-range,.coach-demo-clear-loop .coach-marked-range,
+.coach-demo-clear-loop :is(.coach-marker-a,.coach-marker-b){opacity:0}
+.coach-demo-filter .coach-muted-track,.coach-marker-match{opacity:.92}
+.coach-demo-search .coach-marker-match{opacity:.35}
+.coach-demo-undo .coach-removed-clip{opacity:0}
+:is(.coach-demo-fullscreen,.coach-demo-focus-stage) .coach-expand{transform-box:fill-box;transform-origin:center;transform:scale(1.5,1.45)}
+.coach-clips{transform-box:fill-box;transform-origin:center}
+@media(prefers-reduced-motion:no-preference){
+ #controlCoach:not([hidden]) .coach-copy{animation:coach-caption .14s ease-out both}
+ .coach-demo-stage .coach-actor,.coach-demo-walk .coach-actor{animation:coach-walk 2.6s ease-in-out infinite}
+ .coach-align-one,.coach-align-two,.coach-align-three{animation:coach-align 2.5s ease-in-out infinite backwards}
+ .coach-align-one{--coach-align-shift:12px}
+ .coach-align-two{--coach-align-shift:-8px}
+ .coach-align-three{--coach-align-shift:9px}
+ .coach-demo-seek .coach-playhead{animation:coach-seek 2.5s ease-in-out infinite}
+ :is(.coach-demo-loop,.coach-demo-b) .coach-playhead{animation:coach-loop 2.5s linear infinite}
+ :is(.coach-demo-insert,.coach-demo-copy) .coach-new-clip,
+ .coach-demo-a .coach-marker-a,.coach-demo-b .coach-marker-b,
+ .coach-demo-search .coach-marker-match{animation:coach-appear 2.5s ease-out infinite}
+ .coach-demo-undo .coach-removed-clip,
+ .coach-demo-a-clear :is(.coach-marker-a,.coach-marker-b,.coach-marked-range),
+ .coach-demo-b-clear :is(.coach-marker-b,.coach-marked-range),
+ .coach-demo-clear-loop :is(.coach-marker-a,.coach-marker-b,.coach-marked-range){animation:coach-fade 2.5s ease-out infinite}
+ .coach-demo-zoom-in .coach-clips{animation:coach-zoom 2.5s ease-in-out infinite}
+ .coach-demo-zoom-out .coach-clips{animation:coach-zoom 2.5s ease-in-out infinite reverse}
+ .coach-demo-filter .coach-muted-track{animation:coach-appear 2.5s ease-out infinite}
+ .coach-beat{animation:coach-beat 2s ease-in-out infinite}
+ .coach-demo-audio .coach-wave{animation:coach-beat 1.8s ease-in-out infinite}
+ .coach-demo-lyrics .coach-lyric-highlight{animation:coach-lyrics 2.6s ease-in-out infinite}
+ .coach-video-head{animation:coach-media 2.6s linear infinite}
+ .coach-demo-import .coach-transfer{--coach-transfer-shift:-8px}
+ .coach-demo-save .coach-transfer,.coach-demo-share .coach-transfer{--coach-transfer-shift:8px}
+ .coach-transfer{animation:coach-transfer 2.5s ease-out infinite}
+ :is(.coach-demo-fullscreen,.coach-demo-focus-stage) .coach-expand{animation:coach-expand 2.5s ease-in-out infinite}
+ .coach-demo-cue .coach-cue-dot,.coach-demo-cue-prev .coach-cue-dot{animation:coach-cue 2.5s ease-out infinite}
+ .coach-demo-cue .coach-cue-dot{--coach-cue-shift:42px}
+ .coach-demo-cue-prev .coach-cue-dot{--coach-cue-shift:-42px}
+}
+@keyframes coach-caption{from{opacity:.65}to{opacity:1}}
+@keyframes coach-walk{0%,19%{transform:translate(0,0)}48%{transform:translate(27px,-22px)}72%,94%{transform:translate(56px,-21px)}}
+@keyframes coach-align{0%,24%{transform:translateY(0)}58%,96%{transform:translateY(var(--coach-align-shift))}}
+@keyframes coach-seek{0%,24%{transform:translateX(-52px)}62%,96%{transform:translateX(43px)}}
+@keyframes coach-loop{0%,15%{transform:translateX(-49px)}75%{transform:translateX(45px)}76%,100%{transform:translateX(-49px)}}
+@keyframes coach-appear{0%,22%{opacity:0}56%,96%{opacity:1}}
+@keyframes coach-fade{0%,22%{opacity:1}55%,96%{opacity:0}}
+@keyframes coach-zoom{0%,19%{transform:scaleX(.78)}65%,96%{transform:scaleX(1.13)}}
+@keyframes coach-beat{0%,15%,88%,100%{opacity:.6}44%,66%{opacity:1}}
+@keyframes coach-lyrics{0%,20%{transform:translateY(-15px)}43%{transform:translateY(0)}74%,96%{transform:translateY(15px)}}
+@keyframes coach-media{0%,15%{transform:translateX(0)}89%,100%{transform:translateX(102px)}}
+@keyframes coach-transfer{0%,22%{transform:translateX(0);opacity:.45}62%,96%{transform:translateX(var(--coach-transfer-shift));opacity:1}}
+@keyframes coach-expand{0%,22%{transform:scale(1)}62%,96%{transform:scale(1.5,1.45)}}
+@keyframes coach-cue{0%,22%{transform:translateX(0)}59%,96%{transform:translateX(var(--coach-cue-shift))}}

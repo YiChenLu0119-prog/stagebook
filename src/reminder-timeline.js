@@ -62,6 +62,7 @@ function updateReminderClipSelection(){
  const selected=selectedReminder()?.cue.id;
  for(const clip of reminderClips.querySelectorAll('[data-reminder-cue]')){
   const active=clip.dataset.reminderCue===selected;
+  clip.disabled=reminderLocked;
   clip.classList.toggle('active',active);clip.setAttribute('aria-pressed',String(active));
  }
 }
@@ -88,7 +89,7 @@ function cancelReminderRail(){
  if(reminderRail.hasPointerCapture(pointerId))reminderRail.releasePointerCapture(pointerId);
 }
 reminderRail.addEventListener('pointerdown',event=>{
- if(!reminderOpen||reminderRailDrag||event.button!==0)return;
+ if(!reminderOpen||reminderLocked||reminderRailDrag||event.button!==0)return;
  if(event.clientX>=reminderRail.getBoundingClientRect().left+reminderRail.clientWidth)return;
  const clip=event.target.closest('[data-reminder-cue]');
  const item=clip&&reminderTimeline.find(({cue})=>cue.id===clip.dataset.reminderCue);
@@ -130,7 +131,7 @@ function finishReminderRail(event){
  if(!drag.item){if(drag.handle)reminderHandle.focus({preventScroll:true});return;}
  const {cue,at}=drag.item,target=drag.target;
  if(committed&&!target){selectReminder(cue.id);return;}
- if(committed&&target&&(target.at!==at||target.lyricId!==cue.lyricId)){
+ if(committed&&!reminderLocked&&target&&(target.at!==at||target.lyricId!==cue.lyricId)){
   mutate(()=>{cue.at=target.at;if(target.lyricId)cue.lyricId=target.lyricId;else delete cue.lyricId;});
  }else{
   if(!committed)seek(drag.previous,{preview:true});
@@ -140,7 +141,7 @@ function finishReminderRail(event){
 }
 for(const type of ['pointerup','pointercancel','lostpointercapture'])reminderRail.addEventListener(type,finishReminderRail);
 reminderHandle.addEventListener('keydown',event=>{
- if(!['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','Home','End'].includes(event.key))return;
+ if(reminderLocked||!['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','Home','End'].includes(event.key))return;
  event.preventDefault();pause();clearReminderSelection();
  const step=(event.key==='ArrowLeft'||event.key==='ArrowDown'?-1:1)*(event.shiftKey?1:.1);
  seek(event.key==='Home'?0:event.key==='End'?reminderPlaybackEnd():current+step,{preview:true});revealReminderCursor();

@@ -1,6 +1,9 @@
 .workspace.reminder-mode{grid-template:minmax(0,1fr) / minmax(0,1fr)}
 .workspace.reminder-mode > :not(#reminderPanel){display:none}
 .reminder-active .workspacebar > button:not([data-action="undo"]):not([data-action="redo"]){display:none}
+.reminder-live-locked .workspacebar > button:is([data-action="undo"],[data-action="redo"]){display:none}
+.reminder-live-locked #reminderPanel :is(#reminderPen,#reminderUndo,#reminderClear,#reminderAssignSketches,#reminderEdit,#reminderEditSelected,#reminderAudio,#reminderSeek){display:none}
+#reminderLock[aria-pressed="true"]{color:var(--gold);border-color:var(--gold)}
 .reminder-panel{
  display:grid;grid-template-rows:auto auto minmax(265px,1fr) auto;
  gap:clamp(8px,1.4vw,18px);min-width:0;min-height:0;
@@ -59,6 +62,8 @@ body:has(.reminder-viewport) > :is(.topbar,.workspacebar){visibility:hidden}
 .reminder-line time{font-size:12px;font-variant-numeric:tabular-nums}
 .reminder-line.active{border-left-color:var(--gold);background:var(--selected-bg,#f2c08018);color:var(--text);font-weight:650}
 .reminder-transport output{font-variant-numeric:tabular-nums;white-space:nowrap}
+.reminder-navigation{display:flex;align-items:center;gap:2px}
+.reminder-navigation button{min-width:36px;padding-inline:5px}
 #reminderPlay{min-width:44px}
 .reminder-timing{min-width:0;display:grid;gap:6px}
 .reminder-zoom{display:flex;align-items:center;gap:2px;margin-left:auto}
@@ -74,6 +79,8 @@ body:has(.reminder-viewport) > :is(.topbar,.workspacebar){visibility:hidden}
 }
 #reminderClips .reminder-clip:has([aria-hidden]){text-align:center}
 #reminderClips .reminder-clip.lyric-linked{border-style:dashed}
+.reminder-live-locked #reminderClips{cursor:default}
+.reminder-live-locked #reminderClips .reminder-clip,.reminder-live-locked .reminder-line:disabled{opacity:1;touch-action:auto}
 #reminderPlayhead{z-index:10;background:var(--gold)}
 #reminderSeek{min-width:28px}
 .reminder-form-time{display:flex;gap:10px;align-items:baseline;color:var(--muted)}

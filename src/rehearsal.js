@@ -16,7 +16,7 @@ function handoffDetailsHTML(s=show()){
 function handoffDialog(){
  modal(tr('资料版次'),handoffDetailsHTML()+ui`<p class="footer-note">版次标记用于核对这份文件；离线无法判断全团使用的是哪一版。</p><p class="footer-note">软件版本</p><p>${esc(PAYLOAD.appVersion||'9.5.0-preview.1')}</p>`);
 }
-function versionDate(value){return new Date(value).toLocaleString(StageI18n.language==='en'?'en-GB':StageI18n.language==='zh-TW'?'zh-TW':'zh-CN',{year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit'});}
+function versionDate(value){return new Date(value).toLocaleString(StageI18n.language==='en'?'en-GB':StageI18n.language,{year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit'});}
 function versionSnapshot(s,label,summary=''){
  const copy=C.clone(s);delete copy.versions;
  return {id:C.id('version'),label,summary,createdAt:new Date().toISOString(),snapshot:copy};

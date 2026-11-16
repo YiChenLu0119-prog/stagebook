@@ -34,6 +34,45 @@ function duplicateCurrentStep(){
  if(!canEdit())return;const q=song(),cue=q?.cues.find(c=>c.id===selectedCue);if(!cue||tool==='initial')return toast(tr('先选择一个步骤。'));
  const copy=C.clone(cue);copy.id=C.id('cue');copy.title+=tr(' · 副本');copy.at+=copy.duration;copy.moves.forEach(m=>m.id=C.id('move'));mutate(()=>q.cues.splice(q.cues.indexOf(cue)+1,0,copy),false);chooseStep(copy.id,'end',false);toast(tr('已复制步骤；可继续调整时间或站位。'));
 }
+function copyStepToPlayhead(sourceId,at=current){
+ if(!canEdit())return;
+ const q=song(),source=q?.cues.find(cue=>cue.id===sourceId);
+ if(!source)return toast(tr('先选择一个步骤。'));
+ const copy=C.clone(source);
+ copy.id=C.id('cue');
+ copy.title+=tr(' · 副本');
+ copy.at=Math.max(0,timeRound(at));
+ for(const move of copy.moves){
+  move.id=C.id('move');
+  if(move.points.length<2)continue;
+  const start=C.position(q,move.entityId,copy.at+(move.startOffset??0));
+  if(!start)continue;
+  const original=move.points[0];
+  move.points[0]={...original,...start};
+  const handle=move.points[1].c1;
+  if(handle){handle.x+=start.x-original.x;handle.y+=start.y-original.y;}
+ }
+ // The copy keeps a separate attachment reference to the same immutable local file.
+ for(const attachment of copy.attachments||[])attachment.id=C.id('attachment');
+ mutate(()=>insertTimedCue(q,copy),false);
+ chooseStep(copy.id,'end',false);
+ toast(ui`已复制到 ${fmt(copy.at)}；可撤销。`);
+}
+function copyPlayheadDialog(){
+ if(!canEdit())return;
+ const q=song(),events=C.events(q);
+ if(!events.length)return toast(tr('先选择一个步骤。'));
+ pause();
+ const at=current;
+ const options=events.map(({cue,start})=>`<option value="${esc(cue.id)}" ${cue.id===selectedCue?'selected':''}>${fmt(start)} · ${esc(cue.title)}</option>`).join('');
+ modal(ui`在 ${fmt(at)} 复制步骤`,ui`<label class="field"><span>选择要复制的步骤</span><select id="copyPlayheadSource">${options}</select></label><p class="muted">复制到当前时间，保留落点和行动时序。</p><div class="dialogactions"><button id="copyPlayheadConfirm" class="gold" type="button">复制到播放指针</button></div>`);
+ $('#copyPlayheadConfirm').onclick=()=>{
+  const sourceId=$('#copyPlayheadSource').value;
+  closeModal();
+  if(song()===q)copyStepToPlayhead(sourceId,at);
+ };
+ $('#copyPlayheadSource').focus();
+}
 function reorderCurrentStep(direction){
  if(!canEdit())return;const q=song();if(q.mode==='timed')return toast(tr('按时间编排请调整开始时间，其他步骤不会移动。'));const index=q.cues.findIndex(c=>c.id===selectedCue),to=index+direction;if(index<0||to<0||to>=q.cues.length)return;
  mutate(()=>{const [cue]=q.cues.splice(index,1);q.cues.splice(to,0,cue);});
@@ -73,19 +112,22 @@ function openPathEditor(){
  if(!canEdit())return;const m=editedMove();if(!m)return toast(tr('这个演员在本步还没有路线，先拖动演员摆位。'));inspectObject('move',m.id);selectedRouteNode=null;renderAll();
 }
 function renameCurrentStep(){if(!canEdit()||!selectedEvent()||tool==='initial')return;selected=[];selectedRouteNode=null;inspect={type:'cue',id:selectedCue};renderAll();const input=$('#inspector [data-field="title"]');input?.focus();input?.select();}
+function insertTimedCue(q,cue){
+ if(q.mode==='steps'){for(const e of C.events(q))e.cue.at=e.start;q.mode='timed';}
+ const equal=q.cues.findLastIndex(c=>c.at===cue.at);
+ const index=equal>=0?equal+1:q.cues.findIndex(c=>c.at>cue.at);
+ q.cues.splice(index<0?q.cues.length:index,0,cue);
+}
 function createStepAt(time){
  if(!canEdit()||!C.finite(time))return;
  pause();singleStepEnd=null;const q=song(),converted=q.mode==='steps',cue={id:C.id('cue'),title:tr('新的一步'),at:Math.max(0,timeRound(time)),duration:4,stopAfter:true,notes:'',moves:[]};
- mutate(()=>{
-  if(converted){for(const e of C.events(q))e.cue.at=e.start;q.mode='timed';}
-  const index=q.cues.findIndex(c=>c.at>cue.at);q.cues.splice(index<0?q.cues.length:index,0,cue);
- },false);
+ mutate(()=>insertTimedCue(q,cue),false);
  selectedCue=cue.id;selected=[];selectedRouteNode=null;tool='select';stagePhase='end';positionMusicCursor(cue.at);inspect={type:'cue',id:cue.id};renderAll();
- const input=$('#inspector [data-field="title"]');input?.focus();input?.select();
+ if(operationPrefs.focusTitleOnNewStep){const input=$('#inspector [data-field="title"]');input?.focus();input?.select();}
  toast(ui`已在 ${fmt(cue.at)} 添加动作${converted?tr('，原有动作的时间保持不变'):''}。`);return cue;
 }
 function shortcutsDialog(){
- const groups=[[tr('播放与步骤'),[[tr('空格'),tr('播放 / 暂停')],[tr('Shift + 空格'),tr('预览当前一步')],[tr('[ / ] 或 PageUp / PageDown'),tr('上一步 / 下一步')],['Home / End',tr('第一步 / 最后一步')],['N',tr('在当前播放指针处添加动作，保留当前视图')],['⌘ / Ctrl + D',tr('复制当前步骤')],['F2',tr('重命名当前步骤')]]],[tr('选择与编辑'),[['Delete / Backspace',tr('删除选中的步骤、节点或本步行动')],[tr('方向键'),tr('微调选中的演员或节点；未选演员时左右切步骤')],[tr('Shift + 方向键'),tr('加大微调幅度')],['⌘ / Ctrl + A',tr('全选本曲目的演员与道具')],['⌘ / Ctrl + C / V',tr('复制 / 粘贴站位')],['E / V',tr('路径节点编辑 / 返回摆位')],['Esc',tr('关闭右键菜单或逐级取消选择')]]],[tr('时间轴与文件'),[[tr('时间轴色条上的 ← / →'),tr('前后移动 0.1 秒；Shift 为 1 秒')],['+ / − / 0',tr('放大 / 缩小 / 适配当前视图')],['⌘ / Ctrl + Z',tr('撤销')],[tr('⌘ / Ctrl + Shift + Z 或 Ctrl + Y'),tr('重做')],['⌘ / Ctrl + S / O / K',tr('保存 / 导入 / 搜索')],['?',tr('打开本表')]]]];
+ const groups=[[tr('播放与步骤'),[[tr('空格'),tr('播放 / 暂停')],[tr('Shift + 空格'),tr('预览当前一步')],[tr('[ / ] 或 PageUp / PageDown'),tr('上一步 / 下一步')],['Home / End',tr('第一步 / 最后一步')],['Shift + F',tr('切换当前视图全屏')],['N',tr('在当前播放指针处添加动作，保留当前视图')],['⌘ / Ctrl + D',tr('复制当前步骤')],['F2',tr('重命名当前步骤')]]],[tr('选择与编辑'),[['Delete / Backspace',tr('删除选中的步骤、节点或本步行动')],[tr('方向键'),tr('微调选中的演员或节点；未选演员时左右切步骤')],[tr('Shift + 方向键'),tr('加大微调幅度')],['⌘ / Ctrl + A',tr('全选本曲目的演员与道具')],['⌘ / Ctrl + C / V',tr('复制 / 粘贴站位')],['E / V',tr('路径节点编辑 / 返回摆位')],['Esc',tr('关闭右键菜单或逐级取消选择')]]],[tr('时间轴与文件'),[[tr('时间轴色条上的 ← / →'),tr('前后移动 0.1 秒；Shift 为 1 秒')],['+ / − / 0',tr('放大 / 缩小 / 适配当前视图')],['⌘ / Ctrl + Z',tr('撤销')],[tr('⌘ / Ctrl + Shift + Z 或 Ctrl + Y'),tr('重做')],['⌘ / Ctrl + S / O / K',tr('保存 / 导入 / 搜索')],['?',tr('打开本表')]]]];
  modal(tr('快捷键与右键菜单'),ui`<p class="context-tip">输入框内保留正常打字、删除、复制粘贴与文字撤销。右键步骤、演员、路线或经过点，会显示对应操作。</p>`+groups.map(([title,rows])=>`<h3>${title}</h3><table class="shortcut-table"><tbody>${rows.map(([key,text])=>`<tr><td><kbd>${esc(key)}</kbd></td><td>${esc(text)}</td></tr>`).join('')}</tbody></table>`).join(''));
 }
 async function editingAction(a){
@@ -96,6 +138,8 @@ async function editingAction(a){
  case 'edit-shortcuts':shortcutsDialog();break;
  case 'edit-delete-step':deleteCurrentStep();break;
  case 'edit-duplicate-step':duplicateCurrentStep();break;
+ case 'edit-copy-playhead-dialog':copyPlayheadDialog();break;
+ case 'edit-copy-to-playhead':copyStepToPlayhead(selectedCue);break;
  case 'edit-delete-selection':deleteSelection();break;
  case 'edit-delete-node':deleteSelectedRouteNode();break;
  case 'edit-insert-node':insertSelectedRoutePoint();break;
@@ -123,7 +167,7 @@ function showContextMenu(title,items,x,y,data={}){
  menu.classList.remove('hidden');menu.setAttribute('aria-hidden','false');const width=menu.offsetWidth||260,height=menu.offsetHeight||items.length*35+36;
  menu.style.left=Math.max(8,Math.min(x,window.innerWidth-width-8))+'px';menu.style.top=Math.max(8,Math.min(y,window.innerHeight-height-8))+'px';menu.querySelector?.('button:not(:disabled)')?.focus({preventScroll:true});
 }
-function stepMenu(){return[menuItem(tr('预览本步'),'human-preview',tr('Shift 空格')),menuItem(tr('重命名'),'edit-rename-step','F2'),menuItem(tr('复制步骤'),'edit-duplicate-step','⌘/Ctrl D'),menuItem(song().mode==='timed'?tr('在当前时间添加动作'):tr('在后面加一步'),'human-next-step','N'),...(song().mode==='steps'?[menuItem(tr('前移一步'),'cue-up'),menuItem(tr('后移一步'),'cue-down')]:[]),null,menuItem(tr('删除本步'),'edit-delete-step','Delete')];}
+function stepMenu(){return[menuItem(tr('预览本步'),'human-preview',tr('Shift 空格')),menuItem(tr('重命名'),'edit-rename-step','F2'),menuItem(tr('复制步骤'),'edit-duplicate-step','⌘/Ctrl D'),menuItem(tr('复制到播放指针'),'edit-copy-to-playhead'),menuItem(song().mode==='timed'?tr('在当前时间添加动作'):tr('在后面加一步'),'human-next-step','N'),...(song().mode==='steps'?[menuItem(tr('前移一步'),'cue-up'),menuItem(tr('后移一步'),'cue-down')]:[]),null,menuItem(tr('删除本步'),'edit-delete-step','Delete')];}
 function rehearsalMenu(){return[menuItem(tr('播放 / 暂停'),'play',tr('空格')),menuItem(tr('上一步'),'previous','['),menuItem(tr('下一步'),'next',']'),menuItem(tr('快捷键'),'edit-shortcuts','?')];}
 function actorMenu(){const m=editedMove();return[menuItem(tr('编辑本步动作'),'edit-actor-details'),menuItem(tr('调整移动时间'),'edit-timing','',!m),menuItem(tr('编辑路径节点'),'edit-path','E',!m),menuItem(tr('复制站位'),'human-copy','⌘/Ctrl C'),menuItem(tr('粘贴站位'),'human-paste','⌘/Ctrl V',!formationClipboard),...(selected.length>1?[menuItem(tr('排成横排'),'human-align-horizontal'),menuItem(tr('排成竖排'),'human-align-vertical')]:[]),null,menuItem(tr('删除本步行动'),'edit-delete-movement','Delete',!selectedEvent()||tool==='initial')];}
 function routeMenu(){const n=routeNode(),m=editedMove(),canDelete=n&&(n.key!=='point'||n.index>0&&n.index<m.points.length-1);return[menuItem(tr('添加经过点'),'edit-insert-node-here'),menuItem(tr('编辑路径节点'),'edit-path','E'),...(n?[menuItem(n.key==='point'?tr('删除此经过点'):tr('清除弯度控制点'),'edit-delete-node','Delete',!canDelete)]:[]),menuItem(tr('改为直走'),'human-straight'),menuItem(tr('改为绕弯'),'human-curve'),menuItem(tr('调整移动时间'),'edit-timing'),null,menuItem(tr('删除本步这次行动'),'edit-delete-movement')];}
@@ -132,8 +176,8 @@ function selectMoveForContext(moveId){const cue=song().cues.find(c=>c.moves.some
 function openEditingContext(ev){
  if(isTypingTarget(ev.target)||$('#dialog').open)return;const target=ev.target,card=target.closest?.('[data-human-step]'),bar=target.closest?.('[data-timeline-bar]'),handle=target.closest?.('[data-handle]'),route=target.closest?.('[data-bend],[data-obj="move"]'),actor=target.closest?.('#stage [data-entity]'),nodeRow=target.closest?.('.route-node-row'),stage=target.closest?.('#stage'),lane=target.closest?.('#bottomContent [data-seek]');
  if(rehearsal){if(!(card||bar||stage||lane))return;ev.preventDefault();showContextMenu(tr('排练'),rehearsalMenu(),ev.clientX,ev.clientY);return;}
- if(card){ev.preventDefault();chooseStep(card.dataset.humanStep,'end',false);showContextMenu(tr('当前步骤'),stepMenu(),ev.clientX,ev.clientY);return;}
- if(bar){ev.preventDefault();const found=findTimelineSelection(bar);if(!found)return;chooseStep(found.e.cue.id,'end',false);if(found.move){selected=[found.move.entityId];inspect={type:'entity',id:found.move.entityId};renderAll();}showContextMenu(found.move?tr('演员行动'):tr('当前步骤'),found.move?actorMenu():stepMenu(),ev.clientX,ev.clientY);return;}
+ if(card){ev.preventDefault();chooseStep(card.dataset.humanStep,'end',false,true);showContextMenu(tr('当前步骤'),stepMenu(),ev.clientX,ev.clientY);return;}
+ if(bar){ev.preventDefault();const found=findTimelineSelection(bar);if(!found)return;chooseStep(found.e.cue.id,'end',false,!found.move);if(found.move){selected=[found.move.entityId];inspect={type:'entity',id:found.move.entityId};renderAll();}showContextMenu(found.move?tr('演员行动'):tr('当前步骤'),found.move?actorMenu():stepMenu(),ev.clientX,ev.clientY);return;}
  if(handle&&inspect.type==='move'){ev.preventDefault();selectRouteHandle(handle.dataset.handle);showContextMenu(tr('路径节点'),routeMenu(),ev.clientX,ev.clientY);return;}
  if(nodeRow&&inspect.type==='move'){ev.preventDefault();const button=nodeRow.querySelector?.('[data-action^="edit-node-select:"]');if(button)selectRouteHandle(button.dataset.action.split(':')[1]+':point');showContextMenu(tr('路径节点'),routeMenu(),ev.clientX,ev.clientY);return;}
  if(route){ev.preventDefault();const p=svgPoint(ev),m=selectMoveForContext(route.dataset.bend||route.dataset.id);if(m)showContextMenu(tr('移动路线'),routeMenu(),ev.clientX,ev.clientY,nearestRoutePoint(m,p));return;}
@@ -168,6 +212,10 @@ function handleEditingKey(e){
  if((videoExporting||stepMediaBusy)&&cmd&&key==='s'){e.preventDefault();return;}
  if(cmd&&key==='s'){e.preventDefault();if(typing)e.target.blur?.();Promise.resolve(saveWork()).catch(x=>toast(x.message));return;}
  if(modalOpen)return;
+ if(!typing&&!cmd&&!e.altKey&&e.shiftKey&&key==='f'){
+  if(!e.repeat)run(reminderOpen?'reminder-fullscreen':songVideoOpen?'song-video-fullscreen':singing?'sing-fullscreen':'stage-fullscreen');
+  return;
+ }
  if(reminderOpen&&handleReminderKey(e,typing,cmd))return;
  if(songVideoOpen&&handleSongVideoKey(e,typing,cmd))return;
  if(singing&&handleSingingKey(e,typing,cmd))return;

@@ -73,11 +73,13 @@ function enterSinging(){
  singleStepEnd=null;loop=null;singingRange=null;singing=true;rehearsal=true;stagePhase='live';tool='select';$('#leadIn').value='0';singingFollow=true;singingIdentity='';renderAll();
 }
 function exitSinging(mode=null){
- if(!singing)return;vocalStop(true);singingVocal=false;document.body.classList.remove('vocal-mode');const context=singingContext;singing=false;singingRange=null;singingAnchor=null;loop=null;
+ if(!singing)return;
+ if(singingPresentation.active())void singingPresentation.exit();vocalStop(true);singingVocal=false;document.body.classList.remove('vocal-mode');const context=singingContext;singing=false;singingRange=null;singingAnchor=null;loop=null;
  if(context&&context.identity===showId+'/'+songId){rehearsal=context.rehearsal;tool=context.tool;stagePhase=context.stagePhase;selected=context.selected;selectedCue=context.selectedCue;inspect=context.inspect;bottomTab=context.bottomTab;lyricDockVisible=context.lyricDockVisible;loop=context.loop;$('#leadIn').value=context.lead;}
  else{const at=current;rehearsal=false;prepareHumanScene();positionMusicCursor(at);if(context)$('#leadIn').value=context.lead;}
  if(mode!==null){rehearsal=mode==='mode-rehearse';tool='select';stagePhase=rehearsal?'live':'end';}
  singingContext=null;renderAll();
+ if(mode===null)$('#singMode').focus();
 }
 function renderSinging(){
  $('#workspace').classList.toggle('singing',singing);document.body.classList.toggle('singing-mode',singing);$('#singingPanel').classList.toggle('hidden',!singing);$('#singMode').classList.toggle('selected',singing);$('#singMode').setAttribute('aria-pressed',String(singing));
@@ -85,7 +87,27 @@ function renderSinging(){
  if(!song()?.vocalPractice?.clips.length){vocalStop(true);singingVocal=false;}
  const identity=showId+'/'+songId;if(identity!==singingIdentity){singingIdentity=identity;singingSignature='';singingActive='';singingAnchor=null;singingFollow=true;loadSingingPrefs();loadSingingNotes();}
  const roles=singingRoleOptions(),names=roles.filter(r=>singingRoles.includes(r.id)).map(r=>r.name).join(' / ');
- $('#singingTools').innerHTML=ui`<div class="singing-title"><label><span>练歌曲目</span><select id="singingSong" aria-label="练歌曲目">${show().songs.map(q=>`<option value="${esc(q.id)}" ${q.id===songId?'selected':''}>${esc(q.title)}</option>`).join('')}</select></label><button id="singVocalMode" data-action="sing-vocal">和声练习</button><button data-action="sing-exit">返回工作区</button></div><div class="singing-options"><button data-action="sing-roles" class="sing-role-button">${names?esc(names):tr('选择我负责的角色')}</button><label><span>字号</span><select id="singingSize">${[24,30,38].map(v=>`<option value="${v}" ${v===singingSize?'selected':''}>${v}</option>`).join('')}</select></label><label><span>速度</span><select id="singingSpeed">${[.5,.75,1,1.25].map(v=>`<option value="${v}" ${v===rate?'selected':''}>${v}×</option>`).join('')}</select></label><button data-action="sing-previous" ${!song().lyrics.some(singingLineIsMine)?'disabled':''}>上一句我的词</button><button data-action="sing-next" ${!song().lyrics.some(singingLineIsMine)?'disabled':''}>下一句我的词</button><button data-action="sing-passage" ${song().lyrics.length?'':'disabled'}>循环练习</button><button id="singingFollow" data-action="sing-follow" aria-pressed="${singingFollow}">${tr(singingFollow?'跟随播放':'回到当前句')}</button></div><div id="singingLoopState" class="singing-loop-state"></div>`;
+ const hasLyrics=!!song().lyrics.length,hasMyLines=song().lyrics.some(singingLineIsMine);
+ const songs=show().songs.map(q=>`<option value="${esc(q.id)}" ${q.id===songId?'selected':''}>${esc(q.title)}</option>`).join('');
+ $('#singingTools').innerHTML=ui`
+  <div class="singing-title">
+   <label><span>练歌曲目</span><select id="singingSong" aria-label="练歌曲目">${songs}</select></label>
+   <button id="singVocalMode" data-action="sing-vocal">和声练习</button>
+   <button id="singingFullscreen" data-action="sing-fullscreen" title="全屏" aria-label="全屏" aria-pressed="false"><span aria-hidden="true">⛶</span></button>
+   <button class="practice-close" data-action="sing-exit" title="返回工作区" aria-label="返回工作区">×</button>
+  </div>
+  <div class="singing-options">
+   ${roles.length&&hasLyrics?`<button data-action="sing-roles" class="sing-role-button">${names?esc(names):tr('选择我负责的角色')}</button>`:''}
+   ${hasMyLines?ui`<div class="singing-line-nav">
+    <button data-action="sing-previous" title="上一句我的词" aria-label="上一句我的词">←</button>
+    <button data-action="sing-next" title="下一句我的词" aria-label="下一句我的词">→</button>
+   </div>`:''}
+   ${hasLyrics?ui`<button data-action="sing-passage">循环练习</button>
+    <button id="singingFollow" data-action="sing-follow" ${singingFollow?'hidden':''}>回到当前句</button>`:''}
+   <button class="singing-preferences" data-action="sing-settings" title="练歌设置" aria-label="练歌设置"><span aria-hidden="true">⚙</span></button>
+  </div>
+  <div id="singingLoopState" class="singing-loop-state"></div>`;
+ syncSingingFullscreen();
  const vocalButton=document.querySelector('#singVocalMode');
  if(vocalButton){
   vocalButton.hidden=!song()?.vocalPractice?.clips.length;
@@ -96,31 +118,62 @@ function renderSinging(){
  if(singingVocal){renderVocalPractice();return;}
  $('#vocalPractice').classList.add('hidden');
  $('#singingList').classList.remove('hidden');
- $('#singingContext').classList.remove('hidden');
+ $('#singingContext').classList.toggle('hidden',!song().lyrics.length);
+ if(!song().lyrics.length)$('#singingList').style.setProperty('--lyric-edge','0px');
  $('#singingList').style.setProperty('--sing-font',singingSize+'px');
  const signature=JSON.stringify([song().lyrics,singingRoles,StageI18n.language]);
  if(signature!==singingSignature){
-  $('#singingList').innerHTML=sortedSingingLyrics().map(l=>{const personal=singingNotes.get(l.id);return `<article class="sing-line ${singingLineIsMine(l)?'my-line':''}" data-sing-row="${esc(l.id)}"><div class="sing-line-head"><time>${fmt(l.start)}</time><span class="sing-line-badge">${singingLineIsMine(l)?tr('我的词'):''}</span><span class="sing-line-actions"><button data-action="sing-loop:${esc(l.id)}">${tr('循环这句')}</button><button data-action="sing-assign:${esc(l.id)}">${tr('指定角色')}</button></span><button class="sing-note-button ${personal?'has-note':''}" data-action="sing-note:${esc(l.id)}">${tr(personal?'改备注':'我的备注')}</button></div><button class="sing-line-text" data-action="sing-jump:${esc(l.id)}">${lyricSegments(l).map(segment=>`<span class="${personal?.mine||segment.roles.some(id=>singingRoles.includes(id))?'my-words':''}">${esc(segment.text)}</span>`).join('')}</button>${Array.isArray(l.speakerIds)&&l.speakerIds.length?`<small class="sing-attribution">${l.speakerIds.map(id=>esc(entity(id)?.name||id)).join(' / ')}</small>`:''}${personal?.text?`<small class="sing-personal-note">${esc(personal.text)}</small>`:''}</article>`;}).join('')||ui`<div class="singing-empty"><p>先导入带时间的歌词，即可开始练歌。</p><button data-action="lyrics">导入歌词</button></div>`;
+  $('#singingList').innerHTML=sortedSingingLyrics().map(line=>{
+   const id=esc(line.id),personal=singingNotes.get(line.id),mine=singingLineIsMine(line);
+   const words=lyricSegments(line).map(segment=>`<span class="${personal?.mine||segment.roles.some(id=>singingRoles.includes(id))?'my-words':''}">${esc(segment.text)}</span>`).join('');
+   const singers=line.speakerIds?.map(id=>esc(entity(id)?.name||id)).join(' / ');
+   return ui`<article class="sing-line ${mine?'my-line':''}" data-sing-row="${id}">
+    <div class="sing-line-head">
+     <time>${fmt(line.start)}</time><span class="sing-line-badge">${mine?tr('我的词'):''}</span>
+     <div class="sing-line-actions">
+      <button data-action="sing-loop:${id}">循环这句</button>
+      <button class="sing-note-button ${personal?'has-note':''}" data-action="sing-note:${id}">${personal?tr('改备注'):tr('我的备注')}</button>
+     </div>
+     <button class="sing-line-options" title="本句操作" aria-label="本句操作" data-action="sing-line-menu:${id}">•••</button>
+    </div>
+    <button class="sing-line-text" data-action="sing-jump:${id}">${words}</button>
+    ${singers?`<small class="sing-attribution">${singers}</small>`:''}
+    ${personal?.text?`<small class="sing-personal-note">${esc(personal.text)}</small>`:''}
+   </article>`;
+  }).join('')||ui`<div class="singing-empty"><p>先导入带时间的歌词，即可开始练歌。</p><button class="gold" data-action="lyrics">导入歌词</button></div>`;
   singingSignature=signature;singingActive='';
  }
  updateSingingFocus(true);
 }
 function sortedSingingLyrics(){return [...song().lyrics].sort((a,b)=>a.start-b.start||a.end-b.end);}
 function updateSingingFocus(force=false){
- if(!singing||singingVocal)return;const list=sortedSingingLyrics(),active=list.filter(l=>l.start<=current&&l.end>current),key=active.map(l=>l.id).join('|');
+ if(!singing||singingVocal)return;$('#singingPanel').classList.toggle('singing-playing',playing);const list=sortedSingingLyrics(),active=list.filter(l=>l.start<=current&&l.end>current),key=active.map(l=>l.id).join('|');
  if(key!==singingActive||force){
   for(const row of $$('[data-sing-row]')){const on=active.some(l=>l.id===row.dataset.singRow);row.classList.toggle('active',on);row.setAttribute('aria-current',String(on));}
   const chosen=active.find(singingLineIsMine)||active[0]||list.find(l=>l.start>current)||list.at(-1);
-  if(singingFollow&&chosen)centerLyricRow($('#singingList'),$$('[data-sing-row]').find(row=>row.dataset.singRow===chosen.id));
+  if(singingFollow&&chosen){
+   const pane=$('#singingList');
+   if(!playing&&current===0&&!singingAnchor){pane.style.setProperty('--lyric-edge','0px');pane.scrollTop=0;}
+   else centerLyricRow(pane,$$('[data-sing-row]').find(row=>row.dataset.singRow===chosen.id));
+  }
   singingActive=key;
  }
  const upcoming=list.find(l=>l.start>current&&singingLineIsMine(l)),mine=active.some(singingLineIsMine);
- const text=mine?tr('正在唱你的词'):upcoming?ui`你的下一句：${fmt(upcoming.start)} · 还有 ${Math.ceil(upcoming.start-current)} 秒`:singingRoles.length||singingNotes.size?tr('本曲没有后续自己的词'):tr('选好角色后，自己的词会突出显示；其他人的词仍然可见。');
+ const text=!list.length?'':mine?tr('正在唱你的词'):upcoming?ui`你的下一句：${fmt(upcoming.start)} · 还有 ${Math.ceil(upcoming.start-current)} 秒`:
+  singingRoles.length||singingNotes.size?(list.some(singingLineIsMine)?tr('本曲没有后续自己的词'):tr('还没标出你的唱句。点歌词旁的「我的备注」，勾选「这句我唱」。')):
+  singingRoleOptions().length?tr('选角色来高亮自己的词，也可以用「我的备注」逐句标记。'):tr('点歌词旁的「我的备注」，勾选「这句我唱」。');
  if($('#singingContext').textContent!==text)$('#singingContext').textContent=text;
  const state=$('#singingLoopState');if(state){const html=singingRange?ui`<span>循环：${fmt(loop?.start)} → ${fmt(loop?.end)} · 提前 ${singingLead} 秒</span><button data-action="sing-stop-loop">关闭循环</button>`:'';if(state.innerHTML!==html)state.innerHTML=html;}
 }
-function suspendSingingFollow(){if(!singing)return;singingFollow=false;const button=$('#singingFollow');if(button){button.textContent=tr('回到当前句');button.setAttribute('aria-pressed','false');}}
-function seekSingingLine(id,lead=false){const l=lyricById(id);if(!l)return;singingAnchor=id;singingFollow=true;seek(Math.max(0,l.start-(lead?singingLead:0)));updateSingingFocus(true);const button=$('#singingFollow');if(button){button.textContent=tr('跟随播放');button.setAttribute('aria-pressed','true');}}
+function setSingingFollow(follow){
+ singingFollow=follow;
+ const button=$('#singingFollow');if(button)button.hidden=follow;
+}
+function suspendSingingFollow(){if(singing)setSingingFollow(false);}
+function seekSingingLine(id,lead=false){
+ const l=lyricById(id);if(!l)return;
+ singingAnchor=id;setSingingFollow(true);seek(Math.max(0,l.start-(lead?singingLead:0)));updateSingingFocus(true);
+}
 function navigateSinging(direction){
  const list=sortedSingingLyrics().filter(singingLineIsMine);if(!list.length)return;
  const anchor=list.find(l=>l.id===singingAnchor),at=anchor&&current>=anchor.start-singingLead-.05&&current<=anchor.end?list.indexOf(anchor):list.findIndex(l=>l.start<=current&&l.end>current);
@@ -128,7 +181,7 @@ function navigateSinging(direction){
  if(next)seekSingingLine(next.id,true);else toast(tr(direction>0?'已经是最后一句自己的词。':'已经是第一句自己的词。'));
 }
 function singingRolesDialog(){
- const options=singingRoleOptions();modal(tr('我负责的角色'),ui`<p>可以选择多个角色；合唱或其他歌手的词会继续显示。</p><div class="sing-role-list">${options.map(r=>`<label class="smallcheck"><input type="checkbox" data-sing-role="${esc(r.id)}" ${singingRoles.includes(r.id)?'checked':''}>${esc(r.name)}</label>`).join('')}</div><button id="applySingingRoles" class="gold">应用</button>`);
+ const options=singingRoleOptions();if(!options.length)return;modal(tr('我负责的角色'),ui`<p>可以选择多个角色；合唱或其他歌手的词会继续显示。</p><div class="sing-role-list">${options.map(r=>`<label class="smallcheck"><input type="checkbox" data-sing-role="${esc(r.id)}" ${singingRoles.includes(r.id)?'checked':''}>${esc(r.name)}</label>`).join('')}</div><button id="applySingingRoles" class="gold">应用</button>`);
  $('#applySingingRoles').onclick=()=>{singingRoles=$$('[data-sing-role]:checked').map(input=>input.dataset.singRole);saveSingingPrefs();closeModal();renderSinging();};
 }
 function assignSingingLine(id){
@@ -150,6 +203,32 @@ function singingPassageDialog(){
  modal(tr('循环练习'),ui`<label class="field"><span>开始句</span><select id="singingFrom">${options(first)}</select></label><label class="field"><span>结束句</span><select id="singingTo">${options(singingRange?.lastId||first)}</select></label><label class="field"><span>提前播放</span><select id="singingLead">${[0,2,4].map(v=>`<option value="${v}" ${v===singingLead?'selected':''}>${v} ${tr('秒')}</option>`).join('')}</select></label><button id="startSingingLoop" class="gold">开始循环</button>`);
  $('#startSingingLoop').onclick=()=>{singingLead=+$('#singingLead').value;saveSingingPrefs();if(startSingingLoop($('#singingFrom').value,$('#singingTo').value))closeModal();};
 }
+const singingPresentation=createViewportPresentation($('#workspace'),'singing-presentation',()=>$('#singingFullscreen'),syncSingingFullscreen);
+function syncSingingFullscreen(){
+ const button=$('#singingFullscreen');if(!button)return;
+ const active=singingPresentation.active(),name=tr(active?'退出全屏（Esc）':'全屏');
+ button.setAttribute('aria-pressed',String(active));
+ button.setAttribute('aria-label',name);button.title=name;
+ if(button.firstElementChild)button.firstElementChild.textContent=active?'×':'⛶';
+}
+
+function singingSettingsDialog(){
+ modal(tr('练歌设置'),ui`<div class="two practice-settings">
+  <label class="field"><span>字号</span><select id="singingSize">${[24,30,38].map(v=>`<option value="${v}" ${v===singingSize?'selected':''}>${v}</option>`).join('')}</select></label>
+  <label class="field"><span>速度</span><select id="singingSpeed">${[.5,.75,1,1.25].map(v=>`<option value="${v}" ${v===rate?'selected':''}>${v}×</option>`).join('')}</select></label>
+ </div>`);
+ $('#singingSize').focus();
+}
+function singingLineMenu(id){
+ const line=lyricById(id);if(!line)return;
+ const key=esc(id),hasNote=singingNotes.has(id);
+ modal(tr('本句操作'),ui`<p class="practice-line-excerpt">${esc(line.text)}</p>
+  <div class="row wrap">
+   <button class="gold" data-action="sing-loop:${key}">循环这句</button>
+   <button data-action="sing-note:${key}">${hasNote?tr('改备注'):tr('我的备注')}</button>
+   ${show().actors.length?ui`<button data-action="sing-assign:${key}">指定角色</button>`:''}
+  </div>`);
+}
 async function singingAction(a){
  if(a==='mode-sing'){enterSinging();return true;}if(!singing)return false;
  if(a==='mode-edit'||a==='mode-rehearse'){exitSinging(a);return true;}
@@ -157,19 +236,23 @@ async function singingAction(a){
   pause();vocalStop(true);singingVocal=!singingVocal;renderSinging();$('#singVocalMode').focus();return true;
  }
  if(singingVocal&&vocalAction(a))return true;
+ if(a==='sing-fullscreen'){await singingPresentation.toggle();return true;}
  if(a==='sing-exit'){exitSinging();return true;}
  if(a==='sing-roles'){singingRolesDialog();return true;}
- if(a==='sing-follow'){singingFollow=true;updateSingingFocus(true);$('#singingFollow').textContent=tr('跟随播放');$('#singingFollow').setAttribute('aria-pressed','true');return true;}
+ if(a==='sing-follow'){setSingingFollow(true);updateSingingFocus(true);return true;}
+ if(a==='sing-settings'){singingSettingsDialog();return true;}
  if(a==='sing-previous'||a==='sing-next'){navigateSinging(a==='sing-previous'?-1:1);return true;}
  if(a==='sing-passage'||a==='loop'){singingPassageDialog();return true;}
  if(a==='sing-stop-loop'){loop=null;singingRange=null;updateSingingFocus();return true;}
  if(a.startsWith('sing-jump:')){seekSingingLine(a.slice(10));return true;}
- if(a.startsWith('sing-loop:')){const id=a.slice(10);startSingingLoop(id,id);return true;}
+ if(a.startsWith('sing-line-menu:')){singingLineMenu(a.slice('sing-line-menu:'.length));return true;}
+ if(a.startsWith('sing-loop:')){const id=a.slice(10);if(startSingingLoop(id,id)&&$('#dialog').open)closeModal();return true;}
  if(a.startsWith('sing-note:')){singingNoteDialog(a.slice(10));return true;}
  if(a.startsWith('sing-assign:')){assignSingingLine(a.slice(12));return true;}
  return false;
 }
 function handleSingingKey(e,typing,cmd){
+ if(e.key==='Escape'&&singingPresentation.active()){e.preventDefault();void singingPresentation.exit();return true;}
  if(typing||cmd)return false;
  if(singingVocal){
   if(e.key==='Escape'){e.preventDefault();vocalStop();singingVocal=false;renderSinging();return true;}

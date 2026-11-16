@@ -1,8 +1,8 @@
 const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),vm=require('node:vm');
-const root=path.join(__dirname,'..'),messages=Object.fromEntries(['en','zh-TW'].map(lang=>[lang,JSON.parse(fs.readFileSync(path.join(root,'src/locales',lang+'.json'),'utf8'))]));
+const root=path.join(__dirname,'..'),messages=Object.fromEntries(['en','zh-TW','es','ja'].map(lang=>[lang,JSON.parse(fs.readFileSync(path.join(root,'src/locales',lang+'.json'),'utf8'))]));
 const source=fs.readFileSync(path.join(root,'src/i18n.js'),'utf8').replace('/*__LOCALES__*/{}',JSON.stringify(messages));
 function create(language='en-GB',saved,embedded){const attrs=new Map(embedded?[['data-ui-language',embedded]]:[]),store=new Map(saved?[['stagebook.ui-language',saved]]:[]);const context=vm.createContext({navigator:{language},localStorage:{getItem:k=>store.get(k),setItem:(k,v)=>store.set(k,v)},document:{documentElement:{getAttribute:k=>attrs.get(k),setAttribute:(k,v)=>attrs.set(k,v)}}});vm.runInContext(source,context);return{I:context.StageI18n,attrs,store,context};}
-for(const lang of ['en','zh-TW']){
+for(const lang of ['en','zh-TW','es','ja']){
  assert.deepEqual(Object.keys(messages[lang]).sort(),Object.keys(messages.en).sort());
  for(const [key,value]of Object.entries(messages[lang])){assert(value.trim(),key);assert.deepEqual([...key.matchAll(/\{\d+\}/g)].map(m=>m[0]).sort(),[...value.matchAll(/\{\d+\}/g)].map(m=>m[0]).sort(),key);}
 }
@@ -15,7 +15,7 @@ h.I.setLanguage('zh-TW');assert.equal(h.I.translate('导入文件夹（只读来
 assert.equal(h.I.html`<p>请选择包含「走台本.html」和「演出资料」的完整文件夹。</p>`,'<p>請選擇包含「走台本.html」和「演出资料」的完整資料夾。</p>','Portable filenames stay unchanged across languages');
 assert.equal(h.store.get('stagebook.ui-language'),'zh-TW');assert.equal(h.attrs.get('lang'),'zh-TW');
 assert.equal(create('en',h.store.get('stagebook.ui-language')).I.language,'zh-TW');
-assert.equal(create('en',undefined,'zh-CN').I.language,'zh-CN');assert.equal(create('zh-Hant-HK').I.language,'zh-TW');assert.equal(create('fr-FR').I.language,'en');
+assert.equal(create('en',undefined,'zh-CN').I.language,'zh-CN');assert.equal(create('zh-Hant-HK').I.language,'zh-TW');assert.equal(create('fr-FR').I.language,'en');assert.equal(create('es-MX').I.language,'es');assert.equal(create('ja-JP').I.language,'ja');assert.equal(create('ja-JP','es').I.translate('查找功能'),'Buscar una función');
 const html=h.I.exportHTML('<html lang="en" data-ui-language="en"><head></head><body>Original 歌词</body></html>');assert.equal((html.match(/data-ui-language=/g)||[]).length,1);assert(html.includes('lang="zh-TW"'));assert(html.includes('Original 歌词'));
 assert.equal(h.I.setLanguage('unsupported'),false);assert.equal(h.I.language,'zh-TW');
 const {createApp}=require('./app-harness.cjs'),a=createApp();a.api.seek(6.7);a.api.setTimelineZoom(3);a.$('#bottomContent').scrollLeft=321;const before=a.api.state();before.lib.shows[0].actors[0].name='保存';before.lib.shows[0].songs[0].cues[0].moves[0].notes='<b>保存 / Save</b>';const data=JSON.stringify(before.lib);a.api.setInterfaceLanguage('en');const after=a.api.state();

@@ -1,0 +1,143 @@
+#tutorialCard{
+ position:fixed;
+ z-index:108;
+ inset:auto;
+ width:min(350px,calc(100vw - 24px));
+ max-height:calc(100dvh - 24px);
+ overflow:auto;
+ padding:12px 15px 14px;
+ border:1px solid color-mix(in srgb,var(--gold) 36%,var(--line));
+ border-radius:12px;
+ background:var(--surface,var(--panel));
+ color:var(--text);
+ box-shadow:0 14px 44px #0009;
+}
+#tutorialCard[hidden],#tutorialSpotlight[hidden],#tutorialBeacon[hidden],#tutorialFeedback[hidden]{display:none}
+.tutorial-head{
+ display:flex;
+ justify-content:space-between;
+ align-items:center;
+ gap:8px;
+}
+#tutorialCount{
+ color:var(--muted);
+ font-size:12px;
+ font-weight:600;
+ font-variant-numeric:tabular-nums;
+}
+#tutorialDismiss{
+ display:grid;
+ place-items:center;
+ width:32px;
+ min-height:32px;
+ padding:0;
+ color:var(--muted);
+ font-size:19px;
+ line-height:1;
+}
+#tutorialProgress{
+ height:3px;
+ margin-block:5px 12px;
+ overflow:hidden;
+ border-radius:999px;
+ background:var(--hairline,var(--line));
+}
+#tutorialProgress>span{
+ display:block;
+ width:var(--tutorial-progress,0%);
+ height:100%;
+ border-radius:inherit;
+ background:var(--gold);
+ transition:width 240ms var(--ease-out,ease-out);
+}
+#tutorialTitle{font-size:19px;line-height:1.27;letter-spacing:-.02em}
+#tutorialText{
+ margin:6px 0 0;
+ color:var(--muted);
+ font-size:13px;
+ line-height:1.55;
+ overflow-wrap:anywhere;
+}
+#tutorialFeedback{
+ margin:9px 0 0;
+ color:var(--muted);
+ font-size:12px;
+ line-height:1.4;
+}
+#tutorialFeedback:is([data-complete="true"],[data-complete=""]){
+ color:var(--gold);
+ font-weight:600;
+}
+#tutorialFeedback:is([data-complete="true"],[data-complete=""])::before{
+ content:"";
+ display:inline-block;
+ width:8px;
+ height:5px;
+ margin:0 7px 2px 1px;
+ border-inline-start:2px solid currentColor;
+ border-block-end:2px solid currentColor;
+ transform:rotate(-45deg);
+}
+#tutorialCard .tutorial-buttons{justify-content:space-between;gap:8px;margin-top:13px}
+#tutorialCard .tutorial-buttons button{min-height:37px;padding-inline:12px;white-space:normal}
+#tutorialNext{margin-inline-start:auto}
+#tutorialSpotlight,#tutorialBeacon{position:fixed;pointer-events:none}
+#tutorialSpotlight{
+ z-index:97;
+ border:2px solid var(--gold);
+ border-radius:8px;
+ box-shadow:0 0 0 150vmax #10101287,0 0 13px var(--accent-soft);
+}
+#tutorialSpotlight::after{
+ content:"";
+ position:absolute;
+ inset:-2px;
+ border:2px solid var(--gold);
+ border-radius:inherit;
+ opacity:0;
+}
+#tutorialBeacon{
+ z-index:98;
+ width:22px;
+ height:22px;
+ transform:translate(-50%,-50%);
+ filter:drop-shadow(0 2px 3px #000c);
+}
+#tutorialBeacon::before{
+ content:"";
+ display:block;
+ width:100%;
+ height:100%;
+ background:var(--gold);
+ clip-path:polygon(0 47%,33% 47%,33% 7%,67% 7%,67% 47%,100% 47%,50% 96%);
+ transform:rotate(var(--tutorial-arrow-turn,0deg));
+}
+#tutorialBeacon[data-side="below"]{--tutorial-arrow-turn:180deg}
+#tutorialBeacon[data-side="left"]{--tutorial-arrow-turn:-90deg}
+#tutorialBeacon[data-side="right"]{--tutorial-arrow-turn:90deg}
+#tutorialCard[data-enter] .tutorial-content{animation:tutorial-content-in 220ms var(--ease-out,ease-out) both}
+#tutorialSpotlight[data-enter]::after{animation:tutorial-outline-in 600ms ease-out 2}
+#tutorialBeacon[data-enter]::before{animation:tutorial-pointer-in 600ms ease-in-out 2}
+@keyframes tutorial-content-in{
+ from{opacity:0;transform:translateY(4px)}
+ to{opacity:1;transform:translateY(0)}
+}
+@keyframes tutorial-outline-in{
+ from{opacity:.7;transform:scale(1)}
+ to{opacity:0;transform:scale(1.08)}
+}
+@keyframes tutorial-pointer-in{
+ 0%,100%{transform:rotate(var(--tutorial-arrow-turn,0deg)) translateY(0)}
+ 50%{transform:rotate(var(--tutorial-arrow-turn,0deg)) translateY(-4px)}
+}
+@media(max-width:600px){
+ #tutorialCard{padding:9px 12px 11px}
+ #tutorialDismiss,#tutorialCard .tutorial-buttons button{min-height:44px}
+ #tutorialDismiss{width:44px}
+}
+@media(prefers-reduced-motion:reduce){
+ #tutorialProgress>span{transition:none}
+ #tutorialCard[data-enter] .tutorial-content,
+ #tutorialSpotlight[data-enter]::after,
+ #tutorialBeacon[data-enter]::before{animation:none}
+}

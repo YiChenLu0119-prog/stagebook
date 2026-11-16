@@ -1,5 +1,15 @@
 # Changelog
 
+## 10.1.0 — 2026-11-16
+
+- Make editing, actor rehearsal, singing, rehearsal video, and the lighting cue prompter easier to switch between. Fullscreen keeps playback controls in reach and returns to the same workspace.
+- Add an animated in-app walkthrough, searchable feature finder, and optional animated demonstrations for common controls.
+- Add Japanese and Spanish alongside English, Simplified Chinese, and Traditional Chinese. Add settings for keyboard focus, tool reminders, and reopening rehearsal positions.
+- Preview alignment and equal-spacing suggestions after blocking a formation. Choose an anchor performer before changing the spacing.
+- Make A/B practice controls clearable by pressing the same marker again. Keep song positions and personal preferences in the local browser.
+- Publish the complete 17-song Hamilton production as a separate download, with timed lyrics, audio, vocal practice data, current blocking, a rehearsal video, a lighting cue, and saved production history.
+
+
 ## 9.8.0 — 2026-11-16
 
 - Mark any lyric as yours and add a short private rehearsal note.
