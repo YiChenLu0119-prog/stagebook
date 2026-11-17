@@ -1,140 +1,142 @@
 # Stagebook
 
-Stagebook is an offline workspace for blocking and rehearsing musicals, plays, and other staged performances. Plan entrances and crosses against song time, cue lights from a lyric, and give the cast one portable copy to review between rehearsals.
+Stagebook is an offline workspace for blocking and rehearsing musical theatre, plays, and student productions. Time an entrance against a lyric, give actors the same stage plan to practise from, and put the next lighting cue on a screen at the desk.
 
-**[Download Stagebook 10.1](https://github.com/YiChenLu0119-prog/stagebook/releases/download/v10.1.0/Stagebook-v10.1.0-offline.zip)** · [Quick start](docs/quick-start.md) · [Releases](https://github.com/YiChenLu0119-prog/stagebook/releases) · [Roadmap](docs/ROADMAP.md)
+**[Download Stagebook 10.1](https://github.com/YiChenLu0119-prog/stagebook/releases/download/v10.1.0/Stagebook-v10.1.0-offline.zip)** · [Hamilton production](#try-the-hamilton-production) · [FAQ](#faq) · [Release notes](https://github.com/YiChenLu0119-prog/stagebook/releases/tag/v10.1.0) · [Roadmap](docs/ROADMAP.md)
 
-Extract the ZIP and open **Stagebook.html** in a desktop browser. Keep the **演出资料** folder beside it. The app works offline without an account or installation. Choose English, Simplified Chinese, Traditional Chinese, Japanese, or Spanish from **⋯ → Interface language**.
+![Stagebook 10.1 Edit workspace showing the stage, lyrics, step notes, and timed actor tracks](docs/images/v10.1/blocking.jpg)
 
-## Get started in the app
+## Start in three steps
 
-Open **Quick guide → Interactive tutorial** for a walkthrough. **Find a feature** searches for actions by name and takes you to the relevant workspace or control. Hover over a supported button or focus it with the keyboard to see a short animated demonstration. Turn these off in **Workflow preferences** whenever you prefer.
+1. **Open the app.** Extract the offline ZIP and open **Stagebook.html** in a desktop browser. Keep the **演出资料** folder beside it. Stagebook works offline without an account.
+2. **Open a production.** Try the bundled demo or choose **⋯ → Import → Import production ZIP** for an existing production. To learn the layout in the app, choose **Quick guide → Start the tutorial**.
+3. **Choose what you need to do.** Use **Edit** for blocking, **Walkthrough** to rehearse your own moves, **Sing** for lyrics and harmony, **Rehearsal video** for a recording, or **Light cues** at the lighting desk.
 
-Stagebook keeps editing tools close to the current task and gives rehearsal, video, and lighting their own workspaces. Use fullscreen when projecting the stage or running cues at the lighting desk.
+Choose English, Simplified Chinese, Traditional Chinese, Japanese, or Spanish under **⋯ → Interface language**. Use **Find a feature** to find a tool by name. Supported controls show short animated demos on hover or touch and hold. The demos can be turned off in **⋯ → Workflow preferences**.
 
-## Blocking and song timeline
+## From blocking to rehearsal
 
-![Stagebook Edit view with the cast list on the left, stage and lyrics in the center, step notes on the right, and a color-coded timeline below](docs/images/v9.7/blocking.jpg)
+### Directors and choreographers
 
-- **Stage and lyrics.** Drag actors to their destinations, shape their paths, and scrub to see the positions and lyric at any moment.
-- **Blocking steps and actor tracks.** Add a step at the playhead. Drag a performer’s clip or its edges to change when they start and how long they move.
-- **Step notes.** Keep directions beside the selected step, such as who clears a lane or where an actor leaves a prop.
-
-For a musical number, this lets a director see whether a cross finishes before the next entrance and adjust the timing while keeping the lyric in view. Songs can also be blocked without audio or lyrics.
-
-## Lighting cue prompter
-
-![Cue prompter with a 3.2-second countdown, a solid center wash sketch, a dashed wing pickup sketch, the active lyric, and lighting markers on the timeline](docs/images/v9.7/lighting-cues.jpg)
-
-The countdown and next lighting instruction sit at the top. The stage on the left shows a solid sketch for the current cue and an optional dashed preview of the next. The active lyric is on the right, and the lighting timeline runs along the bottom.
-
-Drag the playhead to the right moment and choose **Add cue**. Drag a marker to retime it, or use **Snap to lyrics** so it follows the start of a line. Select a marker to draw its own stage sketch. During playback, the next sketch becomes solid when the cue fires. Use fullscreen at the lighting desk.
-
-## Actor rehearsal
-
-![Rehearse view with Actor C selected, the cast positions onstage, and the countdown to Actor C's next move](docs/images/v9.7/actor-rehearsal.jpg)
-
-Choose your role to see your current action and how long until your next move. Follow the same stage, lyrics, and notes the director used to block the number.
-
-## Singing practice
-
-![Sing view with Actor A’s lines highlighted in color and Actor B’s lines still readable around the active lyric](docs/images/v9.7/singing.jpg)
-
-Select your roles to highlight your parts while keeping the other voices visible. Jump to your next entrance, repeat a passage with a pickup, or slow down playback.
-
-Add **My note** beside a lyric to mark that you sing it or leave a short reminder. For example, mark your entrance in a shared chorus and write “second repeat, upper part.” Notes and marks stay in that browser profile. The rest of the cast can make their own notes in the same production.
-
-When a song contains voice data, open **Harmony practice** from **Sing**. Read the continuous staff, select a part to hear, drag to an entrance, or choose a start and end to run several passages as a group. The editable notation travels in the production ZIP. Synthesized practice audio uses the voice data supplied with the song.
-
-## Complete Hamilton production package
-
-[Download the 17-song Hamilton production](https://github.com/YiChenLu0119-prog/stagebook/releases/download/v10.1.0/Hamilton-17-song-production.zip). Use **⋯ → Import** to open the ZIP, or extract it and open the included **Stagebook.html**. The package includes synchronized lyrics and audio, editable voice practice data, and the latest blocking for the opening number and My Shot. The opener also includes a lighting cue and a full-song rehearsal video. A separate reference entry for the opener and three saved production snapshots travel with the library.
-
-## Full-song rehearsal video
-
-![Rehearsal video workspace showing a sample Stagebook stage run with timed subtitles, a scrub bar, and segment start and end controls](docs/images/v9.7/rehearsal-video.jpg)
-
-Attach a recording to a song and scrub it or open it fullscreen. Mark a start and end for a difficult section. At the end, the player pauses and returns to the start for another pass. The screenshot uses a sample stage run recorded from Stagebook.
-
-## More tools, shown in the app
+Move the playhead to an entrance or a lyric, add a step there, then drag cast members to their destinations. Each actor has their own clip, so one performer can finish crossing before the next begins. Drag through the timeline to see the stage update as you review. When a formation is ready for a spacing pass, choose **Stage tools → Check alignment…** to preview alignment or equal spacing and keep a chosen performer fixed.
 
 <details>
-<summary><strong>Step photos and videos</strong></summary>
+<summary><strong>Actors · Walk through your part</strong></summary>
 
-![Step notes inspector showing the attached Exchange formation image and its thumbnail](docs/images/v9.7/step-media.jpg)
+Choose your role in **Walkthrough** to see your current action, the time until your next move, and any notes from the director. Use fullscreen when a group needs to see the stage together.
 
-Keep a formation photo or short reference clip beside the exact step it belongs to. The attachment travels with the production package.
+![Walkthrough showing a selected role and the countdown to that actor's next stage movement](docs/images/v10.1/walkthrough.jpg)
 
 </details>
 
 <details>
-<summary><strong>Export a stage walkthrough</strong></summary>
+<summary><strong>Singers · Find your entrance and practise harmony</strong></summary>
 
-![Export rehearsal video dialog with song selection, connected music, and combined or separate output options](docs/images/v9.7/video-export.jpg)
+In **Sing**, highlight your roles while keeping the other singers' lines visible. Jump to your next entrance, slow playback, or open a lyric’s **⋯ → My note** to leave a reminder in your browser. For songs with voice data, **Harmony practice** shows a continuous staff. Hear one part, listen to all parts together, or practise a range of connected passages. Editable voice data travels with the production.
 
-Record the schematic stage with the current and upcoming lyric along the bottom. Include connected music and export one song, separate songs, or a combined run.
-
-</details>
-
-<details>
-<summary><strong>Rehearsal notes and printable handoffs</strong></summary>
-
-![Printable notes preview with the selected song, cue times, performers, and rehearsal notes](docs/images/v9.7/rehearsal-notes.jpg)
-
-Collect existing notes, filter them by role or time, and export a printable sheet for the next rehearsal.
+![Harmony practice with a continuous staff and controls for listening to and rehearsing voice parts](docs/images/v10.1/harmony.jpg)
 
 </details>
 
 <details>
-<summary><strong>Version history</strong></summary>
+<summary><strong>Lighting crew · Call the next cue</strong></summary>
 
-![Version history with dated Spacing pass and Cue-to-cue snapshots](docs/images/v9.7/version-history.jpg)
+Place a lighting cue at the playhead and optionally snap it to a lyric. Sketch each cue on the stage. The fullscreen **Light cues** workspace shows the countdown, cue text, lyrics, and a faint preview of the next sketch.
 
-Keep named snapshots of rehearsal milestones. Reopen, export, or restore a saved version as the blocking changes.
-
-</details>
-
-<details>
-<summary><strong>Share with cast</strong></summary>
-
-![Share with cast dialog with optional edition name and change summary](docs/images/v9.7/share-with-cast.jpg)
-
-Send the cast a portable package with blocking, lyrics, notes, and connected media. Add an edition label and a short change summary when the cast needs to tell versions apart.
+![Light cues showing a large countdown, the stage sketch, the active lyric, and cue markers](docs/images/v10.1/light-cues.jpg)
 
 </details>
 
 <details>
-<summary><strong>Import a production</strong></summary>
+<summary><strong>Cast and crew · Review rehearsal video</strong></summary>
 
-![Import dialog showing folder access, folder import, and ZIP import options](docs/images/v9.7/import-production.jpg)
+Attach a recording to a song, scrub to the section you want, or open the player fullscreen. Mark the beginning and end of a passage. At its end, playback pauses and returns to the beginning for another pass.
 
-Reopen a saved ZIP or folder. When upgrading, save your current work, open the new **Stagebook.html**, then import your saved production.
+![Rehearsal video workspace showing a Stagebook stage recording, the seek bar, and start and end markers](docs/images/v10.1/rehearsal-video.jpg)
+
+</details>
+
+## Try the Hamilton production
+
+[Download the complete 17-song Hamilton production ZIP](https://github.com/YiChenLu0119-prog/stagebook/releases/download/v10.1.0/Hamilton-17-song-production.zip) (about 321 MB). It includes audio, timed lyrics, editable voice practice data, and blocking for **Alexander Hamilton** and **My Shot**. The opening number also includes a lighting cue and full-song rehearsal video. The library includes three saved production snapshots and a separate reference entry for the opening number.
+
+Import the ZIP into Stagebook, or extract it and open its included **Stagebook.html**.
+
+## FAQ
+
+<details>
+<summary><strong>How do I open a ZIP someone sent me?</strong></summary>
+
+Open Stagebook and choose **⋯ → Import → Import production ZIP**. Select the ZIP itself. Save your current work first if you have another production open. When upgrading, open the new **Stagebook.html** first, then import your saved production.
+
+![Open production dialog with the Import production ZIP button](docs/images/v10.1/import-production.jpg)
 
 </details>
 
 <details>
-<summary><strong>Appearance</strong></summary>
+<summary><strong>Why is there no sound?</strong></summary>
 
-![Appearance dialog showing the Phantom, RENT, Hamilton, and Dear Evan Hansen palettes](docs/images/v9.7/appearance.jpg)
-
-Choose one of four musical-theatre-inspired palettes under **More → Appearance**. Use **Fullscreen stage** in the editor when you need a larger stage view.
+Choose the song first. A packaged MP3 connects automatically when present. If the playback bar shows **Import audio**, select an MP3 for that song. If it shows **Connect audio**, select the song's original MP3, from the extracted package if available. Once **Audio ready** appears, press Play and save the production to keep the connection. Use **Silent playback** to review blocking while the MP3 is unavailable.
 
 </details>
 
-All screenshots were captured in the released Stagebook v9.7.1 using a generic rehearsal project, original sample lyrics, and locally made sample media.
+<details>
+<summary><strong>How do I add, retime, or delete a movement?</strong></summary>
+
+1. In **Edit → Timeline**, drag the playhead to the desired time and press **N** or choose **+ Add step**. Drag an actor on the stage to set their destination.
+2. Drag the middle of that actor's clip to move it in time. Drag an edge to change its timing.
+3. Right-click the actor or clip and choose **Delete movement** to remove that actor's move. Use **Delete step** to remove the whole step. For an intermediate point, right-click the movement clip, choose **Edit path points**, then select the point and press Delete or Backspace. Use **⌘/Ctrl + Z** to undo.
+
+The stage and actor tracks are shown together in the [Edit screenshot](docs/images/v10.1/blocking.jpg).
+
+</details>
+
+<details>
+<summary><strong>How do I loop or stop looping one section?</strong></summary>
+
+In **Edit** or **Walkthrough**, position the playhead at the start and click **A** in the playback bar. Move it to the end and click **B**. Click the active **B** to stop the loop and keep **A** ready. Click the active **A** to clear both markers. If the buttons are hidden, enable them in **⋯ → Workflow preferences**.
+
+![Playback bar with A and B active and the chosen time range displayed beside them](docs/images/v10.1/ab-loop.jpg)
+
+</details>
+
+<details>
+<summary><strong>How do I practise just my singing part?</strong></summary>
+
+Open **Sing → Choose my roles** and select your roles. Use **Next own line** to skip to your next entrance. Open a lyric’s **⋯ (Line actions)** to choose **Loop this line** or **My note**. If the song contains voice data, open **Harmony practice** and choose the part or connected passage you want to hear. Use **My note** to mark a line or leave yourself a reminder. Personal lyric marks and notes stay in your browser.
+
+</details>
+
+<details>
+<summary><strong>Which file should I keep, and which should I send to the cast?</strong></summary>
+
+Use **Save** to keep the full library with version history. When working without a connected folder, choose **Download package** and keep that ZIP as your working copy. Use **⋯ → Share with cast** to download the current production for your team. The cast copy carries the blocking, lyrics, and connected media. History stays with your working copy by default.
+
+![Share with cast dialog showing the current production and its download button](docs/images/v10.1/share-with-cast.jpg)
+
+</details>
+
+<details>
+<summary><strong>Where is the tool I need?</strong></summary>
+
+Choose **Find a feature**, type a task such as “timeline,” and choose **Show location** on the result to highlight its control. For a guided tour, choose **Quick guide → Start the tutorial**. [See the first tutorial step](docs/images/v10.1/quick-guide.jpg).
+
+![Find a feature showing search results for timeline](docs/images/v10.1/feature-finder.jpg)
+
+</details>
+
+For more on keyboard shortcuts, version history, printable rehearsal notes, and video export, see the [quick start](docs/quick-start.md). Screenshots were captured in Stagebook 10.1.0 with the interface set to English. The screenshots use a sample production. The video frame comes from Stagebook’s own stage export.
 
 ## Prepare a production with an external AI assistant
 
-Give your assistant a saved package and the [AI import guide](AI-GUIDE.md). It can turn measured stage dimensions into boundaries and entrances, organize a cast or script breakdown, prepare lyric timestamps from supplied audio when it has suitable tools, or draft actor paths. Ask for a complete import-ready ZIP, then review the timing and movement in Stagebook. AI preparation happens outside the offline editor.
+Share the [AI import guide](AI-GUIDE.md) and a saved production with your assistant. It can draft a stage from measurements, build a cast list, draft movement paths, prepare lyric timings from supplied audio, or format editable voice parts. Ask for an import-ready ZIP, then check the result in Stagebook before rehearsal. For changes to the app itself, see the [AI development guide](AI-DEVELOPMENT.md).
 
-For AI-assisted changes to Stagebook itself, see the [AI development guide](AI-DEVELOPMENT.md) for source entry points, data flow, and verification.
+## What's next
 
-## Ongoing development
-
-Future work will explore more comfortable editing, clearer cast handoffs, cue readability at the lighting desk, browser compatibility, and accessibility. A desktop edition remains under exploration. Follow the [roadmap](docs/ROADMAP.md) or open an [issue](https://github.com/YiChenLu0119-prog/stagebook/issues) with a rehearsal task and where it got difficult.
+Future updates will explore clearer handoffs, easier editing across screen sizes, accessibility and browser compatibility, and a possible desktop edition. Follow the [roadmap](docs/ROADMAP.md) or [open an issue](https://github.com/YiChenLu0119-prog/stagebook/issues) with the rehearsal task you were trying to complete.
 
 ## Build and license
 
-Run `python3 build.py` and open `dist/Stagebook.html`. Run `node scripts/check.cjs` for the automated checks. See [development notes](docs/development.md), [contributing](CONTRIBUTING.md), and [data and privacy](docs/data-and-privacy.md).
+Run `python3 build.py` and open `dist/Stagebook.html`. Run `node scripts/check.cjs` for the automated checks. See the [development notes](docs/development.md) and [data and privacy](docs/data-and-privacy.md).
 
 Stagebook is licensed under [GPL-3.0-only](LICENSE). Imported music, lyrics, and production material retain their own permissions.

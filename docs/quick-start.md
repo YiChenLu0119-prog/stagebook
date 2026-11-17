@@ -10,7 +10,7 @@ INTERFACE LANGUAGE
 Open **⋯ → Interface language** to choose English, Simplified Chinese, Traditional Chinese, Japanese, or Spanish. The choice is remembered in this browser and included in exported HTML. A viewer's own saved preference takes priority. Switching language keeps the playhead, view and selection; it does not translate character names, lyrics or notes.
 
 IN-APP HELP
-Open **Quick guide → Interactive tutorial** for a walkthrough, or use **Find a feature** to locate a command. Supported controls show short animated demonstrations on hover or keyboard focus. Change this and keyboard focus preferences in **Workflow preferences**.
+Open **Quick guide → Start the tutorial** for a walkthrough, or use **Find a feature** to locate a command. Supported controls show short animated demonstrations on hover or keyboard focus. Change this and keyboard focus preferences in **⋯ → Workflow preferences**. The [FAQ](../README.md#faq) shows the import, A/B loop, and cast sharing controls.
 
 BLOCK A MOVEMENT
 A blocking step is a timed cue for the cast. Each actor’s movement has its own path, delay and duration within or beyond that step.
@@ -27,7 +27,7 @@ Pinch with two fingers over the timeline to zoom around the pointer; a two-finge
 Focus stage keeps the lyrics and inspector visible. Expand timeline or drag the divider to resize panels. Longer labels wrap rather than changing your production.
 
 CUE PROMPTER FOR LIGHTING
-Open Cue prompter. Drag the playhead to the right moment and select Add cue. Drag a cue marker to change its time. Click to select the cue and draw directly on the stage. Choose Edit selected cue to edit the text or snap it to a lyric. During playback the current sketch is solid, and Preview next sketch adds a faint dashed overlay for the next cue. Save keeps each sketch with its cue.
+Open **Light cues**. Drag the playhead to the right moment and select Add cue. Drag a cue marker to change its time. Click to select the cue and draw directly on the stage. Choose Edit selected cue to edit the text or snap it to a lyric. During playback the current sketch is solid, and Preview next sketch adds a faint dashed overlay for the next cue. Save keeps each sketch with its cue.
 
 DELETE AND UNDO
 Select a step and choose Delete step or press Delete / Backspace. With an actor selected, Delete removes only that actor's movement in the step; it keeps the character.
@@ -51,7 +51,7 @@ The app does not transcribe music or automatically align lyrics. Prepare those w
 
 CHECK AND REHEARSE
 Check blocking pauses playback and identifies the actor, step and time. Choose an issue to edit its route or timing. A wall-crossing path can be routed through an entrance; complex routes need more points. Checks use a schematic stage and do not simulate body sizes or actor collisions.
-In Rehearse mode, select your character to see current and upcoming actions and relevant notes.
+In **Walkthrough**, select your character to see current and upcoming actions and relevant notes.
 
 EXTERNAL AI EDITING
 Save your work first. Have an assistant read AI-GUIDE.md and edit the JSON in “演出资料”. Reload a connected folder or reimport the updated ZIP. The app checks for external changes before writing back. No networked AI, login or cloud sync is built in.
