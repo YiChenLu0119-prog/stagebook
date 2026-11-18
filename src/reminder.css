@@ -2,7 +2,7 @@
 .workspace.reminder-mode > :not(#reminderPanel){display:none}
 .reminder-active .workspacebar > button:not([data-action="undo"]):not([data-action="redo"]){display:none}
 .reminder-live-locked .workspacebar > button:is([data-action="undo"],[data-action="redo"]){display:none}
-.reminder-live-locked #reminderPanel :is(#reminderPen,#reminderUndo,#reminderClear,#reminderAssignSketches,#reminderEdit,#reminderEditSelected,#reminderAudio,#reminderSeek){display:none}
+.reminder-live-locked #reminderPanel :is(#reminderPen,#reminderUndo,#reminderClear,#reminderAssignSketches,#reminderEdit,.reminder-cue-controls,#reminderAudio,#reminderSeek){display:none}
 #reminderLock[aria-pressed="true"]{color:var(--gold);border-color:var(--gold)}
 .reminder-panel{
  display:grid;grid-template-rows:auto auto minmax(265px,1fr) auto;
@@ -61,6 +61,8 @@ body:has(.reminder-viewport) > :is(.topbar,.workspacebar){visibility:hidden}
 }
 .reminder-line time{font-size:12px;font-variant-numeric:tabular-nums}
 .reminder-line.active{border-left-color:var(--gold);background:var(--selected-bg,#f2c08018);color:var(--text);font-weight:650}
+.reminder-cue-controls{display:flex;align-items:center;gap:4px;min-width:0;max-width:100%;flex-wrap:wrap}
+#reminderCuePicker{width:min(15rem,100%);min-width:0;text-overflow:ellipsis}
 .reminder-transport output{font-variant-numeric:tabular-nums;white-space:nowrap}
 .reminder-navigation{display:flex;align-items:center;gap:2px}
 .reminder-navigation button{min-width:36px;padding-inline:5px}

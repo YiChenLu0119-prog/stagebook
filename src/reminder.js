@@ -64,6 +64,7 @@ function renderReminder(){
  picker.value=q.id;
  renderReminderLock();
  reminderTimeline=lightingTimeline(q);reminderCueKey='';
+ renderReminderCuePicker();
  reminderMoves=C.events(q);reminderMoveKey=null;reminderGhosts=[];
  renderReminderRail();
  const {width,height}=stageViewBounds(show().stage),turned=rotation%180!==0;
@@ -74,6 +75,12 @@ function renderReminder(){
  $('#reminderBackdrop').innerHTML=stageBackdrop(show().stage,visualScale)+stageAudience(show().stage,width,height,visualScale);
  if(reminderStroke&&reminderStroke.song!==q)cancelReminderStroke();
  renderReminderLyrics();renderReminderFollow();updateReminder(true);updateReminderFullscreen();
+}
+function renderReminderCuePicker(){
+ const picker=$('#reminderCuePicker');
+ const options='<option value="">'+esc(tr('选择提醒'))+'</option>'+reminderTimeline.map(({cue,at})=>
+  '<option value="'+esc(cue.id)+'">'+fmt(at)+' · '+esc(cue.text)+'</option>').join('');
+ if(picker.innerHTML!==options)picker.innerHTML=options;
 }
 function reminderMarker(ent,p,ghost=false){
  const color=safeColor(ent.color),label=String(ent.label||ent.name||'?');
@@ -228,7 +235,7 @@ function renderReminderSketches(previous,upcoming){
  $('#reminderSketchGhosts').innerHTML=ghosts.map(stroke=>reminderStrokePath(stroke,true)).join('');
  reminderStage.classList.toggle('drawing-ready',!!cue&&!reminderLocked);
  const target=$('#reminderSketchTarget');
- target.textContent=reminderLocked?(cue?tr('当前提醒')+' · '+cue.text:tr('现场已锁定，仍可播放和逐条定位。')):
+ target.textContent=reminderLocked?tr('现场已锁定，解锁后可编辑或删除提醒。'):
   cue?ui`正在绘制：${cue.text}`:ghosts.length?tr('当前实线 · 下一条虚线'):reminderTimeline.length?
   tr('选择时间轴上的提醒开始涂鸦'):tr('先在下方时间轴定位，再点「＋ 添加提醒」。');
  target.title=target.textContent;
@@ -237,7 +244,10 @@ function renderReminderSketches(previous,upcoming){
   const button=$('#'+id);
   button.classList.toggle('hidden',!cue);button.disabled=!cue?.sketches?.length;
  }
- $('#reminderEditSelected').disabled=!cue;
+ const picker=$('#reminderCuePicker');
+ picker.value=cue?.id||'';
+ picker.disabled=reminderLocked||!reminderTimeline.length;
+ $('#reminderEditSelected').disabled=$('#reminderDeleteSelected').disabled=reminderLocked||!cue;
  $('#reminderAssignSketches').classList.toggle('hidden',!cue||!song()?.lightingSketches?.length);
  updateReminderClipSelection();
 }
@@ -284,11 +294,28 @@ for(const type of ['pointercancel','lostpointercapture'])reminderStage.addEventL
  if(reminderStroke?.pointerId===event.pointerId)cancelReminderStroke();
 });
 
+function deleteReminder(id){
+ if(!reminderOpen||reminderLocked)return;
+ const q=song(),index=q.lightingCues?.findIndex(cue=>cue.id===id)??-1;
+ if(index<0)return;
+ const text=q.lightingCues[index].text;
+ pause();cancelReminderStroke();reminderSelection=null;
+ mutate(()=>{
+  q.lightingCues.splice(index,1);
+  if(!q.lightingCues.length)delete q.lightingCues;
+ });
+ if($('#dialog').open)closeModal();
+ $('#reminderEdit').focus({preventScroll:true});
+ toast(ui`已删除「${text}」；⌘ / Ctrl + Z 可撤销。`);
+}
+
 function reminderInputTime(at){return String(Math.round(at*1000)/1000);}
 function editReminder(id){
  if(reminderLocked)return;
  const q=song(),item=reminderTimeline.find(({cue})=>cue.id===id);
- pause();
+ if(id&&!item)return;
+ if(item)selectReminder(id);
+ else pause();
  const lines=[...q.lyrics].sort((a,b)=>a.start-b.start);
  const lyricOptions=lines.map(line=>'<option value="'+esc(line.id)+'">'+fmt(line.start)+' · '+esc(line.text.slice(0,100))+'</option>').join('');
  modal(tr(item?'编辑提醒':'添加提醒'),ui`<form id="reminderForm">
@@ -315,14 +342,7 @@ function editReminder(id){
  }
  input.value=item?.cue.text||'';atInput.value=reminderInputTime(item?.at??current);
  atInput.oninput=updateTime;updateTime();
- if(item)$('#reminderDelete').onclick=()=>{
-  if(reminderLocked||q!==song())return;
-  mutate(()=>{
-   q.lightingCues=q.lightingCues.filter(cue=>cue.id!==id);
-   if(!q.lightingCues.length)delete q.lightingCues;
-  });
-  closeModal();clearReminderSelection();
- };
+ if(item)$('#reminderDelete').onclick=()=>{if(q===song())deleteReminder(id);};
  $('#reminderForm').onsubmit=event=>{
   event.preventDefault();
   if(reminderLocked||q!==song())return;
@@ -363,6 +383,10 @@ function handleReminderKey(event,typing,cmd){
   event.preventDefault();
   if(reminderPresentation.active())void exitReminderFullscreen();
   else{leaveReminder();renderAll();$('#reminderMode').focus();}
+ }else if(!reminderLocked&&!cmd&&!event.altKey&&!event.shiftKey&&event.key==='F2'&&
+  (!typing||event.target===$('#reminderCuePicker'))){
+  const id=event.target.closest?.('[data-reminder-cue]')?.dataset.reminderCue??selectedReminder()?.cue.id;
+  if(id){event.preventDefault();if(!event.repeat)editReminder(id);}
  }else if(!typing&&!cmd&&!event.altKey&&(event.key==='['||event.key===']')){
   event.preventDefault();if(!event.repeat)jumpReminder(event.key==='['?'previous':'next');
  }else if(event.code==='Space'&&!typing&&!event.target.closest?.('button,select,input')){
@@ -382,6 +406,7 @@ async function reminderAction(action){
  else if(action==='reminder-audio')$('#audioInput').click();
  else if(action==='reminder-add')editReminder();
  else if(action==='reminder-edit-selected'){const item=selectedReminder();if(item)editReminder(item.cue.id);}
+ else if(action==='reminder-delete-selected'){const item=selectedReminder();if(item)deleteReminder(item.cue.id);}
  else if(action.startsWith('reminder-select:'))selectReminder(action.slice('reminder-select:'.length));
  else if(action.startsWith('reminder-edit:'))editReminder(action.slice('reminder-edit:'.length));
  else if(action==='reminder-zoom-out')setReminderRailZoom(reminderRailZoom/1.6);
@@ -407,6 +432,11 @@ async function reminderAction(action){
   if(line){clearReminderSelection();seek(line.start,{preview:true});revealReminderCursor();setReminderFollow(true);}
  }
 }
+$('#reminderCuePicker').addEventListener('change',event=>{
+ if(!reminderOpen||reminderLocked)return;
+ if(event.target.value)selectReminder(event.target.value,false);
+ else clearReminderSelection();
+});
 $('#reminderSong').addEventListener('change',event=>{
  if(reminderLocked){event.target.value=songId;return;}
  clearReminderSelection();cancelReminderRail();setReminderFollow(true);void switchSong(event.target.value);

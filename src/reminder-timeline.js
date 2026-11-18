@@ -28,7 +28,7 @@ function renderReminderRail(duration=reminderPlaybackEnd()){
   const label=fmt(at)+' · '+cue.text,linked=cue.lyricId&&song().lyrics.some(line=>line.id===cue.lyricId);
   return '<button type="button" class="cuebar reminder-clip'+(linked?' lyric-linked':'')+'" data-reminder-cue="'+esc(cue.id)+
    '" data-action="reminder-select:'+esc(cue.id)+'" title="'+esc(label+(linked?' · '+tr('吸附歌词'):''))+
-   '" aria-label="'+esc(label)+'" style="left:'+left+'px;top:'+(row*29+3)+'px;width:'+clipWidth+'px">'+
+   '" aria-label="'+esc(label)+'" aria-keyshortcuts="F2" style="left:'+left+'px;top:'+(row*29+3)+'px;width:'+clipWidth+'px">'+
    (clipWidth>=55?'<span>'+esc(cue.text)+'</span>':'<span aria-hidden="true">◆</span>')+'</button>';
  }).join('');
  reminderClips.style.height=Math.max(31,rows.length*29+3)+'px';
@@ -88,10 +88,18 @@ function cancelReminderRail(){
  reminderRailDrag=null;
  if(reminderRail.hasPointerCapture(pointerId))reminderRail.releasePointerCapture(pointerId);
 }
+reminderClips.addEventListener('contextmenu',event=>{
+ if(!reminderOpen||reminderLocked||reminderRailDrag)return;
+ const marker=event.target.closest('[data-reminder-cue]');
+ if(!marker)return;
+ event.preventDefault();
+ editReminder(marker.dataset.reminderCue);
+});
 reminderRail.addEventListener('pointerdown',event=>{
  if(!reminderOpen||reminderLocked||reminderRailDrag||event.button!==0)return;
  if(event.clientX>=reminderRail.getBoundingClientRect().left+reminderRail.clientWidth)return;
  const clip=event.target.closest('[data-reminder-cue]');
+ if(clip&&event.ctrlKey&&event.pointerType==='mouse')return;
  const item=clip&&reminderTimeline.find(({cue})=>cue.id===clip.dataset.reminderCue);
  const handle=event.target===reminderHandle;
  const at=reminderTimeAt(event.clientX);

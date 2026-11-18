@@ -2,7 +2,7 @@
 
 Stagebook is an offline workspace for blocking and rehearsing musical theatre, plays, and student productions. Time an entrance against a lyric, give actors the same stage plan to practise from, and put the next lighting cue on a screen at the desk.
 
-**[Download Stagebook 10.1](https://github.com/YiChenLu0119-prog/stagebook/releases/download/v10.1.0/Stagebook-v10.1.0-offline.zip)** · [Hamilton production](#try-the-hamilton-production) · [FAQ](#faq) · [Release notes](https://github.com/YiChenLu0119-prog/stagebook/releases/tag/v10.1.0) · [Roadmap](docs/ROADMAP.md)
+**[Download Stagebook 10.1.1](https://github.com/YiChenLu0119-prog/stagebook/releases/download/v10.1.1/Stagebook-v10.1.1-offline.zip)** · [Hamilton production](#try-the-hamilton-production) · [FAQ](#faq) · [Release notes](https://github.com/YiChenLu0119-prog/stagebook/releases/tag/v10.1.1) · [Roadmap](docs/ROADMAP.md)
 
 ![Stagebook 10.1 Edit workspace showing the stage, lyrics, step notes, and timed actor tracks](docs/images/v10.1/blocking.jpg)
 
@@ -41,7 +41,7 @@ In **Sing**, highlight your roles while keeping the other singers' lines visible
 <details>
 <summary><strong>Lighting crew · Call the next cue</strong></summary>
 
-Place a lighting cue at the playhead and optionally snap it to a lyric. Sketch each cue on the stage. The fullscreen **Light cues** workspace shows the countdown, cue text, lyrics, and a faint preview of the next sketch.
+Place a lighting cue at the playhead and optionally snap it to a lyric. Sketch each cue on the stage. To edit or delete a cue, select it from the list beside the timeline. Right-click its marker or press **F2** with a cue selected to open the editor. The fullscreen **Light cues** workspace shows the countdown, cue text, lyrics, and a faint preview of the next sketch.
 
 ![Light cues showing a large countdown, the stage sketch, the active lyric, and cue markers](docs/images/v10.1/light-cues.jpg)
 
@@ -60,7 +60,7 @@ Attach a recording to a song, scrub to the section you want, or open the player 
 
 [Download the complete 17-song Hamilton production ZIP](https://github.com/YiChenLu0119-prog/stagebook/releases/download/v10.1.0/Hamilton-17-song-production.zip) (about 321 MB). It includes audio, timed lyrics, editable voice practice data, and blocking for **Alexander Hamilton** and **My Shot**. The opening number also includes a lighting cue and full-song rehearsal video. The library includes three saved production snapshots and a separate reference entry for the opening number.
 
-Import the ZIP into Stagebook, or extract it and open its included **Stagebook.html**.
+To use the latest Stagebook version with this production, open the new **Stagebook.html** and choose **⋯ → Import → Import production ZIP**.
 
 ## FAQ
 

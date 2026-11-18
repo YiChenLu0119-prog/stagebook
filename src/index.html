@@ -65,7 +65,11 @@
     </div>
     <output id="reminderClock"></output>
     <button id="reminderEdit" class="outline" data-action="reminder-add" data-i18n="＋ 添加提醒">＋ 添加提醒</button>
-    <button id="reminderEditSelected" data-action="reminder-edit-selected" data-i18n="编辑所选提醒">编辑所选提醒</button>
+    <div class="reminder-cue-controls">
+     <select id="reminderCuePicker" aria-label="选择提醒" data-i18n-aria-label="选择提醒" disabled></select>
+     <button id="reminderEditSelected" type="button" data-action="reminder-edit-selected" data-i18n="编辑提醒" disabled>编辑提醒</button>
+     <button id="reminderDeleteSelected" type="button" class="danger" data-action="reminder-delete-selected" data-i18n="删除提醒" disabled>删除提醒</button>
+    </div>
     <details class="local-tools reminder-rail-tools" data-ui-menu ><summary title="时间轴工具" data-i18n-title="时间轴工具" aria-label="时间轴工具" data-i18n-aria-label="时间轴工具"><span aria-hidden="true">⋯</span></summary><div class="local-tools-popover"><div class="reminder-zoom">
      <button data-action="reminder-zoom-out" aria-label="缩小时间轴" data-i18n-aria-label="缩小时间轴">−</button>
      <button data-action="reminder-zoom-in" aria-label="放大时间轴" data-i18n-aria-label="放大时间轴">＋</button>

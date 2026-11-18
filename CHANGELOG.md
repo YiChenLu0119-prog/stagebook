@@ -1,5 +1,10 @@
 # Changelog
 
+## 10.1.1 — 2026-11-18
+
+- Select an existing light cue by time and label, then edit or delete it directly beside the timeline. Cue deletion can be undone.
+- Right-click a cue marker, Control-click it on Mac, or select a cue and press F2 to open its editor. Live lock keeps these actions disabled.
+
 ## 10.1.0 — 2026-11-16
 
 - Make editing, actor rehearsal, singing, rehearsal video, and the lighting cue prompter easier to switch between. Fullscreen keeps playback controls in reach and returns to the same workspace.

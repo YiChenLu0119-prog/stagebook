@@ -1,6 +1,6 @@
 # Stagebook quick start
 
-Stagebook 10.1
+Stagebook 10.1.1
 
 OPEN AND SAVE
 Extract the package and open “Stagebook.html”. The “演出资料” folder contains the editable data. New productions, songs, actors and props use in-app forms; press Enter to create or Cancel to return. Import a complete ZIP or folder to continue another production.
@@ -27,7 +27,7 @@ Pinch with two fingers over the timeline to zoom around the pointer; a two-finge
 Focus stage keeps the lyrics and inspector visible. Expand timeline or drag the divider to resize panels. Longer labels wrap rather than changing your production.
 
 CUE PROMPTER FOR LIGHTING
-Open **Light cues**. Drag the playhead to the right moment and select Add cue. Drag a cue marker to change its time. Click to select the cue and draw directly on the stage. Choose Edit selected cue to edit the text or snap it to a lyric. During playback the current sketch is solid, and Preview next sketch adds a faint dashed overlay for the next cue. Save keeps each sketch with its cue.
+Open **Light cues**. Drag the playhead to the right moment and select Add cue. Drag a cue marker to change its time. Click to select the cue and draw directly on the stage. Pick an existing cue from the list beside the timeline, then choose **Edit cue** or **Delete cue**. Right-click a marker, Control-click it on Mac, or select a cue and press **F2** to edit its text or lyric link. Use **⌘/Ctrl + Z** to undo a deletion. Unlock the live controls before editing. During playback the current sketch is solid, and Preview next sketch adds a faint dashed overlay for the next cue. Save keeps each sketch with its cue.
 
 DELETE AND UNDO
 Select a step and choose Delete step or press Delete / Backspace. With an actor selected, Delete removes only that actor's movement in the step; it keeps the character.
